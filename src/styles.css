@@ -1,6 +1,6 @@
 :root {
   color: #eff8fb;
-  background: #111820;
+  background: #061019;
   font-family:
     "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
   font-synthesis: none;
@@ -19,112 +19,470 @@ body {
 }
 
 button {
-  border: 1px solid rgba(225, 245, 255, 0.4);
-  color: #f3fbff;
-  background: rgba(9, 23, 32, 0.78);
+  border: 1px solid rgba(40, 210, 255, 0.7);
+  color: #effcff;
+  background: rgba(4, 21, 31, 0.78);
   cursor: pointer;
   font: inherit;
 }
 
-button:hover {
-  border-color: #ffffff;
-  background: rgba(31, 138, 192, 0.72);
+button:hover:not(:disabled) {
+  border-color: #fff0a2;
+  color: #fff7b5;
+  background: rgba(18, 70, 86, 0.86);
 }
 
-.gameShell {
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+canvas {
+  display: block;
+}
+
+.homeShell,
+.gameShell,
+.gridShell {
   position: relative;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: #111820;
+  background: #061019;
 }
 
-.hud {
+.screenFrame,
+.gridBackdrop {
+  position: absolute;
+  inset: 18px;
+  z-index: 2;
+  pointer-events: none;
+  border: 1px solid rgba(22, 196, 246, 0.55);
+  clip-path: polygon(0 14px, 14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px));
+  box-shadow: inset 0 0 38px rgba(0, 183, 255, 0.14);
+}
+
+.homeHeader,
+.gridHeader,
+.battleBrand {
+  position: absolute;
+  z-index: 5;
+  color: #28d9ff;
+  letter-spacing: 0;
+}
+
+.homeHeader {
+  top: 30px;
+  left: 34px;
+  right: 34px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.homeHeader strong {
+  border: 1px solid rgba(40, 217, 255, 0.65);
+  padding: 12px 18px;
+  color: #4ff8ff;
+  background: rgba(4, 18, 28, 0.78);
+}
+
+.titleBlock {
+  position: absolute;
+  z-index: 4;
+  top: 18%;
+  left: 50%;
+  width: min(820px, calc(100vw - 40px));
+  transform: translateX(-50%);
+  text-align: center;
+  text-shadow: 0 0 32px rgba(98, 219, 255, 0.45);
+}
+
+.titleBlock p,
+.titleBlock span,
+.missionPreview span,
+.gridHeader span,
+.tacticalPanel span {
+  color: #27d9ff;
+  font-weight: 700;
+}
+
+.titleBlock p {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+.titleBlock h1 {
+  margin: 0;
+  color: #f7fdff;
+  font-size: clamp(54px, 9vw, 120px);
+  line-height: 0.92;
+}
+
+.titleBlock strong {
+  display: block;
+  margin-top: 14px;
+  color: #f6d84b;
+  font-size: clamp(18px, 2.8vw, 34px);
+  letter-spacing: 0.42em;
+}
+
+.titleBlock span {
+  display: block;
+  margin-top: 20px;
+  color: #e8f8ff;
+  font-size: clamp(14px, 1.8vw, 22px);
+}
+
+.mainMenu {
+  position: absolute;
+  z-index: 5;
+  left: 5vw;
+  top: 44%;
+  display: grid;
+  gap: 10px;
+  width: min(390px, 44vw);
+}
+
+.mainMenu button {
+  min-height: 70px;
+  padding: 0 28px;
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 50%, calc(100% - 22px) 100%, 0 100%, 10px 50%);
+  text-align: left;
+  color: #35e4ff;
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 800;
+  background: linear-gradient(90deg, rgba(2, 26, 39, 0.92), rgba(4, 56, 73, 0.68));
+  box-shadow: inset 0 0 22px rgba(34, 216, 255, 0.12);
+}
+
+.mainMenu .primaryMenuButton {
+  border-color: #ffe15a;
+  color: #ffe15a;
+  background: linear-gradient(90deg, rgba(82, 72, 24, 0.9), rgba(30, 55, 61, 0.64));
+  box-shadow: 0 0 24px rgba(255, 220, 73, 0.24), inset 0 0 22px rgba(255, 220, 73, 0.18);
+}
+
+.missionPreview {
+  position: absolute;
+  z-index: 5;
+  right: 4vw;
+  bottom: 8vh;
+  width: min(420px, 34vw);
+  padding: 22px;
+  border: 1px solid rgba(40, 217, 255, 0.75);
+  background: rgba(3, 19, 29, 0.78);
+  box-shadow: inset 0 0 30px rgba(36, 212, 255, 0.12);
+  clip-path: polygon(0 18px, 18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px));
+}
+
+.previewStage {
+  position: relative;
+  height: 130px;
+  margin: 12px 0 16px;
+  overflow: hidden;
+  border: 1px solid rgba(111, 224, 255, 0.4);
+  background: linear-gradient(160deg, rgba(190, 231, 244, 0.9), rgba(18, 73, 90, 0.84));
+}
+
+.previewStage::before {
+  position: absolute;
+  inset: auto 0 0;
+  height: 45%;
+  content: "";
+  background-image: linear-gradient(rgba(0, 130, 170, 0.25) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 130, 170, 0.25) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+.previewStage i {
+  position: absolute;
+  bottom: 32px;
+  width: 54px;
+  height: 58px;
+  background: rgba(19, 46, 57, 0.58);
+}
+
+.previewStage i:nth-child(1) { left: 34px; height: 36px; }
+.previewStage i:nth-child(2) { left: 132px; height: 78px; }
+.previewStage i:nth-child(3) { right: 48px; height: 50px; }
+
+.missionPreview p {
+  margin: 10px 0;
+  color: #d9f6ff;
+  line-height: 1.6;
+}
+
+.threatLine {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 4px;
+  margin-top: 14px;
+}
+
+.threatLine b {
+  height: 10px;
+  border: 1px solid rgba(255, 218, 75, 0.45);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.threatLine b.filled {
+  background: #ffda4b;
+  box-shadow: 0 0 10px rgba(255, 218, 75, 0.55);
+}
+
+.pilotLog {
+  position: absolute;
+  z-index: 5;
+  left: 34px;
+  bottom: 34px;
+  width: min(500px, calc(100vw - 68px));
+  margin: 0;
+  padding: 22px 28px;
+  border: 1px solid rgba(40, 217, 255, 0.42);
+  color: #eaf8ff;
+  background: rgba(3, 16, 24, 0.66);
+  font-size: 20px;
+}
+
+.battleHud {
   position: absolute;
   inset: 0;
+  z-index: 5;
   pointer-events: none;
 }
 
-.hudTop,
-.hudBottom,
-.enemySelector,
-.enemyDescription {
+.battleHud button,
+.centerBanner {
+  pointer-events: auto;
+}
+
+.battleBrand {
+  top: 24px;
+  left: 24px;
+}
+
+.battleBrand button,
+.enemyBookButton {
+  min-height: 36px;
+  padding: 0 14px;
+  color: #28d9ff;
+  font-weight: 800;
+}
+
+.tacticalPanel {
+  border: 1px solid rgba(40, 217, 255, 0.55);
+  background: rgba(3, 17, 27, 0.72);
+  box-shadow: inset 0 0 22px rgba(32, 203, 255, 0.11);
+  backdrop-filter: blur(12px);
+}
+
+.playerStatus {
   position: absolute;
-  z-index: 3;
+  top: 58px;
+  left: 26px;
+  width: min(385px, 30vw);
+  padding: 14px 18px;
 }
 
-.hudTop {
-  top: 20px;
-  left: 20px;
-  right: 20px;
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
+.playerStatus strong {
+  float: right;
+  color: #dff5ff;
+  font-size: 18px;
 }
 
-.hudBottom {
-  left: 20px;
-  right: 20px;
-  bottom: 20px;
-  display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) 130px 160px;
-  gap: 12px;
-}
-
-.meterPanel,
-.enemyPanel,
-.weaponPanel {
-  min-width: 0;
-  border: 1px solid rgba(194, 226, 238, 0.24);
-  background: rgba(8, 18, 25, 0.62);
-  padding: 12px;
-  backdrop-filter: blur(14px);
-}
-
-.meterPanel,
-.enemyPanel {
-  width: min(310px, 42vw);
-}
-
-.hudLabel {
-  display: block;
-  margin-bottom: 4px;
-  color: #9fc1cd;
-  font-size: 12px;
-}
-
-.meterPanel strong,
-.enemyPanel strong,
-.weaponPanel strong {
-  display: block;
-  color: #ffffff;
-  font-size: 20px;
-  line-height: 1.2;
-}
-
-.weaponPanel small {
-  color: #a8ddea;
-}
-
-.meter {
-  height: 8px;
-  margin-top: 10px;
+.segmentedMeter {
+  width: 100%;
+  height: 12px;
+  margin: 8px 0 20px;
+  border: 1px solid rgba(177, 239, 255, 0.55);
+  background: rgba(255, 255, 255, 0.1);
+  transform: skewX(-18deg);
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.14);
 }
 
-.meter span {
+.segmentedMeter i {
   display: block;
   height: 100%;
-  background: #7ef7c8;
 }
 
-.enemyMeter span {
-  background: #ffcf5a;
+.segmentedMeter.cyan i {
+  background: #20e7ff;
 }
 
-.pressureMeter span {
-  background: #69d9ff;
+.segmentedMeter.yellow i {
+  background: linear-gradient(90deg, #4ad6ff 0 38%, #ffd84d 38% 100%);
+}
+
+.bossBar {
+  position: absolute;
+  top: 42px;
+  left: 32%;
+  right: 26%;
+  color: #effcff;
+}
+
+.bossBar strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 24px;
+}
+
+.bossBar div {
+  height: 16px;
+  border: 1px solid rgba(191, 229, 239, 0.5);
+  background: rgba(255, 255, 255, 0.14);
+  transform: skewX(-15deg);
+  overflow: hidden;
+}
+
+.bossBar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff315b, #ff315b 82%, #ffd84d 82%);
+}
+
+.scorePanel {
+  position: absolute;
+  top: 52px;
+  right: 26px;
+  width: 250px;
+  padding: 16px;
+}
+
+.scorePanel strong {
+  display: block;
+  color: #ffd84d;
+  font-size: 30px;
+  text-align: right;
+}
+
+.scorePanel b {
+  display: block;
+  color: #c9d9e1;
+  font-size: 26px;
+  text-align: right;
+}
+
+.missionPanel {
+  position: absolute;
+  top: 214px;
+  right: 26px;
+  width: 290px;
+  padding: 18px;
+}
+
+.missionPanel p {
+  color: #effcff;
+  line-height: 1.7;
+}
+
+.missionPanel label {
+  display: block;
+  color: #e9f8ff;
+}
+
+.enemyBookButton {
+  position: absolute;
+  top: 388px;
+  right: 26px;
+}
+
+.radarPanel {
+  position: absolute;
+  left: 26px;
+  bottom: 24px;
+  width: 330px;
+  padding: 14px;
+}
+
+.radarCircle {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  margin-bottom: 8px;
+  border: 2px solid rgba(40, 217, 255, 0.75);
+  border-radius: 999px;
+  background: repeating-radial-gradient(circle, rgba(40, 217, 255, 0.18) 0 1px, transparent 1px 24px);
+}
+
+.radarCircle i,
+.radarCircle b {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: #ffd84d;
+}
+
+.radarCircle i {
+  left: 62%;
+  top: 32%;
+  background: #ff315b;
+}
+
+.radarPanel p {
+  margin: 6px 0;
+  color: #d9f5ff;
+}
+
+.itemPanel {
+  position: absolute;
+  left: 41%;
+  bottom: 24px;
+  width: 250px;
+  padding: 14px;
+}
+
+.itemSlots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.itemSlots b {
+  min-height: 72px;
+  padding: 10px;
+  border: 1px solid rgba(40, 217, 255, 0.45);
+  color: #e8f8ff;
+  font-size: 13px;
+}
+
+.weaponStatus,
+.skillStatus {
+  position: absolute;
+  right: 26px;
+  width: 410px;
+  padding: 14px 18px;
+}
+
+.weaponStatus {
+  bottom: 120px;
+}
+
+.skillStatus {
+  bottom: 24px;
+}
+
+.weaponStatus strong {
+  float: right;
+  color: #f7fbff;
+  font-size: 30px;
+}
+
+.weaponStatus small {
+  display: block;
+  clear: both;
+  color: #bddae3;
+}
+
+.skillStatus strong {
+  display: block;
+  margin: 8px 0;
+  color: #effcff;
 }
 
 .reticle {
@@ -132,8 +490,8 @@ button:hover {
   top: 50%;
   left: 50%;
   z-index: 4;
-  width: 28px;
-  height: 28px;
+  width: 48px;
+  height: 48px;
   transform: translate(-50%, -50%);
   border: 1px solid rgba(255, 255, 255, 0.76);
   border-radius: 999px;
@@ -147,31 +505,30 @@ button:hover {
 }
 
 .reticle::before {
-  top: 13px;
-  left: -9px;
-  width: 46px;
+  top: 23px;
+  left: -18px;
+  width: 82px;
   height: 1px;
 }
 
 .reticle::after {
-  top: -9px;
-  left: 13px;
+  top: -18px;
+  left: 23px;
   width: 1px;
-  height: 46px;
+  height: 82px;
 }
 
 .centerBanner {
   position: absolute;
   top: 50%;
   left: 50%;
-  z-index: 5;
+  z-index: 8;
   width: min(560px, calc(100vw - 40px));
   padding: 28px;
   transform: translate(-50%, -50%);
   border: 1px solid rgba(226, 247, 255, 0.34);
-  background: rgba(7, 17, 24, 0.78);
+  background: rgba(7, 17, 24, 0.82);
   text-align: center;
-  pointer-events: auto;
   backdrop-filter: blur(16px);
 }
 
@@ -183,15 +540,13 @@ button:hover {
 .centerBanner h1 {
   margin: 0 0 22px;
   color: #ffffff;
-  font-size: clamp(34px, 6vw, 68px);
-  line-height: 0.95;
+  font-size: clamp(30px, 5vw, 58px);
+  line-height: 1.08;
 }
 
-.centerBanner button,
-.enemySelector button {
-  min-height: 40px;
-  padding: 0 16px;
-  pointer-events: auto;
+.centerBanner button {
+  min-height: 44px;
+  padding: 0 20px;
 }
 
 .clearBanner h1 {
@@ -199,77 +554,226 @@ button:hover {
   text-shadow: 0 0 32px rgba(255, 243, 130, 0.64);
 }
 
-.enemySelector {
-  top: 98px;
-  left: 20px;
+.gridShell {
+  padding: 28px 34px;
+}
+
+.gridBackdrop {
+  background: rgba(0, 10, 17, 0.72);
+}
+
+.starsLayer span {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #1bd4ff;
+  box-shadow: 0 0 12px #1bd4ff;
+}
+
+.starsLayer span:nth-child(1) { left: 18%; top: 24%; }
+.starsLayer span:nth-child(2) { left: 66%; top: 12%; }
+.starsLayer span:nth-child(3) { left: 84%; top: 72%; }
+
+.gridHeader {
+  position: relative;
+  z-index: 4;
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.gridHeader h1 {
+  display: inline;
+  margin: 0 14px 0 0;
+  color: #f4fbff;
+  font-size: clamp(24px, 3.2vw, 34px);
+}
+
+.gridHeader button {
+  min-height: 40px;
+  padding: 0 16px;
+}
+
+.enemyGrid {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+  height: calc(100vh - 128px);
 }
 
-.enemySelector button {
-  min-width: 74px;
+.enemyCard {
+  min-height: 0;
+  border: 1px solid rgba(40, 217, 255, 0.42);
+  background: rgba(4, 18, 28, 0.78);
 }
 
-.enemySelector button.active {
-  border-color: #fff1a3;
-  background: rgba(242, 201, 76, 0.25);
+.enemyCard.selected {
+  border-color: #ffe15a;
+  box-shadow: inset 0 0 28px rgba(255, 224, 77, 0.1);
 }
 
-.enemyDescription {
-  top: 148px;
-  left: 20px;
-  max-width: min(460px, calc(100vw - 40px));
-  margin: 0;
-  color: #cde4ec;
-  font-size: 14px;
-  line-height: 1.7;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+.enemyCard button {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
 }
 
-@media (max-width: 760px) {
-  .hudTop {
-    top: 12px;
-    left: 12px;
-    right: 12px;
+.enemyIndex {
+  position: absolute;
+  z-index: 2;
+  top: 14px;
+  left: 18px;
+  color: #28d9ff;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.enemyPreview {
+  min-height: 0;
+}
+
+.enemyCardFooter {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 12px;
+  margin: 0 12px 12px;
+  padding: 12px;
+  border: 1px solid rgba(40, 217, 255, 0.46);
+  background: rgba(3, 20, 31, 0.86);
+}
+
+.enemyIcon {
+  color: #28d9ff;
+  font-size: 36px;
+  line-height: 1;
+}
+
+.enemyCardFooter strong {
+  margin-right: 10px;
+  color: #f7fbff;
+  font-size: 22px;
+}
+
+.enemyCardFooter em,
+.futureBadge {
+  color: #28d9ff;
+  border: 1px solid rgba(40, 217, 255, 0.45);
+  padding: 2px 7px;
+  font-style: normal;
+  font-size: 12px;
+}
+
+.enemyCardFooter p {
+  margin: 6px 0 0;
+  color: #c7dce5;
+  line-height: 1.45;
+}
+
+.futureBadge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(4, 22, 32, 0.82);
+}
+
+.gridFooter {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  color: #1289a8;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  body {
+    overflow: auto;
   }
 
-  .hudBottom {
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    grid-template-columns: 1fr 1fr;
+  .homeShell,
+  .gridShell,
+  .gameShell {
+    min-height: 100vh;
+    height: auto;
   }
 
-  .meterPanel,
-  .enemyPanel {
-    width: 44vw;
-    padding: 10px;
+  .titleBlock {
+    top: 12%;
   }
 
-  .weaponPanel {
-    padding: 10px;
+  .mainMenu {
+    top: 42%;
+    left: 16px;
+    width: calc(100vw - 32px);
   }
 
-  .weaponPanel.compact strong,
-  .meterPanel strong,
-  .enemyPanel strong,
-  .weaponPanel strong {
-    font-size: 16px;
+  .missionPreview {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    width: calc(100vw - 32px);
+    margin: 76vh 16px 24px;
   }
 
-  .enemySelector {
-    top: 86px;
-    left: 12px;
+  .pilotLog {
+    display: none;
   }
 
-  .enemyDescription {
-    top: 136px;
-    left: 12px;
-    right: 12px;
-    font-size: 12px;
+  .battleHud {
+    position: relative;
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    background: #07111a;
   }
 
-  .centerBanner {
-    padding: 22px;
+  .battleBrand,
+  .playerStatus,
+  .bossBar,
+  .scorePanel,
+  .missionPanel,
+  .enemyBookButton,
+  .radarPanel,
+  .itemPanel,
+  .weaponStatus,
+  .skillStatus {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+  }
+
+  .bossBar {
+    order: -1;
+  }
+
+  .reticle {
+    display: none;
+  }
+
+  .enemyGrid {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .enemyCard {
+    height: 360px;
+  }
+
+  .gridShell {
+    overflow: auto;
   }
 }

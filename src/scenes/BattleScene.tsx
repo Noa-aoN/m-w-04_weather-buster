@@ -1,80 +1,72 @@
 import { Canvas } from "@react-three/fiber";
 import { Sky, Stars } from "@react-three/drei";
 import { useMemo, useState } from "react";
+import { WeatherEnemyModel } from "../entities/WeatherEnemyModel";
 import { BattleHud } from "../features/hud/BattleHud";
 import { calculateSunnyScore } from "../game/score";
-import type { BattleStatus, WeatherEnemy } from "../game/types";
+import type { BattleStatus, WeatherEnemyId } from "../game/types";
 import { initialWeapon, weatherEnemies } from "../game/data";
 import { clamp } from "../shared/math";
 
-function EnemyCore({
-  enemy,
-  isClear,
-}: {
-  enemy: WeatherEnemy;
-  isClear: boolean;
-}) {
-  return (
-    <group position={[0, 1.6, -4]}>
-      <mesh>
-        <sphereGeometry args={[0.82, 48, 48]} />
-        <meshStandardMaterial
-          color={isClear ? "#f7f3c1" : enemy.color}
-          emissive={isClear ? "#fff5a0" : enemy.accentColor}
-          emissiveIntensity={isClear ? 0.7 : 0.28}
-          roughness={0.35}
-        />
-      </mesh>
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[1.18, 0.025, 12, 96]} />
-        <meshStandardMaterial color={enemy.accentColor} emissive={enemy.accentColor} />
-      </mesh>
-    </group>
-  );
-}
+function ExperimentField({ enemyId, isClear }: { enemyId: WeatherEnemyId; isClear: boolean }) {
+  const enemy = weatherEnemies.find((candidate) => candidate.id === enemyId) ?? weatherEnemies[0];
 
-function ExperimentField({
-  enemy,
-  isClear,
-}: {
-  enemy: WeatherEnemy;
-  isClear: boolean;
-}) {
   return (
     <>
-      <color attach="background" args={[isClear ? "#8ccff0" : "#26333f"]} />
+      <color attach="background" args={[isClear ? "#7dc7ed" : "#0b1722"]} />
       {isClear ? (
-        <Sky sunPosition={[2, 1, 3]} turbidity={3} rayleigh={0.8} />
+        <Sky sunPosition={[2, 1, 3]} turbidity={3} rayleigh={0.9} />
       ) : (
-        <Stars radius={80} depth={35} count={1600} factor={4} saturation={0} fade />
+        <Stars radius={80} depth={35} count={1300} factor={4} saturation={0} fade />
       )}
-      <ambientLight intensity={isClear ? 1.2 : 0.45} />
-      <directionalLight position={[4, 8, 3]} intensity={isClear ? 3 : 1.5} />
-      <fog attach="fog" args={[isClear ? "#c8ecff" : "#26333f", 7, 18]} />
+      <ambientLight intensity={isClear ? 1.2 : 0.42} />
+      <directionalLight position={[4, 8, 3]} intensity={isClear ? 3 : 1.7} color={isClear ? "#ffffff" : enemy.accentColor} />
+      <pointLight position={[0, 1.4, -3]} intensity={3} color={enemy.coreColor} />
+      <fog attach="fog" args={[isClear ? "#c8ecff" : "#0b1722", 8, 24]} />
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-        <planeGeometry args={[22, 22, 24, 24]} />
-        <meshStandardMaterial
-          color={isClear ? "#d9f6ff" : "#1b2730"}
-          metalness={0.1}
-          roughness={0.6}
-        />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
+        <planeGeometry args={[28, 28, 32, 32]} />
+        <meshStandardMaterial color={isClear ? "#d9f6ff" : "#111d26"} metalness={0.2} roughness={0.36} />
       </mesh>
 
-      {[-5, 0, 5].map((x) => (
-        <mesh key={x} position={[x, 0.45, -1.5]}>
-          <boxGeometry args={[1.2, 0.9, 1.2]} />
-          <meshStandardMaterial color={isClear ? "#b8d8de" : "#33424a"} />
+      {[-6, -3, 1.5, 5.5].map((x, index) => (
+        <mesh key={x} position={[x, 0.55 + index * 0.18, -2.8 - index * 1.1]}>
+          <boxGeometry args={[1.5, 1.1 + index * 0.24, 1.5]} />
+          <meshStandardMaterial color={isClear ? "#abc9d2" : "#263945"} emissive="#0ba0d7" emissiveIntensity={0.07} />
         </mesh>
       ))}
 
-      <EnemyCore enemy={enemy} isClear={isClear} />
+      <group position={[0, 2.0, -5.2]} scale={1.55}>
+        <WeatherEnemyModel enemy={enemy} clear={isClear} />
+      </group>
+
+      {!isClear && enemy.id === "thunderstorm"
+        ? [-2.4, 2.2].map((x) => (
+            <mesh key={x} position={[x, 0.72, -3.2]} rotation={[0, 0, x > 0 ? -0.08 : 0.08]}>
+              <boxGeometry args={[0.08, 3.1, 0.08]} />
+              <meshStandardMaterial color="#ffd84d" emissive="#ffd84d" emissiveIntensity={1.4} />
+            </mesh>
+          ))
+        : null}
     </>
   );
 }
 
-export function BattleScene() {
-  const [selectedEnemyId, setSelectedEnemyId] = useState(weatherEnemies[0].id);
+function formatTime(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+export function BattleScene({
+  selectedEnemyId,
+  onBack,
+  onOpenEnemyGrid,
+}: {
+  selectedEnemyId: WeatherEnemyId;
+  onBack: () => void;
+  onOpenEnemyGrid: () => void;
+}) {
   const enemy = useMemo(
     () => weatherEnemies.find((candidate) => candidate.id === selectedEnemyId) ?? weatherEnemies[0],
     [selectedEnemyId],
@@ -83,7 +75,9 @@ export function BattleScene() {
   const [enemyHp, setEnemyHp] = useState(enemy.maxHp);
   const [shotsFired, setShotsFired] = useState(0);
   const [shotsHit, setShotsHit] = useState(0);
-  const [pressureGauge, setPressureGauge] = useState(0);
+  const [pressureGauge, setPressureGauge] = useState(78);
+  const [ammo, setAmmo] = useState(24);
+  const [elapsedSeconds, setElapsedSeconds] = useState(157);
 
   const isClear = status === "clear";
   const score = calculateSunnyScore({
@@ -93,19 +87,23 @@ export function BattleScene() {
     shotsHit,
   });
 
-  function resetBattle(nextEnemy: WeatherEnemy = enemy) {
+  function resetBattle() {
     setStatus("ready");
-    setEnemyHp(nextEnemy.maxHp);
+    setEnemyHp(enemy.maxHp);
     setShotsFired(0);
     setShotsHit(0);
-    setPressureGauge(0);
+    setPressureGauge(78);
+    setAmmo(24);
+    setElapsedSeconds(157);
   }
 
   function startBattle() {
     setEnemyHp(enemy.maxHp);
     setShotsFired(0);
     setShotsHit(0);
-    setPressureGauge(0);
+    setPressureGauge(78);
+    setAmmo(24);
+    setElapsedSeconds(157);
     setStatus("battle");
   }
 
@@ -116,7 +114,9 @@ export function BattleScene() {
 
     setShotsFired((current) => current + 1);
     setShotsHit((current) => current + 1);
-    setPressureGauge((current) => clamp(current + 14, 0, 100));
+    setPressureGauge((current) => clamp(current + 5, 0, 100));
+    setAmmo((current) => Math.max(current - 1, 0));
+    setElapsedSeconds((current) => current + 1);
     setEnemyHp((current) => {
       const nextHp = Math.max(current - initialWeapon.damage, 0);
       if (nextHp === 0) {
@@ -128,30 +128,9 @@ export function BattleScene() {
 
   return (
     <main className="gameShell">
-      <Canvas
-        camera={{ position: [0, 2.2, 5.8], fov: 58 }}
-        onPointerDown={shoot}
-      >
-        <ExperimentField enemy={enemy} isClear={isClear} />
+      <Canvas camera={{ position: [0, 2.15, 7.1], fov: 58 }} onPointerDown={shoot}>
+        <ExperimentField enemyId={enemy.id} isClear={isClear} />
       </Canvas>
-
-      <div className="enemySelector" aria-label="敵天候選択">
-        {weatherEnemies.map((candidate) => (
-          <button
-            key={candidate.id}
-            type="button"
-            className={candidate.id === enemy.id ? "active" : ""}
-            onClick={() => {
-              setSelectedEnemyId(candidate.id);
-              resetBattle(candidate);
-            }}
-          >
-            {candidate.name}
-          </button>
-        ))}
-      </div>
-
-      <p className="enemyDescription">{enemy.description}</p>
 
       <BattleHud
         enemy={enemy}
@@ -159,12 +138,16 @@ export function BattleScene() {
         playerHp={100}
         weapon={initialWeapon}
         pressureGauge={pressureGauge}
+        ammo={ammo}
+        elapsedTime={formatTime(elapsedSeconds)}
         shotsFired={shotsFired}
         shotsHit={shotsHit}
         score={score}
         status={status}
         onStart={startBattle}
-        onReset={() => resetBattle()}
+        onReset={resetBattle}
+        onBack={onBack}
+        onOpenEnemyGrid={onOpenEnemyGrid}
       />
     </main>
   );
