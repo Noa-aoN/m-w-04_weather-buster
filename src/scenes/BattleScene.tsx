@@ -81,6 +81,8 @@ function PlayerBackAvatar() {
   const { camera } = useThree();
   const groupRef = useRef<Group>(null);
   const flashRef = useRef<Mesh>(null);
+  const lookTarget = useRef(new Vector3());
+  const forwardVec = useRef(new Vector3());
   const [flashVisible, setFlashVisible] = useState(false);
   const lastShotAt = useBattleStore((state) => state.lastShotAt);
   const cameraMode = useBattleStore((state) => state.cameraMode);
@@ -91,13 +93,13 @@ function PlayerBackAvatar() {
 
   const charFitted = useMemo(() => {
     const c = charGltf.scene.clone(true);
-    fitObjectToHeight(c, 1.5);
+    fitObjectToHeight(c, 1.7);
     return c;
   }, [charGltf]);
 
   const weaponFitted = useMemo(() => {
     const c = weaponGltf.scene.clone(true);
-    fitObjectToSize(c, 0.55);
+    fitObjectToSize(c, 0.6);
     return c;
   }, [weaponGltf]);
 
@@ -115,10 +117,23 @@ function PlayerBackAvatar() {
     if (!node || cameraMode !== "tps") {
       return;
     }
-    node.position.copy(camera.position);
-    node.quaternion.copy(camera.quaternion);
-    node.translateY(-1.0);
-    node.translateZ(-2.0);
+    camera.getWorldDirection(forwardVec.current);
+    forwardVec.current.y = 0;
+    if (forwardVec.current.lengthSq() === 0) {
+      forwardVec.current.set(0, 0, -1);
+    }
+    forwardVec.current.normalize();
+    node.position.set(
+      camera.position.x + forwardVec.current.x * 1.8,
+      0,
+      camera.position.z + forwardVec.current.z * 1.8,
+    );
+    lookTarget.current.set(
+      node.position.x + forwardVec.current.x * 10,
+      0,
+      node.position.z + forwardVec.current.z * 10,
+    );
+    node.lookAt(lookTarget.current);
   });
 
   if (cameraMode !== "tps") {
@@ -128,7 +143,7 @@ function PlayerBackAvatar() {
   return (
     <group ref={groupRef}>
       <primitive object={charFitted} />
-      <group position={[0.32, 0.95, -0.5]}>
+      <group position={[0.32, 1.05, -0.5]}>
         <group rotation={[0, Math.PI, 0]}>
           <primitive object={weaponFitted} />
         </group>
