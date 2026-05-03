@@ -9,7 +9,9 @@ import {
   playItem,
   playMarkerImpact,
   playMarkerSpawn,
+  playLowAmmoBeep,
   playMiss,
+  playReload,
   playShoot,
   playShieldBlock,
   playSkill,
@@ -82,6 +84,12 @@ export function AudioBridge() {
         } else {
           playMiss();
         }
+        if (state.ammo === 5 && prev.ammo > 5) {
+          playLowAmmoBeep();
+        }
+      }
+      if (state.ammo > prev.ammo) {
+        playReload();
       }
       if (state.lastShieldBlockAt !== prev.lastShieldBlockAt && state.lastShieldBlockAt !== 0) {
         playShieldBlock();
