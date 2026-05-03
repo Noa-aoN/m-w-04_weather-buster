@@ -148,6 +148,52 @@ function HitCracks({ color }: { color: string }) {
   );
 }
 
+function EnemyBarrier({ color }: { color: string }) {
+  const meshRef = useRef<Group>(null);
+  const enemyBarrierUntil = useBattleStore((state) => state.enemyBarrierUntil);
+  const lastEnemyBarrierAt = useBattleStore((state) => state.lastEnemyBarrierAt);
+  useFrame(({ clock }) => {
+    const node = meshRef.current;
+    if (!node) {
+      return;
+    }
+    const now = performance.now();
+    const active = now < enemyBarrierUntil;
+    node.visible = active;
+    if (!active) {
+      return;
+    }
+    const total = Math.max(enemyBarrierUntil - lastEnemyBarrierAt, 1);
+    const elapsed = now - lastEnemyBarrierAt;
+    const k = Math.min(1, elapsed / 220);
+    const fadeOut = Math.max(0, Math.min(1, (enemyBarrierUntil - now) / 360));
+    const ease = k * Math.min(1, fadeOut + 0.5);
+    node.scale.setScalar(0.85 + ease * 0.7 + Math.sin(clock.getElapsedTime() * 8) * 0.04);
+    node.rotation.y = clock.getElapsedTime() * 1.4;
+    node.rotation.x = clock.getElapsedTime() * 0.7;
+    node.children.forEach((child, idx) => {
+      const mat = (child as { material?: { opacity?: number; emissiveIntensity?: number } }).material;
+      if (mat) {
+        if (mat.opacity !== undefined) mat.opacity = (idx === 0 ? 0.32 : 0.42) * fadeOut;
+        if (mat.emissiveIntensity !== undefined) mat.emissiveIntensity = 1.1 + Math.sin(clock.getElapsedTime() * 6 + idx) * 0.6;
+      }
+    });
+    void total;
+  });
+  return (
+    <group ref={meshRef} visible={false}>
+      <mesh>
+        <icosahedronGeometry args={[1.55, 1]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.4} transparent opacity={0.32} wireframe toneMapped={false} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[1.4, 24, 18]} />
+        <meshBasicMaterial color={color} transparent opacity={0.22} toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
+
 export function EnemyFigure({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean }) {
   const groupRef = useRef<Group>(null);
   const lastDefeatAt = useBattleStore((state) => state.lastDefeatAt);
@@ -206,6 +252,7 @@ export function EnemyFigure({ enemy, clear }: { enemy: WeatherEnemy; clear: bool
           <sphereGeometry args={[1.45, 16, 16]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
+        <EnemyBarrier color={enemy.accentColor} />
       </group>
       <DefeatBurst color={enemy.coreColor} />
     </>

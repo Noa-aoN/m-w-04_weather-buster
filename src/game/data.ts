@@ -354,6 +354,9 @@ export type EnemyAttackPattern = {
   followsPlayer: boolean;
   trailGlow: number;
   kind: "arc" | "linear" | "falling";
+  knockback: number;
+  barrierIntervalMs: number;
+  barrierDurationMs: number;
 };
 
 export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
@@ -369,6 +372,9 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
     followsPlayer: false,
     trailGlow: 0.6,
     kind: "arc",
+    knockback: 0,
+    barrierIntervalMs: 0,
+    barrierDurationMs: 0,
   },
   heavyRain: {
     intervalMs: 1100,
@@ -382,6 +388,9 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
     followsPlayer: true,
     trailGlow: 1.4,
     kind: "linear",
+    knockback: 0.6,
+    barrierIntervalMs: 0,
+    barrierDurationMs: 0,
   },
   thunderstorm: {
     intervalMs: 2200,
@@ -395,6 +404,9 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
     followsPlayer: false,
     trailGlow: 2.4,
     kind: "falling",
+    knockback: 0.4,
+    barrierIntervalMs: 17000,
+    barrierDurationMs: 1800,
   },
   tornado: {
     intervalMs: 1700,
@@ -408,6 +420,9 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
     followsPlayer: true,
     trailGlow: 1.4,
     kind: "arc",
+    knockback: 1.6,
+    barrierIntervalMs: 0,
+    barrierDurationMs: 0,
   },
   rainySeason: {
     intervalMs: 2900,
@@ -421,6 +436,9 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
     followsPlayer: false,
     trailGlow: 1.0,
     kind: "arc",
+    knockback: 0.3,
+    barrierIntervalMs: 0,
+    barrierDurationMs: 0,
   },
   blizzard: {
     intervalMs: 2500,
@@ -434,6 +452,9 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
     followsPlayer: false,
     trailGlow: 1.6,
     kind: "arc",
+    knockback: 0.8,
+    barrierIntervalMs: 0,
+    barrierDurationMs: 0,
   },
   typhoon: {
     intervalMs: 1500,
@@ -447,6 +468,9 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
     followsPlayer: true,
     trailGlow: 2.2,
     kind: "linear",
+    knockback: 1.4,
+    barrierIntervalMs: 14000,
+    barrierDurationMs: 2400,
   },
 };
 

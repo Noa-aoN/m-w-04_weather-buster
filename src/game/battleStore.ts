@@ -111,6 +111,12 @@ type BattleState = {
   combo: number;
   comboBest: number;
   lastComboAt: number;
+  enemyBarrierUntil: number;
+  lastEnemyBarrierAt: number;
+  lastBlockedAt: number;
+  knockbackVx: number;
+  knockbackVz: number;
+  lastKnockbackAt: number;
   selectEnemy: (id: WeatherEnemyId) => void;
   selectWeapon: (id: WeaponId) => void;
   selectCharacter: (id: CharacterId) => void;
@@ -142,6 +148,9 @@ type BattleState = {
   shiftMarkerTimes: (deltaMs: number) => void;
   setPointerLocked: (locked: boolean) => void;
   setShieldActive: (active: boolean) => void;
+  raiseEnemyBarrier: (durationMs: number) => void;
+  applyKnockback: (vx: number, vz: number) => void;
+  consumeKnockback: () => { vx: number; vz: number };
 };
 
 const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
@@ -169,6 +178,12 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   combo: 0,
   comboBest: 0,
   lastComboAt: 0,
+  enemyBarrierUntil: 0,
+  lastEnemyBarrierAt: 0,
+  lastBlockedAt: 0,
+  knockbackVx: 0,
+  knockbackVz: 0,
+  lastKnockbackAt: 0,
 });
 
 const findEnemy = (id: WeatherEnemyId) =>
@@ -313,20 +328,23 @@ export const useBattleStore = create<BattleState>((set, get) => {
       }
       const weapon = findWeapon(state.selectedWeaponId);
       const character = findCharacter(state.selectedCharacterId);
+      const nowMs = performance.now();
+      const blocked = didHit && nowMs < state.enemyBarrierUntil;
       const baseDamage = didHit
         ? computeOutgoingDamage(weapon, state.selectedEnemyId, character.damageMultiplier)
         : 0;
-      const damage = critical ? baseDamage * CORE_DAMAGE_MULTIPLIER : baseDamage;
+      const blockMul = blocked ? 0.18 : 1;
+      const damage = (critical ? baseDamage * CORE_DAMAGE_MULTIPLIER : baseDamage) * blockMul;
       const nextHp = Math.max(state.enemyHp - damage, 0);
       const baseGauge = didHit ? (critical ? CRITICAL_GAUGE_GAIN : HIT_GAUGE_GAIN) : MISS_GAUGE_GAIN;
+      const gaugeMul = blocked ? 0.4 : 1;
       const gauge = Math.min(
-        state.pressureGauge + baseGauge * character.gaugeGainMultiplier,
+        state.pressureGauge + baseGauge * character.gaugeGainMultiplier * gaugeMul,
         100,
       );
       const becomesClear = nextHp === 0 && state.enemyHp > 0;
-      const nowMs = performance.now();
       const comboReset = nowMs - state.lastComboAt > 2400;
-      const nextCombo = didHit ? (comboReset ? 1 : state.combo + 1) : 0;
+      const nextCombo = didHit && !blocked ? (comboReset ? 1 : state.combo + 1) : (blocked ? state.combo : 0);
       const nextComboBest = Math.max(state.comboBest, nextCombo);
       set({
         ammo: state.ammo - 1,
@@ -337,12 +355,13 @@ export const useBattleStore = create<BattleState>((set, get) => {
         status: nextHp === 0 ? "clear" : state.status,
         lastShotAt: nowMs,
         lastShotHit: didHit,
-        lastShotCritical: didHit && critical,
+        lastShotCritical: didHit && critical && !blocked,
         lastShotDamage: damage,
+        lastBlockedAt: blocked ? nowMs : state.lastBlockedAt,
         lastDefeatAt: becomesClear ? Date.now() : state.lastDefeatAt,
         combo: nextCombo,
         comboBest: nextComboBest,
-        lastComboAt: didHit ? nowMs : state.lastComboAt,
+        lastComboAt: didHit && !blocked ? nowMs : state.lastComboAt,
       });
     },
     reload: () => {
@@ -488,6 +507,29 @@ export const useBattleStore = create<BattleState>((set, get) => {
     setShieldActive: (active) => {
       const state = get();
       set({ shieldActive: active && state.status === "battle" && state.shieldEnergy > 0 });
+    },
+    raiseEnemyBarrier: (durationMs) => {
+      const state = get();
+      if (state.status !== "battle") {
+        return;
+      }
+      const now = performance.now();
+      set({ enemyBarrierUntil: now + durationMs, lastEnemyBarrierAt: now });
+    },
+    applyKnockback: (vx, vz) => {
+      const state = get();
+      set({
+        knockbackVx: state.knockbackVx + vx,
+        knockbackVz: state.knockbackVz + vz,
+        lastKnockbackAt: performance.now(),
+      });
+    },
+    consumeKnockback: () => {
+      const state = get();
+      const result = { vx: state.knockbackVx, vz: state.knockbackVz };
+      // Decay 92% per call (caller is per-frame)
+      set({ knockbackVx: state.knockbackVx * 0.86, knockbackVz: state.knockbackVz * 0.86 });
+      return result;
     },
   };
 });

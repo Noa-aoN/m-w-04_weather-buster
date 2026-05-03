@@ -51,6 +51,7 @@ export function PlayerController({
   const right = useRef(new Vector3());
   const move = useRef(new Vector3());
   const nextLightningAt = useRef(0);
+  const battleStartedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     setLockTarget(gl.domElement);
@@ -100,7 +101,11 @@ export function PlayerController({
   useFrame((_, delta) => {
     const state = useBattleStore.getState();
     if (state.status !== "battle" || !state.isPointerLocked) {
+      battleStartedAtRef.current = null;
       return;
+    }
+    if (battleStartedAtRef.current === null) {
+      battleStartedAtRef.current = performance.now();
     }
     const stage = findStage(state.selectedStageId);
     const arena = stage.arena;
@@ -193,8 +198,37 @@ export function PlayerController({
         const distance = Math.sqrt(dx * dx + dz * dz);
         if (distance <= marker.radius) {
           state.takeMarkerDamage(marker.damage);
+          const markerEnemyId = (marker as { enemyId?: typeof marker.enemyId }).enemyId;
+          const pat = markerEnemyId ? enemyAttackPatterns[markerEnemyId] : null;
+          if (pat && pat.knockback > 0) {
+            const len = Math.max(distance, 0.0001);
+            // Push player AWAY from impact center
+            const nx = dx / len;
+            const nz = dz / len;
+            state.applyKnockback(nx * pat.knockback * 6, nz * pat.knockback * 6);
+          }
         }
         state.removeLightning(marker.id);
+      }
+    }
+
+    // Apply knockback velocity (decays each frame via consumeKnockback)
+    if (Math.abs(state.knockbackVx) > 0.01 || Math.abs(state.knockbackVz) > 0.01) {
+      const kb = state.consumeKnockback();
+      camera.position.x += kb.vx * delta;
+      camera.position.z += kb.vz * delta;
+      camera.position.x = Math.max(-arena.x, Math.min(arena.x, camera.position.x));
+      camera.position.z = Math.max(arena.zFront, Math.min(arena.zBack, camera.position.z));
+    }
+
+    // Schedule periodic enemy barrier
+    if (enemy && pattern && pattern.barrierIntervalMs > 0 && pattern.barrierDurationMs > 0) {
+      const sinceStart = now - (battleStartedAtRef.current ?? now);
+      if (sinceStart > 4500) {
+        const intervalElapsedSinceLast = now - (state.lastEnemyBarrierAt > 0 ? state.lastEnemyBarrierAt : now - pattern.barrierIntervalMs);
+        if (state.lastEnemyBarrierAt === 0 || intervalElapsedSinceLast >= pattern.barrierIntervalMs) {
+          state.raiseEnemyBarrier(pattern.barrierDurationMs);
+        }
       }
     }
   });
