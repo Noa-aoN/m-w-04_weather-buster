@@ -865,11 +865,27 @@ export function HomeScene({
 function SeedCounter() {
   const seedCount = useBattleStore((state) => state.seedCount);
   const seedHistory = useBattleStore((state) => state.seedHistory);
+  const recent = seedHistory.slice(0, 4);
   return (
     <aside className="seedCounter" aria-label="晴天の種子">
       <span className="seedLabel">晴天の種子</span>
       <strong className="seedValue">{seedCount}</strong>
       <small className="seedSub">{seedHistory.length} 件の戦闘記録</small>
+      {recent.length > 0 ? (
+        <ul className="seedRecent" aria-label="最近の戦闘記録">
+          {recent.map((entry, idx) => {
+            const enemy = weatherEnemies.find((e) => e.id === entry.enemyId);
+            const enemyName = enemy?.name ?? entry.enemyId;
+            return (
+              <li key={`${entry.at}-${idx}`}>
+                <span className={`seedRank seedRank--${entry.rank.toLowerCase()}`}>{entry.rank}</span>
+                <span className="seedEnemy">{enemyName}</span>
+                <em>LV {entry.difficulty}</em>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
     </aside>
   );
 }
