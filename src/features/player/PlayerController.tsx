@@ -18,6 +18,29 @@ const JUMP_HEIGHT = 1.25;
 const JUMP_DURATION = 0.55;
 const GROUND_Y = 2.15;
 
+function getSpecialDelay(enemyId: string): number {
+  // Larger / scarier enemies fire specials more often
+  if (enemyId === "typhoon") return 14000;
+  if (enemyId === "thunderstorm") return 17000;
+  if (enemyId === "rainySeason") return 19000;
+  if (enemyId === "blizzard") return 20000;
+  if (enemyId === "tornado") return 21000;
+  if (enemyId === "heavyRain") return 16000;
+  if (enemyId === "cloudy") return 26000;
+  return 22000;
+}
+
+function getSpecialBurstCount(enemyId: string): number {
+  if (enemyId === "typhoon") return 5;
+  if (enemyId === "heavyRain") return 5;
+  if (enemyId === "thunderstorm") return 4;
+  if (enemyId === "rainySeason") return 4;
+  if (enemyId === "blizzard") return 3;
+  if (enemyId === "tornado") return 3;
+  if (enemyId === "cloudy") return 3;
+  return 0;
+}
+
 export function PlayerController({
   enemyRef,
   enemyPositionRef,
@@ -51,6 +74,7 @@ export function PlayerController({
   const right = useRef(new Vector3());
   const move = useRef(new Vector3());
   const nextLightningAt = useRef(0);
+  const nextSpecialAt = useRef(0);
   const battleStartedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -94,6 +118,9 @@ export function PlayerController({
         pausedAt = null;
         useBattleStore.getState().shiftMarkerTimes(delta);
         nextLightningAt.current += delta;
+        if (nextSpecialAt.current !== 0) {
+          nextSpecialAt.current += delta;
+        }
       }
     });
   }, []);
@@ -106,6 +133,8 @@ export function PlayerController({
     }
     if (battleStartedAtRef.current === null) {
       battleStartedAtRef.current = performance.now();
+      nextLightningAt.current = 0;
+      nextSpecialAt.current = 0;
     }
     const stage = findStage(state.selectedStageId);
     const arena = stage.arena;
@@ -189,6 +218,46 @@ export function PlayerController({
       };
       state.spawnLightning(marker);
       nextLightningAt.current = now + interval;
+    }
+
+    // Periodic enemy special attack: a multi-marker burst that's clearly
+    // telegraphed by the volume of markers but still survivable.
+    if (enemy && pattern && nextSpecialAt.current === 0) {
+      // Initialize on first frame after battle start (gives ~10s grace)
+      nextSpecialAt.current = now + getSpecialDelay(enemy.id);
+    }
+    if (enemy && pattern && now >= nextSpecialAt.current && nextSpecialAt.current !== 0) {
+      const diffMod = difficultyModifiers[state.selectedDifficulty];
+      const burstCount = getSpecialBurstCount(enemy.id);
+      if (burstCount > 0) {
+        const baseTargetX = camera.position.x;
+        const baseTargetZ = camera.position.z;
+        for (let i = 0; i < burstCount; i += 1) {
+          const angle = (i / burstCount) * Math.PI * 2 + Math.random() * 0.4;
+          const ringRadius = 2.4 + Math.random() * 1.2;
+          const tx = Math.max(-arena.x, Math.min(arena.x, baseTargetX + Math.cos(angle) * ringRadius));
+          const tz = Math.max(arena.zFront, Math.min(arena.zBack, baseTargetZ + Math.sin(angle) * ringRadius));
+          const origin = enemyPositionRef.current;
+          const isFalling = pattern.kind === "falling";
+          state.spawnLightning({
+            id: now + Math.random() + i * 0.001,
+            x: tx,
+            z: tz,
+            triggersAt: now + pattern.warningMs * 1.2 + i * 90,
+            spawnAt: now + i * 90,
+            fromX: isFalling ? tx : origin.x,
+            fromY: isFalling ? 14 : origin.y + 0.6,
+            fromZ: isFalling ? tz : origin.z,
+            radius: pattern.radius * 1.05,
+            damage: pattern.damage * diffMod.attackDamage * 1.15,
+            color: pattern.projectileColor,
+            trailGlow: pattern.trailGlow * 1.4,
+            kind: pattern.kind,
+            enemyId: enemy.id,
+          });
+        }
+      }
+      nextSpecialAt.current = now + getSpecialDelay(enemy.id);
     }
 
     for (const marker of state.lightningMarkers) {
