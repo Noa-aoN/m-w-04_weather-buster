@@ -377,6 +377,23 @@ function BossIntro({ enemyName, enemyTrait, threat }: { enemyName: string; enemy
   );
 }
 
+function SlowIndicator() {
+  const slowUntil = useBattleStore((state) => state.slowUntil);
+  const [active, setActive] = useState(false);
+  useEffect(() => {
+    if (slowUntil === 0) {
+      setActive(false);
+      return;
+    }
+    const id = window.setInterval(() => {
+      setActive(performance.now() < slowUntil);
+    }, 80);
+    return () => window.clearInterval(id);
+  }, [slowUntil]);
+  if (!active) return null;
+  return <div className="slowVignette" aria-hidden="true" />;
+}
+
 function EnemyChargeWarning() {
   const enemyChargeStartedAt = useBattleStore((state) => state.enemyChargeStartedAt);
   const enemyChargeFiresAt = useBattleStore((state) => state.enemyChargeFiresAt);
@@ -718,6 +735,7 @@ export function BattleHud({
       <BarrierWarning />
       <ReloadIndicator />
       <EnemyChargeWarning />
+      <SlowIndicator />
       <ItemToast />
 
       {countdown !== null ? (

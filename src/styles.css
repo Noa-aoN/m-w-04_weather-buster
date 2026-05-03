@@ -2891,6 +2891,22 @@ canvas {
   100% { box-shadow: 0 0 32px rgba(255, 120, 60, 0.95); transform: translate(-50%, 0) scale(1.04); }
 }
 
+.slowVignette {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 50%, rgba(80, 220, 180, 0.28) 95%),
+    linear-gradient(180deg, rgba(60, 200, 160, 0.15), transparent 32%, transparent 68%, rgba(60, 200, 160, 0.15));
+  animation: slowPulse 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes slowPulse {
+  0% { opacity: 0.55; }
+  100% { opacity: 1; }
+}
+
 .skillStatus--ready {
   border-color: rgba(255, 220, 110, 0.95);
   box-shadow: 0 0 24px rgba(255, 200, 70, 0.55), inset 0 0 18px rgba(255, 220, 110, 0.18);
