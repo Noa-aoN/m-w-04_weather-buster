@@ -146,10 +146,10 @@ export function PlayerController({
     }
 
     const now = performance.now();
-    const enemy = weatherEnemies.find((candidate) => candidate.id === state.selectedEnemyId);
-    const pattern = enemy ? enemyAttackPatterns[enemy.id] : null;
-    if (enemy && pattern && now >= nextLightningAt.current) {
-      const diffMod = difficultyModifiers[enemy.difficulty];
+      const enemy = weatherEnemies.find((candidate) => candidate.id === state.selectedEnemyId);
+      const pattern = enemy ? enemyAttackPatterns[enemy.id] : null;
+      if (enemy && pattern && now >= nextLightningAt.current) {
+      const diffMod = difficultyModifiers[state.selectedDifficulty];
       const interval = pattern.intervalMs * diffMod.attackInterval;
       const damage = pattern.damage * diffMod.attackDamage;
       const half = (arena.zBack - arena.zFront) / 2;
@@ -200,10 +200,15 @@ export function PlayerController({
 
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
-      if (event.button !== 0) return;
       if (document.pointerLockElement !== gl.domElement) return;
       const store = useBattleStore.getState();
-      if (store.status !== "battle" || store.ammo <= 0) return;
+      if (store.status !== "battle") return;
+      if (event.button === 2) {
+        event.preventDefault();
+        store.setShieldActive(true);
+        return;
+      }
+      if (event.button !== 0 || store.ammo <= 0) return;
 
       const dir = forward.current;
       camera.getWorldDirection(dir);
@@ -226,8 +231,24 @@ export function PlayerController({
       });
       store.shoot(didHit, critical);
     };
+    const onMouseUp = (event: MouseEvent) => {
+      if (event.button === 2) {
+        useBattleStore.getState().setShieldActive(false);
+      }
+    };
+    const onContextMenu = (event: MouseEvent) => {
+      if (document.pointerLockElement === gl.domElement) {
+        event.preventDefault();
+      }
+    };
     window.addEventListener("mousedown", onMouseDown);
-    return () => window.removeEventListener("mousedown", onMouseDown);
+    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("contextmenu", onContextMenu);
+    return () => {
+      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("contextmenu", onContextMenu);
+    };
   }, [camera, gl.domElement, enemyRef]);
 
   useEffect(() => {

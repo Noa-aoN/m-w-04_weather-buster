@@ -4,14 +4,17 @@ import {
   loadSamples,
   playClear,
   playDefeat,
+  playEnemyStagger,
   playHit,
   playItem,
   playMarkerImpact,
   playMarkerSpawn,
   playMiss,
   playShoot,
+  playShieldBlock,
   playSkill,
   setBgmEnabled,
+  setBgmScene,
   setMasterVolume,
   setSfxEnabled,
   startBgm,
@@ -75,9 +78,13 @@ export function AudioBridge() {
         playShoot();
         if (state.lastShotHit) {
           playHit(state.lastShotCritical);
+          playEnemyStagger(state.lastShotCritical);
         } else {
           playMiss();
         }
+      }
+      if (state.lastShieldBlockAt !== prev.lastShieldBlockAt && state.lastShieldBlockAt !== 0) {
+        playShieldBlock();
       }
       if (state.lastSkillAt !== prev.lastSkillAt && state.lastSkillAt !== 0) {
         playSkill();
@@ -98,8 +105,17 @@ export function AudioBridge() {
       if (added > 0) playMarkerSpawn();
       if (removed > 0) playMarkerImpact();
       if (state.status !== prev.status) {
-        if (state.status === "clear") playClear();
-        if (state.status === "defeat") playDefeat();
+        if (state.status === "battle") {
+          setBgmScene("battle");
+        } else if (state.status === "clear") {
+          playClear();
+          setBgmScene("victory");
+        } else if (state.status === "defeat") {
+          playDefeat();
+          setBgmScene("defeat");
+        } else if (state.status === "ready") {
+          setBgmScene("title");
+        }
       }
       prev = state;
     });

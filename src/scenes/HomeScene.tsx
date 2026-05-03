@@ -1,14 +1,16 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Sky, Stars, useFBX, useAnimations, useGLTF } from "@react-three/drei";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh } from "three";
+import { LoopOnce } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
-import { findCharacter, findStage, findWeapon, stages, weatherEnemies } from "../game/data";
+import { characters, findCharacter, findStage, findWeapon, stages, weapons, weatherEnemies } from "../game/data";
 import { useGeolocationWeather, weatherCodeLabel } from "../features/weather/useGeolocationWeather";
-import type { CharacterId, LoadoutTab } from "../game/types";
+import type { CharacterId, DifficultyLevel, LoadoutTab } from "../game/types";
 import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
 import { fitObjectToHeight } from "../entities/fitObject";
+import { AudioToggle } from "../features/audio/AudioToggle";
 
 function StartIcon() {
   return (
@@ -106,6 +108,7 @@ function HeroMech({ accent, characterId }: { accent: string; characterId: Charac
   const innerRef = useRef<Group>(null);
   const accentRingRef = useRef<Mesh>(null);
   const { actions, names } = useAnimations(animations, innerRef);
+  const [actionTick, setActionTick] = useState(0);
 
   useEffect(() => {
     if (!actions || names.length === 0) {
@@ -124,6 +127,36 @@ function HeroMech({ accent, characterId }: { accent: string; characterId: Charac
     }
   }, [actions, names]);
 
+  useEffect(() => {
+    if (!actions || names.length === 0) {
+      return;
+    }
+    const idleName = names.find((n) => n.toLowerCase().includes("idle")) ?? names[0];
+    const livelyNames = names.filter((n) => /walk|run|punch|attack|jump/i.test(n));
+    if (!idleName || livelyNames.length === 0) {
+      return;
+    }
+    const id = window.setInterval(() => {
+      const nextName = livelyNames[Math.floor(Math.random() * livelyNames.length)];
+      const next = actions[nextName];
+      const idle = actions[idleName];
+      if (!next || !idle) {
+        return;
+      }
+      idle.fadeOut(0.18);
+      next.reset();
+      next.setLoop(LoopOnce, 1);
+      next.clampWhenFinished = false;
+      next.fadeIn(0.12).play();
+      setActionTick((value) => value + 1);
+      window.setTimeout(() => {
+        next.fadeOut(0.18);
+        idle.reset().fadeIn(0.18).play();
+      }, 760);
+    }, 5200);
+    return () => window.clearInterval(id);
+  }, [actions, names]);
+
   useFrame(({ clock }) => {
     const node = groupRef.current;
     if (!node) {
@@ -131,7 +164,7 @@ function HeroMech({ accent, characterId }: { accent: string; characterId: Charac
     }
     const t = clock.getElapsedTime();
     node.position.y = Math.sin(t * 0.6) * 0.04;
-    node.rotation.y = Math.sin(t * 0.3) * 0.12;
+    node.rotation.y = Math.sin(t * 0.3) * 0.12 + Math.sin(actionTick * 1.7) * 0.05;
     if (accentRingRef.current) {
       const mat = accentRingRef.current.material as { emissiveIntensity?: number };
       if (mat.emissiveIntensity !== undefined) {
@@ -364,13 +397,12 @@ const BACKDROP_URLS = [
   "/models/space-kit/structure_detailed.glb",
 ];
 
+// 中央付近のハンガーは「コンテナのような塊」に見えるので除外。両端のみに配置
 const BACKDROP_PLACEMENTS: Array<{ x: number; z: number; rotY: number; scale: number; idx: number }> = [
-  { x: -9.2, z: -5.4, rotY: 0.4, scale: 2.4, idx: 0 },
-  { x: -5.6, z: -6.4, rotY: -0.3, scale: 2.6, idx: 1 },
-  { x: -1.4, z: -7.0, rotY: 1.2, scale: 2.4, idx: 2 },
-  { x: 2.4, z: -7.0, rotY: 0.6, scale: 2.6, idx: 3 },
-  { x: 5.4, z: -6.4, rotY: -0.5, scale: 2.4, idx: 4 },
-  { x: 8.6, z: -5.4, rotY: 0.2, scale: 2.6, idx: 5 },
+  { x: -10.5, z: -6.0, rotY: 0.4, scale: 2.2, idx: 0 },
+  { x: -7.6, z: -7.4, rotY: -0.3, scale: 2.0, idx: 4 },
+  { x: 7.6, z: -7.4, rotY: -0.5, scale: 2.0, idx: 5 },
+  { x: 10.5, z: -6.0, rotY: 0.2, scale: 2.2, idx: 1 },
 ];
 
 function BackdropStructures() {
@@ -515,8 +547,13 @@ export function HomeScene({
   const selectedStageId = useBattleStore((state) => state.selectedStageId);
   const selectStage = useBattleStore((state) => state.selectStage);
   const selectEnemy = useBattleStore((state) => state.selectEnemy);
+  const selectWeapon = useBattleStore((state) => state.selectWeapon);
+  const selectCharacter = useBattleStore((state) => state.selectCharacter);
+  const selectedDifficulty = useBattleStore((state) => state.selectedDifficulty);
+  const setDifficulty = useBattleStore((state) => state.setDifficulty);
   const currentWeatherCode = useBattleStore((state) => state.currentWeatherCode);
   const locationEnabled = useBattleStore((state) => state.locationEnabled);
+  const [isMissionCollapsed, setMissionCollapsed] = useState(false);
 
   const selectedEnemy = weatherEnemies.find((enemy) => enemy.id === selectedEnemyId) ?? weatherEnemies[0];
   const weapon = findWeapon(selectedWeaponId);
@@ -535,6 +572,33 @@ export function HomeScene({
     const nextIndex = (currentIndex + direction + playableEnemies.length) % playableEnemies.length;
     selectEnemy(playableEnemies[nextIndex].id);
   }
+
+  function cycleWeapon(direction: 1 | -1) {
+    const currentIndex = weapons.findIndex((w) => w.id === weapon.id);
+    const nextIndex = (currentIndex + direction + weapons.length) % weapons.length;
+    selectWeapon(weapons[nextIndex].id);
+  }
+
+  function cycleCharacter(direction: 1 | -1) {
+    const currentIndex = characters.findIndex((c) => c.id === character.id);
+    const nextIndex = (currentIndex + direction + characters.length) % characters.length;
+    selectCharacter(characters[nextIndex].id);
+  }
+
+  function cycleDifficulty(direction: 1 | -1) {
+    const next = Math.max(1, Math.min(5, selectedDifficulty + direction)) as DifficultyLevel;
+    setDifficulty(next);
+  }
+
+  const difficultyName = selectedDifficulty <= 1
+    ? "EASY"
+    : selectedDifficulty === 2
+    ? "NORMAL"
+    : selectedDifficulty === 3
+    ? "TOUGH"
+    : selectedDifficulty === 4
+    ? "HARD"
+    : "EXTREME";
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -591,7 +655,7 @@ export function HomeScene({
         <span>PROJECT: WEATHER BUSTER</span>
         <div className="homeHeaderActions">
           <GpsToggle />
-          <strong>ONLINE</strong>
+          <AudioToggle />
         </div>
       </header>
 
@@ -615,17 +679,17 @@ export function HomeScene({
         </button>
         <button className="menuItem" type="button" onClick={onOpenEnemyGrid}>
           <span className="menuIcon"><GridIcon /></span>
-          <span className="menuLabel">観測記録</span>
+          <span className="menuLabel">気象モンスター図鑑</span>
           <span className="menuKey">G</span>
         </button>
         <button className="menuItem" type="button" onClick={onOpenCharacterGrid}>
           <span className="menuIcon"><CharacterIcon /></span>
-          <span className="menuLabel">キャラ</span>
+          <span className="menuLabel">キャラ図鑑</span>
           <span className="menuKey">C</span>
         </button>
         <button className="menuItem" type="button" onClick={() => onOpenLoadout("weapon")}>
           <span className="menuIcon"><LoadoutIcon /></span>
-          <span className="menuLabel">装備</span>
+          <span className="menuLabel">装備図鑑</span>
           <span className="menuKey">L</span>
         </button>
         <button className="menuItem" type="button" onClick={onOpenSettings}>
@@ -635,19 +699,38 @@ export function HomeScene({
         </button>
       </nav>
 
-      <aside className="missionPreview">
-        <span>MISSION PREVIEW</span>
-        <div className="loadoutSummary">
-          <button type="button" className="summaryCard" onClick={() => onOpenLoadout("character")}>
+      <aside className={`missionPreview ${isMissionCollapsed ? "collapsed" : ""}`}>
+        <div className="missionPreviewHeader">
+          <span>MISSION PREVIEW</span>
+          <button
+            type="button"
+            className="missionCollapseButton"
+            aria-label={isMissionCollapsed ? "ミッションプレビューを開く" : "ミッションプレビューを折りたたむ"}
+            aria-expanded={!isMissionCollapsed}
+            onClick={() => setMissionCollapsed((value) => !value)}
+          >
+            {isMissionCollapsed ? "▴" : "▾"}
+          </button>
+        </div>
+        <div className="missionPreviewBody">
+        <div className="missionCycler">
+          <button type="button" className="cyclerArrow" aria-label="前のパイロット" onClick={() => cycleCharacter(-1)}>◀</button>
+          <button type="button" className="cyclerLabel cyclerDetailButton" onClick={() => onOpenLoadout("character")}>
             <small>PILOT</small>
             <strong>{character.codename}</strong>
             <em>{character.callSign}</em>
           </button>
-          <button type="button" className="summaryCard" onClick={() => onOpenLoadout("weapon")}>
+          <button type="button" className="cyclerArrow" aria-label="次のパイロット" onClick={() => cycleCharacter(1)}>▶</button>
+        </div>
+
+        <div className="missionCycler">
+          <button type="button" className="cyclerArrow" aria-label="前の武器" onClick={() => cycleWeapon(-1)}>◀</button>
+          <button type="button" className="cyclerLabel cyclerDetailButton" onClick={() => onOpenLoadout("weapon")}>
             <small>WEAPON</small>
             <strong>{weapon.name}</strong>
             <em>DMG {weapon.damage}</em>
           </button>
+          <button type="button" className="cyclerArrow" aria-label="次の武器" onClick={() => cycleWeapon(1)}>▶</button>
         </div>
 
         <div className="missionCycler">
@@ -670,30 +753,6 @@ export function HomeScene({
           <button type="button" className="cyclerArrow" aria-label="次の敵" onClick={() => cycleEnemy(1)}>▶</button>
         </div>
 
-        <span className="difficultyLabel">難易度</span>
-        <div
-          className={`difficultyLine difficulty--${selectedEnemy.difficulty}`}
-          role="img"
-          aria-label={`難易度 ${selectedEnemy.difficulty} / 5`}
-        >
-          {Array.from({ length: 5 }, (_, index) => (
-            <b key={index} className={index < selectedEnemy.difficulty ? "filled" : ""}>
-              {index < selectedEnemy.difficulty ? "■" : ""}
-            </b>
-          ))}
-          <em className="difficultyTag">
-            {selectedEnemy.difficulty <= 1
-              ? "EASY"
-              : selectedEnemy.difficulty === 2
-              ? "NORMAL"
-              : selectedEnemy.difficulty === 3
-              ? "TOUGH"
-              : selectedEnemy.difficulty === 4
-              ? "HARD"
-              : "EXTREME"}
-          </em>
-        </div>
-
         <span className="threatLabel">脅威レベル</span>
         <div className="threatLine" role="img" aria-label={`脅威レベル ${selectedEnemy.threat}`}>
           {Array.from({ length: 9 }, (_, index) => (
@@ -701,6 +760,32 @@ export function HomeScene({
               {index < selectedEnemy.threat ? "▲" : ""}
             </b>
           ))}
+        </div>
+
+        <div className="missionCycler">
+          <button type="button" className="cyclerArrow" aria-label="難易度を下げる" onClick={() => cycleDifficulty(-1)} disabled={selectedDifficulty <= 1}>◀</button>
+          <div className="cyclerLabel">
+            <small>難易度</small>
+            <strong>{difficultyName}</strong>
+            <em>LEVEL {selectedDifficulty}</em>
+          </div>
+          <button type="button" className="cyclerArrow" aria-label="難易度を上げる" onClick={() => cycleDifficulty(1)} disabled={selectedDifficulty >= 5}>▶</button>
+        </div>
+
+        <div
+          className={`difficultyLine difficulty--${selectedDifficulty}`}
+          role="img"
+          aria-label={`難易度 ${selectedDifficulty} / 5`}
+        >
+          {Array.from({ length: 5 }, (_, index) => (
+            <b key={index} className={index < selectedDifficulty ? "filled" : ""}>
+              {index < selectedDifficulty ? "■" : ""}
+            </b>
+          ))}
+          <em className="difficultyTag">{difficultyName}</em>
+        </div>
+
+        <button type="button" className="primaryMenuButton missionStartButton" onClick={onStart}>ゲーム開始</button>
         </div>
       </aside>
 

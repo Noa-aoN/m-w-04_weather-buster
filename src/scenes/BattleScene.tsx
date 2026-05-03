@@ -8,14 +8,14 @@ import { BulletTrails } from "../entities/BulletTrails";
 import { EnemyFigure } from "../entities/EnemyFigure";
 import { LightningWarnings } from "../entities/LightningWarnings";
 import { StageTerrain } from "../entities/StageTerrain";
-import { WEAPON_MODEL_URL } from "../entities/WeaponModel";
+import { WeaponObject, weaponModelRotation } from "../entities/WeaponModel";
 import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
-import { fitObjectToHeight, fitObjectToSize } from "../entities/fitObject";
+import { fitObjectToHeight } from "../entities/fitObject";
 import { BattleHud } from "../features/hud/BattleHud";
 import { PlayerController } from "../features/player/PlayerController";
 import { difficultyModifiers, stages, weatherEnemies } from "../game/data";
 import { useBattleStore } from "../game/battleStore";
-import type { Stage, WeatherEnemy, WeatherEnemyId } from "../game/types";
+import type { DifficultyLevel, Stage, WeatherEnemy, WeatherEnemyId } from "../game/types";
 
 function PlayerWeapon() {
   const { camera } = useThree();
@@ -26,12 +26,6 @@ function PlayerWeapon() {
   const lastShotAt = useBattleStore((state) => state.lastShotAt);
   const cameraMode = useBattleStore((state) => state.cameraMode);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
-  const fbx = useFBX(WEAPON_MODEL_URL[selectedWeaponId]);
-  const fitted = useMemo(() => {
-    const c = fbx.clone(true) as Group;
-    fitObjectToSize(c, 0.55);
-    return c;
-  }, [fbx]);
 
   useEffect(() => {
     if (lastShotAt === 0) {
@@ -62,8 +56,8 @@ function PlayerWeapon() {
 
   return (
     <group ref={groupRef}>
-      <group rotation={[0, Math.PI, 0]}>
-        <primitive object={fitted} />
+      <group rotation={weaponModelRotation(selectedWeaponId)}>
+        <WeaponObject id={selectedWeaponId} targetSize={0.55} />
       </group>
       {flashVisible ? (
         <>
@@ -74,6 +68,53 @@ function PlayerWeapon() {
           <pointLight ref={flashLightRef} position={[0, 0, -0.5]} intensity={6} color="#fff7a0" distance={4} />
         </>
       ) : null}
+    </group>
+  );
+}
+
+function PlayerShield() {
+  const { camera } = useThree();
+  const groupRef = useRef<Group>(null);
+  const shieldActive = useBattleStore((state) => state.shieldActive);
+  const shieldEnergy = useBattleStore((state) => state.shieldEnergy);
+  const lastShieldBlockAt = useBattleStore((state) => state.lastShieldBlockAt);
+
+  useFrame(({ clock }) => {
+    const node = groupRef.current;
+    if (!node) {
+      return;
+    }
+    node.visible = shieldActive || performance.now() - lastShieldBlockAt < 220;
+    if (!node.visible) {
+      return;
+    }
+    node.position.copy(camera.position);
+    node.quaternion.copy(camera.quaternion);
+    node.translateZ(-1.05);
+    const hitPulse = Math.max(0, 1 - (performance.now() - lastShieldBlockAt) / 220);
+    const t = clock.getElapsedTime();
+    const base = 0.95 + shieldEnergy / 100 * 0.18;
+    node.scale.setScalar(base + Math.sin(t * 9) * 0.025 + hitPulse * 0.18);
+    node.rotation.z = t * 0.55;
+    node.traverse((child) => {
+      const mat = (child as { material?: { opacity?: number; emissiveIntensity?: number } }).material;
+      if (mat) {
+        if (mat.opacity !== undefined) mat.opacity = shieldActive ? 0.22 + hitPulse * 0.28 : hitPulse * 0.35;
+        if (mat.emissiveIntensity !== undefined) mat.emissiveIntensity = 0.8 + hitPulse * 2.4;
+      }
+    });
+  });
+
+  return (
+    <group ref={groupRef}>
+      <mesh>
+        <ringGeometry args={[0.48, 0.72, 72]} />
+        <meshStandardMaterial color="#7cf4ff" emissive="#28d9ff" emissiveIntensity={1} transparent opacity={0.28} toneMapped={false} />
+      </mesh>
+      <mesh rotation={[0, 0, Math.PI / 4]}>
+        <ringGeometry args={[0.78, 0.82, 72]} />
+        <meshBasicMaterial color="#ffd84d" transparent opacity={0.22} toneMapped={false} />
+      </mesh>
     </group>
   );
 }
@@ -91,19 +132,12 @@ function PlayerBackAvatar() {
   const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
   const charFbx = useFBX(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.iris);
-  const weaponFbx = useFBX(WEAPON_MODEL_URL[selectedWeaponId]);
 
   const { charFitted, animations } = useMemo(() => {
     const cloned = SkeletonUtils.clone(charFbx) as Group;
     fitObjectToHeight(cloned, 1.7);
     return { charFitted: cloned, animations: charFbx.animations as AnimationClip[] };
   }, [charFbx]);
-
-  const weaponFitted = useMemo(() => {
-    const c = weaponFbx.clone(true) as Group;
-    fitObjectToSize(c, 0.6);
-    return c;
-  }, [weaponFbx]);
 
   const { actions, names } = useAnimations(animations, charRef);
 
@@ -189,8 +223,8 @@ function PlayerBackAvatar() {
         <primitive object={charFitted} />
       </group>
       <group position={[0.32, 1.15, -0.55]}>
-        <group rotation={[0, Math.PI, 0]}>
-          <primitive object={weaponFitted} />
+        <group rotation={weaponModelRotation(selectedWeaponId)}>
+          <WeaponObject id={selectedWeaponId} targetSize={0.6} />
         </group>
         {flashVisible ? (
           <>
@@ -399,6 +433,7 @@ type AiPhase = "approach" | "circle" | "telegraph" | "retreat" | "idle";
 
 const STANDOFF_DISTANCE = 7.5;
 const MIN_DISTANCE = 5.5;
+const ENEMY_SCALE = 1.55;
 
 function EnemyMotion({
   enemy,
@@ -406,16 +441,20 @@ function EnemyMotion({
   enemyPositionRef,
   baseZ,
   arenaX,
+  difficulty,
 }: {
   enemy: WeatherEnemy;
   enemyRef: React.RefObject<Group | null>;
   enemyPositionRef: React.RefObject<Vector3>;
   baseZ: number;
   arenaX: number;
+  difficulty: DifficultyLevel;
 }) {
   const { camera } = useThree();
   const status = useBattleStore((state) => state.status);
   const isPointerLocked = useBattleStore((state) => state.isPointerLocked);
+  const lastShotAt = useBattleStore((state) => state.lastShotAt);
+  const lastShotHit = useBattleStore((state) => state.lastShotHit);
   const phaseRef = useRef<{ mode: AiPhase; t: number; orbitDir: 1 | -1; angle: number }>({
     mode: "approach",
     t: 0,
@@ -428,6 +467,7 @@ function EnemyMotion({
     if (!node) {
       return;
     }
+    const hitStun = lastShotHit ? Math.max(0, 1 - (performance.now() - lastShotAt) / 180) : 0;
     const baseY = 2.6;
     const idleY = baseY + Math.sin(state.clock.getElapsedTime() * 1.1) * 0.18;
     if (status !== "battle") {
@@ -440,8 +480,16 @@ function EnemyMotion({
       enemyPositionRef.current.copy(node.position);
       return;
     }
+    if (hitStun > 0) {
+      node.position.x += (Math.random() - 0.5) * hitStun * 0.08;
+      node.position.y = baseY + hitStun * 0.22;
+      node.scale.setScalar(ENEMY_SCALE * (1 + hitStun * 0.08));
+      enemyPositionRef.current.copy(node.position);
+      return;
+    }
+    node.scale.setScalar(ENEMY_SCALE);
 
-    const aggression = difficultyModifiers[enemy.difficulty].movementAggression;
+    const aggression = difficultyModifiers[difficulty].movementAggression;
     const phase = phaseRef.current;
     phase.t += delta;
     const playerX = camera.position.x;
@@ -516,8 +564,8 @@ function EnemyMotion({
       targetZ = playerZ + (dzFromPlayer / dist) * (orbitRadius + 2.4) * k + baseZ * (1 - k);
     }
 
-    targetX += Math.sin(state.clock.getElapsedTime() * 1.3 + enemy.difficulty) * 0.3;
-    targetZ += Math.cos(state.clock.getElapsedTime() * 1.1 + enemy.difficulty * 0.7) * 0.25;
+    targetX += Math.sin(state.clock.getElapsedTime() * 1.3 + difficulty) * 0.3;
+    targetZ += Math.cos(state.clock.getElapsedTime() * 1.1 + difficulty * 0.7) * 0.25;
 
     const dxClamp = targetX - playerX;
     const dzClamp = targetZ - playerZ;
@@ -580,6 +628,7 @@ function ExperimentField({
   enemyPositionRef: React.RefObject<Vector3>;
 }) {
   const enemy = weatherEnemies.find((candidate) => candidate.id === enemyId) ?? weatherEnemies[0];
+  const selectedDifficulty = useBattleStore((state) => state.selectedDifficulty);
   const ambientColor = useMemo(() => new Color(stage.ambientColor).multiplyScalar(0.7), [stage.ambientColor]);
   const fogFar = stage.id === "lab" ? 28 : stage.id === "ruins" ? 44 : 52;
   const baseZ = stage.id === "lab" ? -5.2 : stage.id === "ruins" ? -8 : -10;
@@ -609,7 +658,7 @@ function ExperimentField({
 
       <StageTerrain stage={stage} isClear={isClear} />
 
-      <group ref={enemyRef} position={[0, 2.6, baseZ]} scale={1.55}>
+      <group ref={enemyRef} position={[0, 2.6, baseZ]} scale={ENEMY_SCALE}>
         <EnemyFigure enemy={enemy} clear={isClear} />
       </group>
       <EnemyMotion
@@ -618,6 +667,7 @@ function ExperimentField({
         enemyPositionRef={enemyPositionRef}
         baseZ={baseZ}
         arenaX={stage.arena.x}
+        difficulty={selectedDifficulty}
       />
 
       {!isClear && enemy.id === "thunderstorm" ? <ThunderstormStrikes /> : null}
@@ -630,6 +680,7 @@ function ExperimentField({
 
       <LightningWarnings />
       <BulletTrails />
+      <PlayerShield />
       <PlayerWeapon />
       <PlayerBackAvatar />
     </>

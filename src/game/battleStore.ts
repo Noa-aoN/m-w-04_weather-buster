@@ -13,6 +13,7 @@ import type {
   BattleStatus,
   BattleCameraMode,
   CharacterId,
+  DifficultyLevel,
   ItemId,
   StageId,
   Weapon,
@@ -31,6 +32,9 @@ const STABILIZER_GAUGE_GAIN = 60;
 const DECOY_DURATION_MS = 5000;
 const DECOY_DAMAGE_RATIO = 0.4;
 const CORE_DAMAGE_MULTIPLIER = 2.4;
+const SHIELD_DAMAGE_RATIO = 0.28;
+const SHIELD_DRAIN_PER_BLOCK = 18;
+const SHIELD_REGEN_PER_SECOND = 9;
 const DEFAULT_ENEMY_INDEX = 2;
 const DEFAULT_WEAPON_INDEX = 1;
 const DEFAULT_CHARACTER_ID: CharacterId = "halo";
@@ -43,8 +47,8 @@ const initialStocks = (multiplier: number): Record<ItemId, number> => {
   return stocks;
 };
 
-const enemyMaxHpFor = (enemy: WeatherEnemy) =>
-  Math.round(enemy.maxHp * difficultyModifiers[enemy.difficulty].hp);
+const enemyMaxHpFor = (enemy: WeatherEnemy, difficulty: DifficultyLevel) =>
+  Math.round(enemy.maxHp * difficultyModifiers[difficulty].hp);
 
 type AttackKind = "arc" | "linear" | "falling";
 
@@ -70,12 +74,15 @@ type BattleState = {
   selectedWeaponId: WeaponId;
   selectedCharacterId: CharacterId;
   selectedStageId: StageId;
+  selectedDifficulty: DifficultyLevel;
   enemyHp: number;
   enemyMaxHp: number;
   playerHp: number;
   playerMaxHp: number;
   ammo: number;
   pressureGauge: number;
+  shieldEnergy: number;
+  shieldActive: boolean;
   shotsFired: number;
   shotsHit: number;
   damageTaken: number;
@@ -98,10 +105,16 @@ type BattleState = {
   lastSkillAt: number;
   lastDefeatAt: number;
   lastShotCritical: boolean;
+  lastShotDamage: number;
+  lastShieldBlockAt: number;
+  combo: number;
+  comboBest: number;
+  lastComboAt: number;
   selectEnemy: (id: WeatherEnemyId) => void;
   selectWeapon: (id: WeaponId) => void;
   selectCharacter: (id: CharacterId) => void;
   selectStage: (id: StageId) => void;
+  setDifficulty: (value: DifficultyLevel) => void;
   sfxEnabled: boolean;
   bgmEnabled: boolean;
   masterVolume: number;
@@ -127,26 +140,34 @@ type BattleState = {
   removeLightning: (id: number) => void;
   shiftMarkerTimes: (deltaMs: number) => void;
   setPointerLocked: (locked: boolean) => void;
+  setShieldActive: (active: boolean) => void;
 };
 
-const baseLoadout = (weapon: Weapon, enemy: WeatherEnemy) => ({
+const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   playerHp: PLAYER_MAX_HP,
   ammo: weapon.maxAmmo,
   pressureGauge: 0,
+  shieldEnergy: 100,
+  shieldActive: false,
   shotsFired: 0,
   shotsHit: 0,
   damageTaken: 0,
   elapsedSeconds: 0,
-  itemStocks: initialStocks(difficultyModifiers[enemy.difficulty].itemMultiplier),
+  itemStocks: initialStocks(difficultyModifiers[difficulty].itemMultiplier),
   lightningMarkers: [] as LightningMarker[],
   decoyUntil: 0,
   lastShotAt: 0,
   lastShotHit: false,
   lastShotCritical: false,
+  lastShotDamage: 0,
   lastItemAt: 0,
   lastItemId: null,
   lastSkillAt: 0,
   lastDefeatAt: 0,
+  lastShieldBlockAt: 0,
+  combo: 0,
+  comboBest: 0,
+  lastComboAt: 0,
 });
 
 const findEnemy = (id: WeatherEnemyId) =>
@@ -157,10 +178,18 @@ const computeIncomingDamage = (
   amount: number,
   decoyUntil: number,
   characterMul: number,
+  shieldActive: boolean,
+  shieldEnergy: number,
 ) => {
   const reduced = Date.now() < decoyUntil ? amount * DECOY_DAMAGE_RATIO : amount;
-  return reduced * characterMul;
+  const guarded = shieldActive && shieldEnergy > 0 ? reduced * SHIELD_DAMAGE_RATIO : reduced;
+  return guarded * characterMul;
 };
+
+const shieldAfterBlock = (shieldActive: boolean, shieldEnergy: number) =>
+  shieldActive && shieldEnergy > 0
+    ? Math.max(0, shieldEnergy - SHIELD_DRAIN_PER_BLOCK)
+    : shieldEnergy;
 
 const computeOutgoingDamage = (
   weapon: Weapon,
@@ -183,6 +212,7 @@ export const useBattleStore = create<BattleState>((set, get) => {
     selectedWeaponId: defaultWeapon.id,
     selectedCharacterId: DEFAULT_CHARACTER_ID,
     selectedStageId: stages[0].id,
+    selectedDifficulty: defaultEnemy.difficulty,
     playerMaxHp: PLAYER_MAX_HP,
     isPointerLocked: false,
     mouseSensitivity: 1,
@@ -192,17 +222,18 @@ export const useBattleStore = create<BattleState>((set, get) => {
     locationEnabled: false,
     currentWeatherEnemyId: null,
     currentWeatherCode: null,
-    enemyHp: enemyMaxHpFor(defaultEnemy),
-    enemyMaxHp: enemyMaxHpFor(defaultEnemy),
-    ...baseLoadout(defaultWeapon, defaultEnemy),
+    enemyHp: enemyMaxHpFor(defaultEnemy, defaultEnemy.difficulty),
+    enemyMaxHp: enemyMaxHpFor(defaultEnemy, defaultEnemy.difficulty),
+    ...baseLoadout(defaultWeapon, defaultEnemy.difficulty),
     selectEnemy: (id) => {
       const target = findEnemy(id);
       const weapon = findWeapon(get().selectedWeaponId);
-      const maxHp = enemyMaxHpFor(target);
+      const difficulty = get().selectedDifficulty;
+      const maxHp = enemyMaxHpFor(target, difficulty);
       set({
         selectedEnemyId: id,
         status: "ready",
-        ...baseLoadout(weapon, target),
+        ...baseLoadout(weapon, difficulty),
         enemyHp: maxHp,
         enemyMaxHp: maxHp,
       });
@@ -210,11 +241,12 @@ export const useBattleStore = create<BattleState>((set, get) => {
     selectWeapon: (id) => {
       const weapon = findWeapon(id);
       const target = findEnemy(get().selectedEnemyId);
-      const maxHp = enemyMaxHpFor(target);
+      const difficulty = get().selectedDifficulty;
+      const maxHp = enemyMaxHpFor(target, difficulty);
       set({
         selectedWeaponId: id,
         status: "ready",
-        ...baseLoadout(weapon, target),
+        ...baseLoadout(weapon, difficulty),
         enemyHp: maxHp,
         enemyMaxHp: maxHp,
       });
@@ -224,6 +256,18 @@ export const useBattleStore = create<BattleState>((set, get) => {
     },
     selectStage: (id) => {
       set({ selectedStageId: id });
+    },
+    setDifficulty: (value) => {
+      const weapon = findWeapon(get().selectedWeaponId);
+      const target = findEnemy(get().selectedEnemyId);
+      const maxHp = enemyMaxHpFor(target, value);
+      set({
+        selectedDifficulty: value,
+        status: "ready",
+        ...baseLoadout(weapon, value),
+        enemyHp: maxHp,
+        enemyMaxHp: maxHp,
+      });
     },
     sfxEnabled: true,
     bgmEnabled: true,
@@ -240,10 +284,11 @@ export const useBattleStore = create<BattleState>((set, get) => {
     start: () => {
       const weapon = findWeapon(get().selectedWeaponId);
       const target = findEnemy(get().selectedEnemyId);
-      const maxHp = enemyMaxHpFor(target);
+      const difficulty = get().selectedDifficulty;
+      const maxHp = enemyMaxHpFor(target, difficulty);
       set({
         status: "battle",
-        ...baseLoadout(weapon, target),
+        ...baseLoadout(weapon, difficulty),
         enemyHp: maxHp,
         enemyMaxHp: maxHp,
       });
@@ -251,10 +296,11 @@ export const useBattleStore = create<BattleState>((set, get) => {
     reset: () => {
       const weapon = findWeapon(get().selectedWeaponId);
       const target = findEnemy(get().selectedEnemyId);
-      const maxHp = enemyMaxHpFor(target);
+      const difficulty = get().selectedDifficulty;
+      const maxHp = enemyMaxHpFor(target, difficulty);
       set({
         status: "ready",
-        ...baseLoadout(weapon, target),
+        ...baseLoadout(weapon, difficulty),
         enemyHp: maxHp,
         enemyMaxHp: maxHp,
       });
@@ -277,6 +323,10 @@ export const useBattleStore = create<BattleState>((set, get) => {
         100,
       );
       const becomesClear = nextHp === 0 && state.enemyHp > 0;
+      const nowMs = performance.now();
+      const comboReset = nowMs - state.lastComboAt > 2400;
+      const nextCombo = didHit ? (comboReset ? 1 : state.combo + 1) : 0;
+      const nextComboBest = Math.max(state.comboBest, nextCombo);
       set({
         ammo: state.ammo - 1,
         shotsFired: state.shotsFired + 1,
@@ -284,10 +334,14 @@ export const useBattleStore = create<BattleState>((set, get) => {
         enemyHp: nextHp,
         pressureGauge: gauge,
         status: nextHp === 0 ? "clear" : state.status,
-        lastShotAt: Date.now(),
+        lastShotAt: nowMs,
         lastShotHit: didHit,
         lastShotCritical: didHit && critical,
+        lastShotDamage: damage,
         lastDefeatAt: becomesClear ? Date.now() : state.lastDefeatAt,
+        combo: nextCombo,
+        comboBest: nextComboBest,
+        lastComboAt: didHit ? nowMs : state.lastComboAt,
       });
     },
     reload: () => {
@@ -305,16 +359,22 @@ export const useBattleStore = create<BattleState>((set, get) => {
       }
       const enemy = findEnemy(state.selectedEnemyId);
       const character = findCharacter(state.selectedCharacterId);
-      const diffMod = difficultyModifiers[enemy.difficulty];
+      const diffMod = difficultyModifiers[state.selectedDifficulty];
       const damage = computeIncomingDamage(
         enemy.threat * ENEMY_TICK_DAMAGE_BASE * diffMod.attackDamage,
         state.decoyUntil,
         character.damageTakenMultiplier,
+        state.shieldActive,
+        state.shieldEnergy,
       );
+      const nextShieldEnergy = shieldAfterBlock(state.shieldActive, state.shieldEnergy);
       const nextHp = Math.max(state.playerHp - damage, 0);
       set({
         playerHp: nextHp,
+        shieldEnergy: nextShieldEnergy,
+        shieldActive: nextShieldEnergy > 0 ? state.shieldActive : false,
         damageTaken: state.damageTaken + damage,
+        lastShieldBlockAt: nextShieldEnergy !== state.shieldEnergy ? performance.now() : state.lastShieldBlockAt,
         status: nextHp === 0 ? "defeat" : state.status,
       });
     },
@@ -324,11 +384,15 @@ export const useBattleStore = create<BattleState>((set, get) => {
         return;
       }
       const character = findCharacter(state.selectedCharacterId);
-      const damage = computeIncomingDamage(amount, state.decoyUntil, character.damageTakenMultiplier);
+      const damage = computeIncomingDamage(amount, state.decoyUntil, character.damageTakenMultiplier, state.shieldActive, state.shieldEnergy);
+      const nextShieldEnergy = shieldAfterBlock(state.shieldActive, state.shieldEnergy);
       const nextHp = Math.max(state.playerHp - damage, 0);
       set({
         playerHp: nextHp,
+        shieldEnergy: nextShieldEnergy,
+        shieldActive: nextShieldEnergy > 0 ? state.shieldActive : false,
         damageTaken: state.damageTaken + damage,
+        lastShieldBlockAt: nextShieldEnergy !== state.shieldEnergy ? performance.now() : state.lastShieldBlockAt,
         status: nextHp === 0 ? "defeat" : state.status,
       });
     },
@@ -337,7 +401,10 @@ export const useBattleStore = create<BattleState>((set, get) => {
       if (state.status !== "battle" || !state.isPointerLocked) {
         return;
       }
-      set({ elapsedSeconds: state.elapsedSeconds + 1 });
+      const nextShieldEnergy = state.shieldActive
+        ? state.shieldEnergy
+        : Math.min(100, state.shieldEnergy + SHIELD_REGEN_PER_SECOND);
+      set({ elapsedSeconds: state.elapsedSeconds + 1, shieldEnergy: nextShieldEnergy });
     },
     triggerSkill: () => {
       const state = get();
@@ -417,6 +484,10 @@ export const useBattleStore = create<BattleState>((set, get) => {
       });
     },
     setPointerLocked: (locked) => set({ isPointerLocked: locked }),
+    setShieldActive: (active) => {
+      const state = get();
+      set({ shieldActive: active && state.status === "battle" && state.shieldEnergy > 0 });
+    },
   };
 });
 

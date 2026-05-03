@@ -97,6 +97,57 @@ function DefeatBurst({ color }: { color: string }) {
   );
 }
 
+function HitCracks({ color }: { color: string }) {
+  const groupRef = useRef<Group>(null);
+  const lastShotAt = useBattleStore((state) => state.lastShotAt);
+  const lastShotHit = useBattleStore((state) => state.lastShotHit);
+
+  useFrame(() => {
+    const node = groupRef.current;
+    if (!node) {
+      return;
+    }
+    const elapsed = performance.now() - lastShotAt;
+    const visible = lastShotHit && elapsed < 260;
+    node.visible = visible;
+    if (!visible) {
+      return;
+    }
+    const ratio = Math.max(0, 1 - elapsed / 260);
+    node.scale.setScalar(1 + (1 - ratio) * 0.16);
+    node.rotation.z += 0.035;
+    node.traverse((child) => {
+      const mat = (child as { material?: { opacity?: number; emissiveIntensity?: number } }).material;
+      if (mat) {
+        if (mat.opacity !== undefined) mat.opacity = ratio;
+        if (mat.emissiveIntensity !== undefined) mat.emissiveIntensity = 1.2 + ratio * 2.8;
+      }
+    });
+  });
+
+  const cracks = [
+    { x: -0.42, y: 0.24, z: 0.7, rot: -0.55, len: 0.72 },
+    { x: 0.28, y: 0.4, z: 0.72, rot: 0.7, len: 0.58 },
+    { x: 0.06, y: -0.1, z: 0.74, rot: 0.12, len: 0.84 },
+    { x: -0.12, y: 0.08, z: 0.76, rot: 1.2, len: 0.52 },
+  ];
+
+  return (
+    <group ref={groupRef}>
+      {cracks.map((crack, index) => (
+        <mesh key={index} position={[crack.x, crack.y, crack.z]} rotation={[0, 0, crack.rot]}>
+          <boxGeometry args={[0.035, crack.len, 0.035]} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2.4} transparent opacity={0} toneMapped={false} />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.05, 0.68]}>
+        <ringGeometry args={[0.52, 0.58, 48]} />
+        <meshBasicMaterial color="#fff7a8" transparent opacity={0} toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
+
 export function EnemyFigure({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean }) {
   const groupRef = useRef<Group>(null);
   const lastDefeatAt = useBattleStore((state) => state.lastDefeatAt);
@@ -150,6 +201,7 @@ export function EnemyFigure({ enemy, clear }: { enemy: WeatherEnemy; clear: bool
     <>
       <group ref={groupRef}>
         <WeatherEnemyModel enemy={enemy} clear={clear} />
+        <HitCracks color={enemy.coreColor} />
         <mesh visible>
           <sphereGeometry args={[1.45, 16, 16]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />

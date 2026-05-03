@@ -7,7 +7,10 @@ import type { CharacterId } from "../game/types";
 
 function CharacterCardCanvas({ id, accent }: { id: CharacterId; accent: string }) {
   return (
-    <Canvas camera={{ position: [0, 0.6, 3.4], fov: 38 }}>
+    <Canvas
+      camera={{ position: [0, 0.78, 5.2], fov: 34 }}
+      onCreated={({ camera }) => camera.lookAt(0, 0.78, 0)}
+    >
       <color attach="background" args={["#07131b"]} />
       <ambientLight intensity={0.6} />
       <directionalLight position={[3, 4, 3]} intensity={1.6} color={accent} />
@@ -55,8 +58,8 @@ export function CharacterGridScene({
           <span>PROJECT: WEATHER BUSTER</span>
           <h1>PILOT GRID</h1>
           <small>パイロット図鑑 / キャラクター選択</small>
+          <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
-        <button type="button" className="screenBack" onClick={onBack}>← ホーム (H)</button>
       </header>
 
       <section className="enemyGrid characterGrid">

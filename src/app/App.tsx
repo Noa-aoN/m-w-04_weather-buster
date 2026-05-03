@@ -8,7 +8,6 @@ import { ResultScene } from "../scenes/ResultScene";
 import { SettingsScene } from "../scenes/SettingsScene";
 import { StoryScene } from "../scenes/StoryScene";
 import { AudioBridge } from "../features/audio/AudioBridge";
-import { AudioToggle } from "../features/audio/AudioToggle";
 import { useBattleStore } from "../game/battleStore";
 import type { AppView, LoadoutTab, WeatherEnemyId } from "../game/types";
 
@@ -81,7 +80,6 @@ export function App() {
     <>
       {scene}
       <AudioBridge />
-      <AudioToggle />
     </>
   );
 }
