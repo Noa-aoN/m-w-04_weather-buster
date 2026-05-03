@@ -131,6 +131,11 @@ export function ResultScene({
         <span>RANK</span>
         <strong>{result.rank}</strong>
         <ResultPersonalBest enemyId={result.enemyId} difficulty={useBattleStore.getState().selectedDifficulty} rank={result.rank} cleared={result.cleared} />
+        {result.cleared ? (
+          <span className="resultSeedReward">
+            +{Math.max(1, useBattleStore.getState().selectedDifficulty)} 種子
+          </span>
+        ) : null}
       </section>
 
       <section className="resultStats">
