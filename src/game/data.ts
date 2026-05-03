@@ -248,7 +248,8 @@ export const characters: Character[] = [
     damageTakenMultiplier: 1.0,
     gaugeGainMultiplier: 1.0,
     accentColor: "#28d9ff",
-    description: "標準的な観測パイロット。汎用性に優れる。",
+    description: "気象観測局所属の青年パイロット。父を長雨で亡くしてから、空を晴らすことを生涯の課題に決めた。",
+    flavor: "梅雨だけは許さない。",
   },
   {
     id: "halo",
@@ -261,7 +262,8 @@ export const characters: Character[] = [
     damageTakenMultiplier: 0.82,
     gaugeGainMultiplier: 0.9,
     accentColor: "#6cdcff",
-    description: "防御特化の先行偵察員。長期戦に強い。",
+    description: "気象耐圧スーツのテストパイロット。前線突入役として長期戦に強い。",
+    flavor: "嵐は、私の背中で止める。",
   },
   {
     id: "raika",
@@ -274,7 +276,8 @@ export const characters: Character[] = [
     damageTakenMultiplier: 1.1,
     gaugeGainMultiplier: 1.3,
     accentColor: "#ffd84d",
-    description: "気圧操作を専門とするアタッカー。ハイリスクハイリターン。",
+    description: "気圧操作を専門とする若手アタッカー。短期決戦と派手な火力を好む。",
+    flavor: "雷一発で、空に風穴開けてやる。",
   },
 ];
 
