@@ -1954,14 +1954,99 @@ canvas {
   inset: 0;
   z-index: 6;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 240, 110, 0.55) 0%, rgba(255, 240, 110, 0) 60%);
-  animation: skillFlashAnim 0.6s ease-out forwards;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 240, 110, 0.7) 0%, rgba(255, 200, 70, 0.3) 30%, transparent 65%),
+    linear-gradient(180deg, rgba(255, 200, 70, 0.18), transparent 35%, transparent 65%, rgba(255, 200, 70, 0.18));
+  animation: skillFlashAnim 0.9s ease-out forwards;
 }
 
 @keyframes skillFlashAnim {
-  0% { opacity: 0.95; }
-  60% { opacity: 0.55; }
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  35% { opacity: 0.7; }
   100% { opacity: 0; }
+}
+
+.skillBurst {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+}
+
+.skillBurstRing {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 220, 110, 0.85);
+  box-shadow: 0 0 60px rgba(255, 200, 70, 0.6) inset, 0 0 80px rgba(255, 200, 70, 0.6);
+  animation: skillBurstRingAnim 0.9s cubic-bezier(0.18, 0.9, 0.3, 1) forwards;
+}
+
+.skillBurstRing--two {
+  border-color: rgba(255, 130, 60, 0.7);
+  animation-delay: 0.12s;
+}
+
+.skillBurstRing--three {
+  border-color: rgba(120, 230, 255, 0.7);
+  animation-delay: 0.24s;
+}
+
+@keyframes skillBurstRingAnim {
+  0% { transform: scale(0.2); opacity: 0; border-width: 8px; }
+  20% { opacity: 1; }
+  100% { transform: scale(7); opacity: 0; border-width: 1px; }
+}
+
+.skillNameBanner {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  z-index: 8;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 14px 38px;
+  background: linear-gradient(135deg, rgba(255, 138, 36, 0.4), rgba(255, 220, 90, 0.32));
+  border: 1px solid rgba(255, 220, 100, 0.85);
+  border-radius: 20px;
+  box-shadow: 0 0 60px rgba(255, 200, 90, 0.7), inset 0 0 30px rgba(255, 230, 130, 0.3);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  letter-spacing: 0.18em;
+  animation: skillNameAnim 1.2s cubic-bezier(0.18, 0.9, 0.3, 1) forwards;
+}
+
+.skillNameLabel {
+  color: #ffe8a8;
+  font-size: 13px;
+}
+
+.skillNameBanner strong {
+  color: #fffbe2;
+  font-size: 38px;
+  text-shadow: 0 0 14px rgba(255, 200, 80, 0.95), 0 3px 0 #2a0e02, 0 6px 16px rgba(0, 0, 0, 0.6);
+  line-height: 1;
+}
+
+.skillNameWeapon {
+  color: #ffe8a8;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+}
+
+@keyframes skillNameAnim {
+  0% { opacity: 0; transform: translate(-50%, -10%) scale(0.6) rotate(-3deg); }
+  18% { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(2deg); }
+  35% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  85% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: translate(-50%, -80%) scale(0.95); }
 }
 
 .hitMarker {
@@ -2194,6 +2279,155 @@ canvas {
   0% { transform: scale(0.6); opacity: 0; }
   60% { transform: scale(1.15); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
+}
+
+.screenShake {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.screenShake--light {
+  animation: screenShakeLight 0.22s linear;
+}
+
+.screenShake--heavy {
+  animation: screenShakeHeavy 0.5s ease-out;
+}
+
+.gameShell {
+  position: relative;
+}
+
+.gameShell:has(.screenShake--light) {
+  animation: screenShakeLight 0.22s linear;
+}
+
+.gameShell:has(.screenShake--heavy) {
+  animation: screenShakeHeavy 0.5s ease-out;
+}
+
+@keyframes screenShakeLight {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(2px, -3px); }
+  60% { transform: translate(-2px, 1px); }
+  80% { transform: translate(1px, -1px); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes screenShakeHeavy {
+  0% { transform: translate(0, 0) rotate(0); }
+  10% { transform: translate(-7px, 4px) rotate(-0.4deg); }
+  22% { transform: translate(6px, -5px) rotate(0.3deg); }
+  35% { transform: translate(-5px, 3px) rotate(-0.2deg); }
+  48% { transform: translate(4px, -2px) rotate(0.2deg); }
+  62% { transform: translate(-3px, 2px) rotate(-0.1deg); }
+  78% { transform: translate(2px, -1px) rotate(0); }
+  100% { transform: translate(0, 0) rotate(0); }
+}
+
+.lowHpVignette {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 50%, rgba(220, 30, 50, 0.32) 90%),
+    linear-gradient(180deg, rgba(140, 20, 30, 0.18), transparent 35%, transparent 65%, rgba(140, 20, 30, 0.18));
+  animation: lowHpPulse 1.4s ease-in-out infinite alternate;
+}
+
+.lowHpVignette--critical {
+  background:
+    radial-gradient(ellipse at center, transparent 35%, rgba(255, 30, 60, 0.55) 95%),
+    linear-gradient(180deg, rgba(180, 20, 40, 0.32), transparent 25%, transparent 75%, rgba(180, 20, 40, 0.32));
+  animation: lowHpPulseCritical 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes lowHpPulse {
+  0% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+@keyframes lowHpPulseCritical {
+  0% { opacity: 0.65; filter: brightness(1); }
+  100% { opacity: 1; filter: brightness(1.3); }
+}
+
+.battleStartFlash {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 220, 0.8) 0%, rgba(255, 220, 130, 0.45) 35%, transparent 75%);
+  animation: battleStartFlash 0.6s ease-out forwards;
+}
+
+@keyframes battleStartFlash {
+  0% { opacity: 0; transform: scale(0.4); }
+  20% { opacity: 1; transform: scale(1.1); }
+  60% { opacity: 0.4; transform: scale(1.3); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+
+.itemToast {
+  --toast-accent: #ffd76a;
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  z-index: 6;
+  display: inline-grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px 10px 14px;
+  transform: translateX(-50%);
+  border: 1px solid var(--toast-accent);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(8, 16, 24, 0.85), rgba(20, 36, 50, 0.92));
+  box-shadow: 0 0 24px color-mix(in oklab, var(--toast-accent) 60%, transparent), inset 0 0 18px color-mix(in oklab, var(--toast-accent) 18%, transparent);
+  pointer-events: none;
+  animation: itemToastAnim 1.8s cubic-bezier(0.18, 0.9, 0.3, 1) forwards;
+}
+
+.itemToastIcon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--toast-accent) 18%, transparent);
+  color: var(--toast-accent);
+  font-size: 26px;
+  text-shadow: 0 0 12px color-mix(in oklab, var(--toast-accent) 80%, transparent);
+}
+
+.itemToastBody {
+  display: grid;
+  gap: 2px;
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  letter-spacing: 0.16em;
+}
+
+.itemToastBody strong {
+  color: #fff8e2;
+  font-size: 17px;
+  text-shadow: 0 0 10px color-mix(in oklab, var(--toast-accent) 70%, transparent);
+}
+
+.itemToastBody span {
+  color: #d8e2ec;
+  font-size: 11px;
+}
+
+@keyframes itemToastAnim {
+  0% { opacity: 0; transform: translate(-50%, -22px) scale(0.92); }
+  12% { opacity: 1; transform: translate(-50%, 0) scale(1.06); }
+  20% { transform: translate(-50%, 0) scale(1); }
+  82% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -16px) scale(0.96); }
 }
 
 @media (max-width: 900px) {
