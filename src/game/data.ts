@@ -1,4 +1,10 @@
-import type { WeatherEnemy, Weapon } from "./types";
+import type {
+  Character,
+  Item,
+  Stage,
+  Weapon,
+  WeatherEnemy,
+} from "./types";
 
 export const weatherEnemies: WeatherEnemy[] = [
   {
@@ -55,7 +61,7 @@ export const weatherEnemies: WeatherEnemy[] = [
     trait: "吸引",
     threat: 7,
     description: "プレイヤーを吸引し、接近して連続攻撃を行う。",
-    playableInMvp: false,
+    playableInMvp: true,
   },
   {
     id: "rainySeason",
@@ -69,7 +75,7 @@ export const weatherEnemies: WeatherEnemy[] = [
     trait: "状態異常",
     threat: 7,
     description: "湿気をまとい、継続ダメージや移動速度低下を付与。",
-    playableInMvp: false,
+    playableInMvp: true,
   },
   {
     id: "blizzard",
@@ -83,29 +89,228 @@ export const weatherEnemies: WeatherEnemy[] = [
     trait: "凍結",
     threat: 6,
     description: "吹雪を起こし、氷結や行動阻害を引き起こす。",
-    playableInMvp: false,
+    playableInMvp: true,
   },
   {
     id: "typhoon",
     index: "07",
     name: "台風",
-    maxHp: 260,
+    maxHp: 320,
     color: "#314d65",
     accentColor: "#24d8ff",
     coreColor: "#f9fbff",
     icon: "◎",
     trait: "複合型",
     threat: 9,
-    description: "豪雨・多雷・竜巻の複合型。将来的な大型ボス候補。",
-    playableInMvp: false,
+    description: "豪雨・多雷・竜巻の複合型。ボス級の脅威。",
+    playableInMvp: true,
   },
 ];
 
-export const initialWeapon: Weapon = {
-  name: "クリアスカイガン",
-  damage: 12,
-  maxAmmo: 120,
-  skillName: "晴天バースト",
-};
+export const weapons: Weapon[] = [
+  {
+    id: "weatherGun",
+    name: "ウェザーガン",
+    damage: 9,
+    maxAmmo: 180,
+    fireRateMs: 90,
+    skillName: "天候連射",
+    skillDescription: "短時間で連射力が上がり、敵HPを段階的に削る",
+    skillBurstRatio: 0.18,
+    skillBurstShots: 8,
+    description: "標準装備。連射力に優れた基本武器。",
+    specialtyAgainst: [],
+    specialtyMultiplier: 1,
+  },
+  {
+    id: "clearSkyGun",
+    name: "クリアスカイガン",
+    damage: 14,
+    maxAmmo: 120,
+    fireRateMs: 140,
+    skillName: "晴天バースト",
+    skillDescription: "高威力の単発バーストを撃ち込む",
+    skillBurstRatio: 0.32,
+    skillBurstShots: 5,
+    description: "バランス型。武器スキルが扱いやすい。",
+    specialtyAgainst: [],
+    specialtyMultiplier: 1,
+  },
+  {
+    id: "rainySeasonKiller",
+    name: "梅雨キラー",
+    damage: 22,
+    maxAmmo: 80,
+    fireRateMs: 220,
+    skillName: "湿度排除",
+    skillDescription: "湿度系の敵に追加ダメージを与える",
+    skillBurstRatio: 0.42,
+    skillBurstShots: 3,
+    description: "高威力低連射。湿度系の敵への特効。",
+    specialtyAgainst: ["rainySeason", "heavyRain"],
+    specialtyMultiplier: 1.45,
+  },
+  {
+    id: "stormwallRifle",
+    name: "雷除けライフル",
+    damage: 12,
+    maxAmmo: 100,
+    fireRateMs: 130,
+    skillName: "電界反射",
+    skillDescription: "対多雷で追加ダメージ。短時間スキル中の被ダメ軽減",
+    skillBurstRatio: 0.28,
+    skillBurstShots: 4,
+    description: "対多雷特化。電界を編んで雷を逸らす。",
+    specialtyAgainst: ["thunderstorm"],
+    specialtyMultiplier: 1.55,
+  },
+  {
+    id: "frostlance",
+    name: "凍結カノン",
+    damage: 18,
+    maxAmmo: 70,
+    fireRateMs: 200,
+    skillName: "凍結弾",
+    skillDescription: "吹雪/竜巻系を凍結し、追加ダメージ",
+    skillBurstRatio: 0.36,
+    skillBurstShots: 4,
+    description: "対吹雪・竜巻特化。冷気で天候を抑え込む。",
+    specialtyAgainst: ["blizzard", "tornado"],
+    specialtyMultiplier: 1.4,
+  },
+];
+
+export const items: Item[] = [
+  {
+    id: "clearTonic",
+    slotKey: "1",
+    name: "晴れ薬",
+    effect: "耐候値を回復",
+    description: "使用すると耐候値を 350 回復する",
+    initialStock: 3,
+  },
+  {
+    id: "lightningRod",
+    slotKey: "2",
+    name: "避雷針",
+    effect: "落雷予兆を打ち消す",
+    description: "場のすべての落雷予兆を消す",
+    initialStock: 2,
+  },
+  {
+    id: "decoyUmbrella",
+    slotKey: "3",
+    name: "デコイ傘",
+    effect: "敵の狙いを逸らす",
+    description: "5秒間、被ダメージを 60% 軽減する",
+    initialStock: 2,
+  },
+  {
+    id: "pressureStabilizer",
+    slotKey: "4",
+    name: "気圧安定剤",
+    effect: "気圧ゲージを蓄積",
+    description: "武器スキルゲージを大きく増やす",
+    initialStock: 1,
+  },
+];
+
+export const characters: Character[] = [
+  {
+    id: "iris",
+    codename: "アヤメ",
+    callSign: "IRIS",
+    role: "バランス",
+    passiveName: "晴天適応",
+    passiveDescription: "命中時の与ダメージ +10%",
+    damageMultiplier: 1.1,
+    damageTakenMultiplier: 1.0,
+    gaugeGainMultiplier: 1.0,
+    accentColor: "#28d9ff",
+    description: "標準的な観測パイロット。汎用性に優れる。",
+  },
+  {
+    id: "halo",
+    codename: "ハル",
+    callSign: "HALO",
+    role: "重装",
+    passiveName: "気圧耐性",
+    passiveDescription: "被ダメージ -18% / 与ダメージ -5%",
+    damageMultiplier: 0.95,
+    damageTakenMultiplier: 0.82,
+    gaugeGainMultiplier: 0.9,
+    accentColor: "#6cdcff",
+    description: "防御特化の先行偵察員。長期戦に強い。",
+  },
+  {
+    id: "raika",
+    codename: "ライカ",
+    callSign: "RAIKA",
+    role: "攻撃",
+    passiveName: "気圧収束",
+    passiveDescription: "気圧ゲージ +30% / 被ダメージ +10%",
+    damageMultiplier: 1.0,
+    damageTakenMultiplier: 1.1,
+    gaugeGainMultiplier: 1.3,
+    accentColor: "#ffd84d",
+    description: "気圧操作を専門とするアタッカー。ハイリスクハイリターン。",
+  },
+];
+
+export const stages: Stage[] = [
+  {
+    id: "lab",
+    name: "実験場",
+    description: "試作機の検証場。整備された円形フィールド。",
+    ambientColor: "#1f4255",
+    groundColor: "#0a141c",
+    ringColor: "#28d9ff",
+    fogColor: "#06121b",
+    skyTurbidity: 9,
+    skyRayleigh: 3.2,
+    buildingColor: "#1f2f3a",
+    buildingEmissive: "#0aa0d7",
+  },
+  {
+    id: "ruins",
+    name: "都市跡",
+    description: "崩壊した観測都市。瓦礫が残る非対称地形。",
+    ambientColor: "#3d2218",
+    groundColor: "#1a0f0a",
+    ringColor: "#ff8845",
+    fogColor: "#1a0c08",
+    skyTurbidity: 14,
+    skyRayleigh: 1.4,
+    buildingColor: "#3a2a26",
+    buildingEmissive: "#d76a2e",
+  },
+  {
+    id: "highland",
+    name: "高地観測所",
+    description: "極寒の山頂観測所。視界が霧で淡い。",
+    ambientColor: "#22425b",
+    groundColor: "#152030",
+    ringColor: "#bce6ff",
+    fogColor: "#a7c8d8",
+    skyTurbidity: 4,
+    skyRayleigh: 0.8,
+    buildingColor: "#2c4453",
+    buildingEmissive: "#7ab5d7",
+  },
+];
+
+export const initialWeapon: Weapon = weapons[1];
+
+export const findWeapon = (id: Weapon["id"]) =>
+  weapons.find((weapon) => weapon.id === id) ?? initialWeapon;
+
+export const findItem = (id: Item["id"]) =>
+  items.find((item) => item.id === id);
+
+export const findCharacter = (id: Character["id"]) =>
+  characters.find((character) => character.id === id) ?? characters[0];
+
+export const findStage = (id: Stage["id"]) =>
+  stages.find((stage) => stage.id === id) ?? stages[0];
 
 export const mvpEnemies = weatherEnemies.filter((enemy) => enemy.playableInMvp);
