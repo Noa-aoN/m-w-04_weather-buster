@@ -238,6 +238,7 @@ export function PlayerController({
       const diffMod = difficultyModifiers[state.selectedDifficulty];
       const burstCount = getSpecialBurstCount(enemy.id);
       if (burstCount > 0) {
+        useBattleStore.setState({ lastSpecialFiredAt: now });
         const baseTargetX = camera.position.x;
         const baseTargetZ = camera.position.z;
         for (let i = 0; i < burstCount; i += 1) {

@@ -391,6 +391,44 @@ export function playLowAmmoBeep() {
   tone({ freq: 1760, duration: 0.05, type: "sine", volume: 0.08, release: 0.06, delay: 0.06 });
 }
 
+export function playBlocked() {
+  // Metallic "tink" — high steel hit + fast filtered noise
+  tone({ freq: 2400, duration: 0.05, type: "triangle", volume: 0.18, attack: 0.001, release: 0.06 });
+  tone({ freq: 1700, duration: 0.06, type: "sine", volume: 0.12, attack: 0.001, release: 0.08, delay: 0.005 });
+  noiseBurst({ duration: 0.06, volume: 0.14, filter: 4800 });
+}
+
+export function playEnemyChargeStart() {
+  // Rising pitch warble + low rumble
+  tone({ freq: 220, duration: 0.6, type: "sawtooth", volume: 0.14, attack: 0.05, release: 0.4 });
+  tone({ freq: 440, duration: 0.6, type: "triangle", volume: 0.1, attack: 0.05, release: 0.4, delay: 0.04 });
+  // Rising siren (short)
+  const ctx = ensureContext();
+  if (!ctx || !masterGain) return;
+  const start = ctx.currentTime + 0.02;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(180, start);
+  osc.frequency.linearRampToValueAtTime(720, start + 1.0);
+  g.gain.setValueAtTime(0, start);
+  g.gain.linearRampToValueAtTime(0.18, start + 0.06);
+  g.gain.linearRampToValueAtTime(0, start + 1.05);
+  osc.connect(g);
+  g.connect(masterGain);
+  osc.start(start);
+  osc.stop(start + 1.1);
+}
+
+export function playEnemyChargeFire() {
+  // Deep bass hit + crash
+  tone({ freq: 60, duration: 0.32, type: "sine", volume: 0.45, attack: 0.001, release: 0.36 });
+  tone({ freq: 120, duration: 0.22, type: "triangle", volume: 0.32, attack: 0.001, release: 0.26 });
+  noiseBurst({ duration: 0.4, volume: 0.34, filter: 800 });
+  noiseBurst({ duration: 0.18, volume: 0.42, filter: 6000 });
+  tone({ freq: 240, duration: 0.18, type: "sawtooth", volume: 0.18, attack: 0.001, release: 0.18, delay: 0.005 });
+}
+
 export function playCountdownTick() {
   tone({ freq: 1320, duration: 0.06, type: "triangle", volume: 0.22, release: 0.12 });
   tone({ freq: 880, duration: 0.05, type: "sine", volume: 0.14, release: 0.1, delay: 0.005 });
