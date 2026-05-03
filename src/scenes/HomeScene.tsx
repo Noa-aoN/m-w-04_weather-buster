@@ -805,9 +805,12 @@ export function HomeScene({
 
         <div className="missionCycler">
           <button type="button" className="cyclerArrow" aria-label="前の敵" onClick={() => cycleEnemy(-1)}>◀</button>
-          <div className="cyclerLabel">
+          <div className="cyclerLabel cyclerEnemy">
             <small>敵</small>
-            <strong>{selectedEnemy.name}</strong>
+            <strong>
+              <span className="enemyMiniIcon" style={{ color: selectedEnemy.accentColor }}>{selectedEnemy.icon}</span>
+              {selectedEnemy.name}
+            </strong>
             <em>{selectedEnemy.trait}</em>
           </div>
           <button type="button" className="cyclerArrow" aria-label="次の敵" onClick={() => cycleEnemy(1)}>▶</button>

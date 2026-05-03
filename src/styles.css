@@ -634,6 +634,20 @@ canvas {
   100% { box-shadow: 0 0 18px rgba(255, 130, 60, 0.85); }
 }
 
+.enemyMiniIcon {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 1.4em;
+  text-shadow: 0 0 12px currentColor;
+  vertical-align: -2px;
+  animation: enemyMiniIconBob 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes enemyMiniIconBob {
+  0% { transform: translateY(0) rotate(-2deg); filter: brightness(1); }
+  100% { transform: translateY(-3px) rotate(3deg); filter: brightness(1.25); }
+}
+
 .battleHud {
   position: absolute;
   inset: 0;
