@@ -377,6 +377,44 @@ function BossIntro({ enemyName, enemyTrait, threat }: { enemyName: string; enemy
   );
 }
 
+function BlockedIndicator() {
+  const lastBlockedAt = useBattleStore((state) => state.lastBlockedAt);
+  const [show, setShow] = useState(0);
+  useEffect(() => {
+    if (lastBlockedAt === 0) return;
+    setShow(lastBlockedAt);
+    const t = window.setTimeout(() => setShow(0), 600);
+    return () => window.clearTimeout(t);
+  }, [lastBlockedAt]);
+  if (show === 0) {
+    return null;
+  }
+  return (
+    <div className="blockedIndicator" key={show} aria-hidden="true">
+      <span>BLOCKED</span>
+    </div>
+  );
+}
+
+function BarrierWarning() {
+  const enemyBarrierUntil = useBattleStore((state) => state.enemyBarrierUntil);
+  const [active, setActive] = useState(false);
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setActive(performance.now() < enemyBarrierUntil);
+    }, 100);
+    return () => window.clearInterval(id);
+  }, [enemyBarrierUntil]);
+  if (!active) {
+    return null;
+  }
+  return (
+    <div className="barrierWarning" aria-hidden="true">
+      <span>BARRIER UP</span>
+    </div>
+  );
+}
+
 function CriticalFlash() {
   const lastShotAt = useBattleStore((state) => state.lastShotAt);
   const lastShotCritical = useBattleStore((state) => state.lastShotCritical);
@@ -616,6 +654,8 @@ export function BattleHud({
       <DamageFlash />
       <HealFlash />
       <CriticalFlash />
+      <BlockedIndicator />
+      <BarrierWarning />
       <ItemToast />
 
       {countdown !== null ? (
