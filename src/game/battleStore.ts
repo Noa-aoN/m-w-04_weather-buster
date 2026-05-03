@@ -121,6 +121,8 @@ type BattleState = {
   reloadingStartedAt: number;
   enemyChargeStartedAt: number;
   enemyChargeFiresAt: number;
+  seedCount: number;
+  seedHistory: Array<{ enemyId: WeatherEnemyId; difficulty: DifficultyLevel; rank: string; at: number }>;
   selectEnemy: (id: WeatherEnemyId) => void;
   selectWeapon: (id: WeaponId) => void;
   selectCharacter: (id: CharacterId) => void;
@@ -156,6 +158,7 @@ type BattleState = {
   applyKnockback: (vx: number, vz: number) => void;
   consumeKnockback: () => { vx: number; vz: number };
   beginEnemyCharge: (firesAt: number) => void;
+  recordClear: (entry: { enemyId: WeatherEnemyId; difficulty: DifficultyLevel; rank: string }) => void;
 };
 
 const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
@@ -193,6 +196,11 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   reloadingStartedAt: 0,
   enemyChargeStartedAt: 0,
   enemyChargeFiresAt: 0,
+});
+
+const seedFields = (snapshot: SeedSnapshot) => ({
+  seedCount: snapshot.count,
+  seedHistory: snapshot.history,
 });
 
 const findEnemy = (id: WeatherEnemyId) =>
@@ -235,9 +243,42 @@ const computeReloadMs = (weapon: Weapon) => {
   return 950;
 };
 
+const SEED_STORAGE_KEY = "weatherbuster-seeds-v1";
+
+type SeedSnapshot = {
+  count: number;
+  history: BattleState["seedHistory"];
+};
+
+function loadSeedSnapshot(): SeedSnapshot {
+  if (typeof window === "undefined") {
+    return { count: 0, history: [] };
+  }
+  try {
+    const raw = window.localStorage.getItem(SEED_STORAGE_KEY);
+    if (!raw) return { count: 0, history: [] };
+    const parsed = JSON.parse(raw) as Partial<SeedSnapshot>;
+    const count = typeof parsed.count === "number" ? parsed.count : 0;
+    const history = Array.isArray(parsed.history) ? parsed.history.slice(0, 32) : [];
+    return { count, history };
+  } catch {
+    return { count: 0, history: [] };
+  }
+}
+
+function persistSeedSnapshot(snapshot: SeedSnapshot) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(SEED_STORAGE_KEY, JSON.stringify(snapshot));
+  } catch {
+    // ignore quota / private mode failures
+  }
+}
+
 export const useBattleStore = create<BattleState>((set, get) => {
   const defaultEnemy = weatherEnemies[DEFAULT_ENEMY_INDEX];
   const defaultWeapon = weapons[DEFAULT_WEAPON_INDEX];
+  const seedSnapshot = loadSeedSnapshot();
 
   return {
     status: "ready",
@@ -258,6 +299,7 @@ export const useBattleStore = create<BattleState>((set, get) => {
     enemyHp: enemyMaxHpFor(defaultEnemy, defaultEnemy.difficulty),
     enemyMaxHp: enemyMaxHpFor(defaultEnemy, defaultEnemy.difficulty),
     ...baseLoadout(defaultWeapon, defaultEnemy.difficulty),
+    ...seedFields(seedSnapshot),
     selectEnemy: (id) => {
       const target = findEnemy(id);
       const weapon = findWeapon(get().selectedWeaponId);
@@ -572,6 +614,16 @@ export const useBattleStore = create<BattleState>((set, get) => {
         return;
       }
       set({ enemyChargeStartedAt: performance.now(), enemyChargeFiresAt: firesAt });
+    },
+    recordClear: ({ enemyId, difficulty, rank }) => {
+      const state = get();
+      const nextCount = state.seedCount + Math.max(1, difficulty);
+      const nextHistory = [
+        { enemyId, difficulty, rank, at: Date.now() },
+        ...state.seedHistory,
+      ].slice(0, 32);
+      set({ seedCount: nextCount, seedHistory: nextHistory });
+      persistSeedSnapshot({ count: nextCount, history: nextHistory });
     },
   };
 });

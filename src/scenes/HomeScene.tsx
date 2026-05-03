@@ -786,6 +786,9 @@ export function HomeScene({
             <small>WEAPON</small>
             <strong>{weapon.name}</strong>
             <em>DMG {weapon.damage}</em>
+            {weapon.specialtyAgainst.includes(selectedEnemy.id) ? (
+              <b className="weaponSpecialtyBadge">×{weapon.specialtyMultiplier.toFixed(2)} 弱点特効</b>
+            ) : null}
           </button>
           <button type="button" className="cyclerArrow" aria-label="次の武器" onClick={() => cycleWeapon(1)}>▶</button>
         </div>
@@ -850,6 +853,20 @@ export function HomeScene({
         <span className="pilotLogCallSign" style={{ color: character.accentColor }}>{character.callSign} / {character.codename}</span>
         <em>{character.flavor}</em>
       </blockquote>
+
+      <SeedCounter />
     </main>
+  );
+}
+
+function SeedCounter() {
+  const seedCount = useBattleStore((state) => state.seedCount);
+  const seedHistory = useBattleStore((state) => state.seedHistory);
+  return (
+    <aside className="seedCounter" aria-label="晴天の種子">
+      <span className="seedLabel">晴天の種子</span>
+      <strong className="seedValue">{seedCount}</strong>
+      <small className="seedSub">{seedHistory.length} 件の戦闘記録</small>
+    </aside>
   );
 }

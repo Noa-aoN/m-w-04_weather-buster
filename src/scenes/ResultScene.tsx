@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { findCharacter, findStage, findWeapon, weatherEnemies } from "../game/data";
 import { useBattleStore } from "../game/battleStore";
 import { calculateRank, calculateSunnyScore } from "../game/score";
@@ -53,6 +53,16 @@ export function ResultScene({
   const stage = findStage(result.stageId);
   const accuracyPct = result.shotsFired === 0 ? 0 : Math.round((result.shotsHit / result.shotsFired) * 100);
   const damageTakenPct = Math.min(100, Math.round((result.damageTaken / result.playerMaxHp) * 100));
+  const recordClear = useBattleStore((state) => state.recordClear);
+  const recordedRef = useRef(false);
+
+  useEffect(() => {
+    if (recordedRef.current) return;
+    if (!result.cleared) return;
+    recordedRef.current = true;
+    const difficulty = useBattleStore.getState().selectedDifficulty;
+    recordClear({ enemyId: result.enemyId, difficulty, rank: result.rank });
+  }, [result, recordClear]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
