@@ -16,6 +16,7 @@
 | `public/models/modular-space-kit/` | Modular Space Kit 1.0 | https://kenney.nl/assets/modular-space-kit | 40 |
 | `public/models/factory-kit/` | Factory Kit 3.0 | https://kenney.nl/assets/factory-kit | 143 |
 | `public/models/tower-defense-kit/` | Tower Defense Kit | https://kenney.nl/assets/tower-defense-kit | 160 |
+| `public/models/prototype-kit/` | Prototype Kit (動物・ボタン・扉・標識・蓄電などにアニメ込み) | https://kenney.nl/assets/prototype-kit | 145 |
 
 各ディレクトリ直下に `License.txt` を同梱しています（CC0 + Kenney からの公開クレジット）。
 
