@@ -286,6 +286,52 @@ function BattleStartFlash() {
   return <div className="battleStartFlash" key={flash} aria-hidden="true" />;
 }
 
+function DamageFlash() {
+  const playerHp = useBattleStore((state) => state.playerHp);
+  const prev = useRef(playerHp);
+  const [flash, setFlash] = useState<{ key: number; intensity: number } | null>(null);
+  useEffect(() => {
+    if (playerHp < prev.current) {
+      const drop = prev.current - playerHp;
+      const intensity = Math.min(1, drop / 120);
+      setFlash({ key: Date.now(), intensity });
+      const t = window.setTimeout(() => setFlash(null), 480);
+      prev.current = playerHp;
+      return () => window.clearTimeout(t);
+    }
+    prev.current = playerHp;
+  }, [playerHp]);
+  if (!flash) {
+    return null;
+  }
+  return (
+    <div
+      className="damageFlash"
+      key={flash.key}
+      style={{ ["--flash-strength" as string]: flash.intensity.toString() }}
+      aria-hidden="true"
+    />
+  );
+}
+
+function HealFlash() {
+  const lastItemAt = useBattleStore((state) => state.lastItemAt);
+  const lastItemId = useBattleStore((state) => state.lastItemId);
+  const [flashAt, setFlashAt] = useState(0);
+  useEffect(() => {
+    if (lastItemAt === 0 || lastItemId !== "clearTonic") {
+      return;
+    }
+    setFlashAt(lastItemAt);
+    const t = window.setTimeout(() => setFlashAt(0), 700);
+    return () => window.clearTimeout(t);
+  }, [lastItemAt, lastItemId]);
+  if (flashAt === 0) {
+    return null;
+  }
+  return <div className="healFlash" key={flashAt} aria-hidden="true" />;
+}
+
 export function BattleHud({
   onBack,
   onOpenEnemyGrid,
@@ -482,6 +528,8 @@ export function BattleHud({
       <ScreenShake />
       <LowHpVignette />
       <BattleStartFlash />
+      <DamageFlash />
+      <HealFlash />
       <ItemToast />
 
       {countdown !== null ? (

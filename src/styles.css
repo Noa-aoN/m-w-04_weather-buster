@@ -2430,6 +2430,41 @@ canvas {
   100% { opacity: 0; transform: translate(-50%, -16px) scale(0.96); }
 }
 
+.damageFlash {
+  --flash-strength: 0.6;
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 30%, rgba(220, 30, 50, calc(var(--flash-strength) * 0.55)) 95%),
+    linear-gradient(180deg, rgba(255, 60, 80, calc(var(--flash-strength) * 0.4)), transparent 30%, transparent 70%, rgba(255, 60, 80, calc(var(--flash-strength) * 0.4)));
+  animation: damageFlashAnim 0.48s ease-out forwards;
+}
+
+@keyframes damageFlashAnim {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.healFlash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 30%, rgba(120, 255, 180, 0.35) 95%),
+    linear-gradient(180deg, rgba(255, 232, 130, 0.32), transparent 28%, transparent 72%, rgba(120, 255, 180, 0.28));
+  animation: healFlashAnim 0.7s ease-out forwards;
+}
+
+@keyframes healFlashAnim {
+  0% { opacity: 0; transform: scale(0.95); }
+  20% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.04); }
+}
+
 @media (max-width: 900px) {
   body {
     overflow: auto;

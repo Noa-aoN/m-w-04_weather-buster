@@ -461,12 +461,28 @@ function EnemyMotion({
     orbitDir: 1,
     angle: 0,
   });
+  const revealRef = useRef<{ startedAt: number | null; lastStatus: typeof status }>({ startedAt: null, lastStatus: status });
 
   useFrame((state, delta) => {
     const node = enemyRef.current;
     if (!node) {
       return;
     }
+    if (revealRef.current.lastStatus !== status) {
+      if (status === "battle") {
+        revealRef.current.startedAt = performance.now();
+      } else {
+        revealRef.current.startedAt = null;
+      }
+      revealRef.current.lastStatus = status;
+    }
+    const revealStart = revealRef.current.startedAt;
+    const revealDur = 700;
+    const revealK = revealStart === null ? 1 : Math.min(1, (performance.now() - revealStart) / revealDur);
+    const revealEase = revealK < 1 ? 1 - Math.pow(1 - revealK, 3) : 1;
+    const revealOvershoot = revealK < 0.6 ? 1 + Math.sin(revealK * Math.PI / 0.6) * 0.18 : 1;
+    const revealScale = revealStart === null ? 1 : revealEase * revealOvershoot;
+
     const hitStun = lastShotHit ? Math.max(0, 1 - (performance.now() - lastShotAt) / 180) : 0;
     const baseY = 2.6;
     const idleY = baseY + Math.sin(state.clock.getElapsedTime() * 1.1) * 0.18;
@@ -477,17 +493,18 @@ function EnemyMotion({
       return;
     }
     if (!isPointerLocked) {
+      node.scale.setScalar(ENEMY_SCALE * revealScale);
       enemyPositionRef.current.copy(node.position);
       return;
     }
     if (hitStun > 0) {
       node.position.x += (Math.random() - 0.5) * hitStun * 0.08;
       node.position.y = baseY + hitStun * 0.22;
-      node.scale.setScalar(ENEMY_SCALE * (1 + hitStun * 0.08));
+      node.scale.setScalar(ENEMY_SCALE * revealScale * (1 + hitStun * 0.08));
       enemyPositionRef.current.copy(node.position);
       return;
     }
-    node.scale.setScalar(ENEMY_SCALE);
+    node.scale.setScalar(ENEMY_SCALE * revealScale);
 
     const aggression = difficultyModifiers[difficulty].movementAggression;
     const phase = phaseRef.current;
