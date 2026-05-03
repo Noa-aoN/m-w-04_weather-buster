@@ -377,6 +377,24 @@ function BossIntro({ enemyName, enemyTrait, threat }: { enemyName: string; enemy
   );
 }
 
+function CriticalFlash() {
+  const lastShotAt = useBattleStore((state) => state.lastShotAt);
+  const lastShotCritical = useBattleStore((state) => state.lastShotCritical);
+  const [flashAt, setFlashAt] = useState(0);
+  useEffect(() => {
+    if (lastShotAt === 0 || !lastShotCritical) {
+      return;
+    }
+    setFlashAt(lastShotAt);
+    const t = window.setTimeout(() => setFlashAt(0), 300);
+    return () => window.clearTimeout(t);
+  }, [lastShotAt, lastShotCritical]);
+  if (flashAt === 0) {
+    return null;
+  }
+  return <div className="criticalFlash" key={flashAt} aria-hidden="true" />;
+}
+
 function HealFlash() {
   const lastItemAt = useBattleStore((state) => state.lastItemAt);
   const lastItemId = useBattleStore((state) => state.lastItemId);
@@ -597,6 +615,7 @@ export function BattleHud({
       <BossIntro enemyName={enemy.name} enemyTrait={enemy.trait} threat={enemy.threat} />
       <DamageFlash />
       <HealFlash />
+      <CriticalFlash />
       <ItemToast />
 
       {countdown !== null ? (

@@ -2576,6 +2576,24 @@ canvas {
   100% { opacity: 0; transform: scale(1.04); }
 }
 
+.criticalFlash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at center, transparent 35%, rgba(255, 220, 80, 0.34) 80%),
+    linear-gradient(180deg, transparent 38%, rgba(255, 200, 70, 0.22) 50%, transparent 62%);
+  mix-blend-mode: screen;
+  animation: criticalFlashAnim 0.3s ease-out forwards;
+}
+
+@keyframes criticalFlashAnim {
+  0% { opacity: 0; transform: scale(0.96); }
+  10% { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+
 .skillStatus--ready {
   border-color: rgba(255, 220, 110, 0.95);
   box-shadow: 0 0 24px rgba(255, 200, 70, 0.55), inset 0 0 18px rgba(255, 220, 110, 0.18);
