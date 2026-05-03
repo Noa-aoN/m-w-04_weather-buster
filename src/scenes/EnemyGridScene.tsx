@@ -1,5 +1,7 @@
 import { Canvas } from "@react-three/fiber";
+import { EnemyAura } from "../entities/EnemyAura";
 import { WeatherEnemyModel } from "../entities/WeatherEnemyModel";
+import { useBattleStore } from "../game/battleStore";
 import { weatherEnemies } from "../game/data";
 import type { WeatherEnemyId } from "../game/types";
 
@@ -9,37 +11,43 @@ function EnemyCardCanvas({ enemyId }: { enemyId: WeatherEnemyId }) {
   return (
     <Canvas camera={{ position: [0, 0.8, 4.1], fov: 45 }}>
       <color attach="background" args={["#07131b"]} />
-      <ambientLight intensity={0.75} />
-      <directionalLight position={[3, 4, 3]} intensity={1.8} color={enemy.accentColor} />
-      <pointLight position={[0, 0.6, 2]} intensity={2.2} color={enemy.coreColor} />
+      <ambientLight intensity={0.6} />
+      <directionalLight position={[3, 4, 3]} intensity={1.6} color={enemy.accentColor} />
+      <pointLight position={[0, 0.6, 2]} intensity={2.4} color={enemy.coreColor} />
+      <fog attach="fog" args={["#07131b", 3, 8]} />
+      <EnemyAura enemyId={enemy.id} color={enemy.accentColor} />
       <WeatherEnemyModel enemy={enemy} compact />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.25, 0]}>
         <ringGeometry args={[0.8, 1.2, 64]} />
         <meshStandardMaterial color={enemy.accentColor} emissive={enemy.accentColor} emissiveIntensity={0.45} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.24, 0]}>
+        <ringGeometry args={[1.5, 1.55, 64]} />
+        <meshBasicMaterial color={enemy.accentColor} transparent opacity={0.4} toneMapped={false} />
       </mesh>
     </Canvas>
   );
 }
 
 export function EnemyGridScene({
-  selectedEnemyId,
   onBack,
   onSelectEnemy,
 }: {
-  selectedEnemyId: WeatherEnemyId;
   onBack: () => void;
   onSelectEnemy: (enemyId: WeatherEnemyId) => void;
 }) {
+  const selectedEnemyId = useBattleStore((state) => state.selectedEnemyId);
   return (
-    <main className="gridShell">
+    <main className="gridShell sceneEnter">
       <div className="gridBackdrop" />
       <StarsBackground />
-      <header className="gridHeader">
-        <div>
+      <header className="screenHeader">
+        <div className="screenHeaderInfo">
+          <span>PROJECT: WEATHER BUSTER</span>
           <h1>WEATHER ENEMY GRID</h1>
-          <span>ウェザーエネミー図鑑</span>
+          <small>ウェザーエネミー図鑑</small>
         </div>
-        <button type="button" onClick={onBack}>戻る</button>
+        <button type="button" className="screenBack" onClick={onBack}>← ホーム</button>
       </header>
 
       <section className="enemyGrid">

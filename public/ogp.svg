@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="ウェザーバスター CLEAR THE SKY">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#061019"/>
+      <stop offset="0.58" stop-color="#0b2634"/>
+      <stop offset="1" stop-color="#1d3a52"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#sky)"/>
+  <path d="M0 490h1200v140H0z" fill="#07131b"/>
+  <path d="M0 490h1200" stroke="#28d9ff" stroke-width="3" opacity=".5"/>
+  <g opacity=".28" stroke="#28d9ff" stroke-width="1">
+    <path d="M0 540h1200M0 590h1200M80 490v140M180 490v140M280 490v140M380 490v140M480 490v140M580 490v140M680 490v140M780 490v140M880 490v140M980 490v140M1080 490v140"/>
+  </g>
+  <g filter="url(#glow)">
+    <path d="M790 134c-8-48 30-90 80-90 40 0 72 25 82 62 45 4 80 43 80 88 0 49-40 89-90 89H782c-41 0-74-33-74-74 0-36 26-67 82-75z" fill="#aee3ff" opacity=".92"/>
+    <path d="M852 78 752 324h126l-52 172 218-288H906l74-130H852z" fill="#ffd84d"/>
+  </g>
+  <text x="80" y="190" fill="#28d9ff" font-family="Arial, 'Hiragino Kaku Gothic ProN', sans-serif" font-size="30" font-weight="700" letter-spacing="8">PROJECT: WEATHER BUSTER</text>
+  <text x="78" y="308" fill="#f7fdff" font-family="Arial, 'Hiragino Kaku Gothic ProN', sans-serif" font-size="92" font-weight="900">ウェザーバスター</text>
+  <text x="84" y="382" fill="#ffd84d" font-family="Arial, sans-serif" font-size="46" font-weight="900" letter-spacing="14">CLEAR THE SKY</text>
+  <text x="84" y="442" fill="#d9f6ff" font-family="Arial, 'Hiragino Kaku Gothic ProN', sans-serif" font-size="28">荒れた天候を撃ち抜き、空を晴らせ</text>
+</svg>
