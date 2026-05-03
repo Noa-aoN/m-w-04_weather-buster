@@ -88,7 +88,7 @@ export function AudioBridge() {
           playLowAmmoBeep();
         }
       }
-      if (state.ammo > prev.ammo) {
+      if (state.reloadingStartedAt !== prev.reloadingStartedAt && state.reloadingStartedAt !== 0) {
         playReload();
       }
       if (state.lastShieldBlockAt !== prev.lastShieldBlockAt && state.lastShieldBlockAt !== 0) {
