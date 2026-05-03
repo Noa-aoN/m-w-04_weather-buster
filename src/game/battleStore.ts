@@ -66,6 +66,7 @@ type LightningMarker = {
   color: string;
   trailGlow: number;
   kind: AttackKind;
+  enemyId: WeatherEnemyId;
 };
 
 type BattleState = {

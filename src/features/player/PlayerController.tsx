@@ -180,6 +180,7 @@ export function PlayerController({
         color: pattern.projectileColor,
         trailGlow: pattern.trailGlow,
         kind: pattern.kind,
+        enemyId: enemy.id,
       };
       state.spawnLightning(marker);
       nextLightningAt.current = now + interval;
