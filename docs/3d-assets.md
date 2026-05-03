@@ -13,6 +13,7 @@
 | `public/models/quaternius-characters/` | Ultimate Animated Character Pack (Nov 2019) | https://opengameart.org/content/animated-characters-pack | `BlueSoldier_Female.fbx` | NOA (IRIS / バランス) |
 | 同上 | 同上 | 同上 | `BlueSoldier_Male.fbx` | HALO (重装) |
 | 同上 | 同上 | 同上 | `Ninja_Female.fbx` | SAKA (RAIKA / 攻撃) |
+| `public/models/quaternius-guns/` | Ultimate Gun Pack (Jul 2019) | https://opengameart.org/content/low-poly-guns-pack | `AssaultRifle_2 / Bullpup_2 / Shotgun_2 / SniperRifle_3 / AssaultRifle2_3 / Pistol_2 / SubmachineGun_3 / Revolver_2` | 5武器スロット + 予備3 |
 
 ライセンスは CC0 1.0 Universal（パック内 `License.txt` 同梱）。Patreon サポート任意。
 

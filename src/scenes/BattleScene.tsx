@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Sky, Stars, useAnimations, useFBX, useGLTF } from "@react-three/drei";
+import { Sky, Stars, useAnimations, useFBX } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh, PerspectiveCamera, PointLight } from "three";
 import { Color, Vector3 } from "three";
@@ -26,12 +26,12 @@ function PlayerWeapon() {
   const lastShotAt = useBattleStore((state) => state.lastShotAt);
   const cameraMode = useBattleStore((state) => state.cameraMode);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
-  const { scene } = useGLTF(WEAPON_MODEL_URL[selectedWeaponId]);
+  const fbx = useFBX(WEAPON_MODEL_URL[selectedWeaponId]);
   const fitted = useMemo(() => {
-    const c = scene.clone(true);
+    const c = fbx.clone(true) as Group;
     fitObjectToSize(c, 0.55);
     return c;
-  }, [scene]);
+  }, [fbx]);
 
   useEffect(() => {
     if (lastShotAt === 0) {
@@ -91,7 +91,7 @@ function PlayerBackAvatar() {
   const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
   const charFbx = useFBX(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.iris);
-  const weaponGltf = useGLTF(WEAPON_MODEL_URL[selectedWeaponId]);
+  const weaponFbx = useFBX(WEAPON_MODEL_URL[selectedWeaponId]);
 
   const { charFitted, animations } = useMemo(() => {
     const cloned = SkeletonUtils.clone(charFbx) as Group;
@@ -100,10 +100,10 @@ function PlayerBackAvatar() {
   }, [charFbx]);
 
   const weaponFitted = useMemo(() => {
-    const c = weaponGltf.scene.clone(true);
+    const c = weaponFbx.clone(true) as Group;
     fitObjectToSize(c, 0.6);
     return c;
-  }, [weaponGltf]);
+  }, [weaponFbx]);
 
   const { actions, names } = useAnimations(animations, charRef);
 
