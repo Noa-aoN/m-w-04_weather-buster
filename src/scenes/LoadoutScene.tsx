@@ -1,6 +1,9 @@
 import { Canvas, useFrame } from "@react-three/fiber";
+import { useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Group, Mesh } from "three";
+import type { Mesh } from "three";
+import { CharacterModel } from "../entities/CharacterModel";
+import { WeaponModel } from "../entities/WeaponModel";
 import { characters, stages, weapons } from "../game/data";
 import { useBattleStore } from "../game/battleStore";
 import type { CharacterId, StageId, WeaponId } from "../game/types";
@@ -22,110 +25,81 @@ function useBackKey(onBack: () => void) {
   }, [onBack]);
 }
 
-function WeaponSilhouette({ id }: { id: WeaponId }) {
-  const palette: Record<WeaponId, [string, string]> = {
-    weatherGun: ["#28d9ff", "#0a3a4a"],
-    clearSkyGun: ["#ffd84d", "#3a3318"],
-    rainySeasonKiller: ["#4ce0b3", "#10362d"],
-    stormwallRifle: ["#7ed5ff", "#0d2336"],
-    frostlance: ["#bce6ff", "#15384a"],
-  };
-  const [accent, body] = palette[id];
+const WEAPON_ACCENT: Record<WeaponId, string> = {
+  weatherGun: "#28d9ff",
+  clearSkyGun: "#ffd84d",
+  rainySeasonKiller: "#4ce0b3",
+  stormwallRifle: "#7ed5ff",
+  frostlance: "#bce6ff",
+};
 
+function WeaponSilhouette({ id }: { id: WeaponId }) {
+  const accent = WEAPON_ACCENT[id];
   return (
-    <Canvas camera={{ position: [0, 0.6, 3.4], fov: 36 }}>
+    <Canvas camera={{ position: [0, 0.6, 3.0], fov: 36 }}>
       <ambientLight intensity={0.7} />
-      <directionalLight position={[3, 4, 3]} intensity={1.6} color={accent} />
+      <directionalLight position={[3, 4, 3]} intensity={1.8} color={accent} />
       <pointLight position={[-2, 1, 1]} intensity={1.2} color="#27d9ff" />
-      <fog attach="fog" args={["#06121b", 4, 10]} />
-      <mesh rotation={[0, 0.4, 0]}>
-        <boxGeometry args={[1.6, 0.32, 0.42]} />
-        <meshStandardMaterial color={body} metalness={0.6} roughness={0.34} />
-      </mesh>
-      <mesh position={[-0.4, 0.18, 0]} rotation={[0, 0.4, 0]}>
-        <boxGeometry args={[0.24, 0.18, 0.4]} />
-        <meshStandardMaterial color="#0e1a25" metalness={0.7} roughness={0.32} />
-      </mesh>
-      <mesh position={[0.6, 0, 0]} rotation={[0, Math.PI / 2 + 0.4, 0]}>
-        <cylinderGeometry args={[0.08, 0.08, 1.1, 16]} />
-        <meshStandardMaterial color="#0c151c" metalness={0.85} roughness={0.22} />
-      </mesh>
-      <mesh position={[0.2, 0.08, 0.06]} rotation={[0, 0.4, 0]}>
-        <boxGeometry args={[0.08, 0.04, 0.5]} />
-        <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.4} toneMapped={false} />
-      </mesh>
+      <fog attach="fog" args={["#06121b", 5, 12]} />
+      <WeaponModel id={id} accent={accent} />
     </Canvas>
   );
 }
 
+const CHARACTER_ACCENT: Record<CharacterId, string> = {
+  iris: "#28d9ff",
+  halo: "#6cdcff",
+  raika: "#ffd84d",
+};
+
 function CharacterPortrait({ id }: { id: CharacterId }) {
-  const accent: Record<CharacterId, string> = {
-    iris: "#28d9ff",
-    halo: "#6cdcff",
-    raika: "#ffd84d",
-  };
-  const groupRef = useRef<Group>(null);
-
-  useFrame(({ clock }) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.4) * 0.18;
-      groupRef.current.position.y = Math.sin(clock.getElapsedTime() * 0.6) * 0.04;
-    }
-  });
-
-  const tint = accent[id];
-
+  const tint = CHARACTER_ACCENT[id];
   return (
-    <Canvas camera={{ position: [0, 0.6, 3.6], fov: 38 }}>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[3, 4, 3]} intensity={1.6} color={tint} />
+    <Canvas camera={{ position: [0, 0.4, 3.6], fov: 38 }}>
+      <ambientLight intensity={0.7} />
+      <directionalLight position={[3, 4, 3]} intensity={1.8} color={tint} />
       <pointLight position={[-2, 1, 1]} intensity={1.2} color="#27d9ff" />
-      <fog attach="fog" args={["#06121b", 4, 10]} />
-      <group ref={groupRef}>
-        <mesh position={[0, 0.92, 0]}>
-          <boxGeometry args={[0.32, 0.32, 0.32]} />
-          <meshStandardMaterial color="#1c2a35" metalness={0.65} roughness={0.32} />
-        </mesh>
-        <mesh position={[0.04, 0.95, 0.16]}>
-          <boxGeometry args={[0.14, 0.05, 0.04]} />
-          <meshStandardMaterial color={tint} emissive={tint} emissiveIntensity={1.6} toneMapped={false} />
-        </mesh>
-        <mesh position={[0, 0.42, 0]}>
-          <boxGeometry args={[0.7, 0.6, 0.5]} />
-          <meshStandardMaterial color="#3a5563" metalness={0.55} roughness={0.36} />
-        </mesh>
-        <mesh position={[0, 0.42, 0.26]}>
-          <boxGeometry args={[0.55, 0.4, 0.05]} />
-          <meshStandardMaterial color={tint} emissive={tint} emissiveIntensity={0.4} />
-        </mesh>
-        <mesh position={[-0.45, 0.4, 0]}>
-          <boxGeometry args={[0.18, 0.45, 0.36]} />
-          <meshStandardMaterial color="#243845" metalness={0.55} roughness={0.34} />
-        </mesh>
-        <mesh position={[0.45, 0.4, 0]}>
-          <boxGeometry args={[0.18, 0.45, 0.36]} />
-          <meshStandardMaterial color="#243845" metalness={0.55} roughness={0.34} />
-        </mesh>
-        <mesh position={[-0.18, -0.18, 0]}>
-          <boxGeometry args={[0.22, 0.6, 0.3]} />
-          <meshStandardMaterial color="#1c2c38" metalness={0.55} roughness={0.34} />
-        </mesh>
-        <mesh position={[0.18, -0.18, 0]}>
-          <boxGeometry args={[0.22, 0.6, 0.3]} />
-          <meshStandardMaterial color="#1c2c38" metalness={0.55} roughness={0.34} />
-        </mesh>
-      </group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.55, 0]}>
-        <ringGeometry args={[0.7, 0.95, 64]} />
-        <meshStandardMaterial color={tint} emissive={tint} emissiveIntensity={0.5} toneMapped={false} />
-      </mesh>
+      <fog attach="fog" args={["#06121b", 5, 12]} />
+      <CharacterModel id={id} accent={tint} />
     </Canvas>
+  );
+}
+
+const STAGE_DECOR: Record<StageId, Array<{ url: string; x: number; z: number; scale: number; rotY?: number }>> = {
+  lab: [
+    { url: "/models/space-kit/machine_generator.glb", x: -2.2, z: -1.6, scale: 0.6 },
+    { url: "/models/space-kit/machine_barrel.glb", x: 0.4, z: -1.8, scale: 0.7 },
+    { url: "/models/space-kit/structure.glb", x: 2.4, z: -1.4, scale: 0.6 },
+    { url: "/models/space-kit/satelliteDish.glb", x: -3, z: -2.4, scale: 0.5 },
+  ],
+  ruins: [
+    { url: "/models/space-kit/rocks_smallA.glb", x: -2.5, z: -1.8, scale: 1.2 },
+    { url: "/models/space-kit/rock.glb", x: 0.2, z: -2.0, scale: 1.4, rotY: 0.6 },
+    { url: "/models/tower-defense-kit/tower-square-bottom-c.glb", x: 2.4, z: -1.6, scale: 0.7 },
+    { url: "/models/space-kit/machine_barrelLarge.glb", x: -3.4, z: -1.2, scale: 0.55 },
+  ],
+  highland: [
+    { url: "/models/space-kit/rock_crystalsLargeA.glb", x: -2.4, z: -1.8, scale: 0.9 },
+    { url: "/models/space-kit/rock_crystalsLargeB.glb", x: 2.2, z: -1.6, scale: 0.9, rotY: 1.0 },
+    { url: "/models/space-kit/rock_largeA.glb", x: 0.4, z: -2.4, scale: 0.8 },
+    { url: "/models/space-kit/hangar_roundGlass.glb", x: 0, z: -3.2, scale: 0.7 },
+  ],
+};
+
+function StageDecorItem({ url, x, z, scale, rotY = 0 }: { url: string; x: number; z: number; scale: number; rotY?: number }) {
+  const { scene } = useGLTF(url);
+  const cloned = useMemo(() => scene.clone(true), [scene]);
+  return (
+    <group position={[x, -0.4, z]} rotation={[0, rotY, 0]} scale={scale}>
+      <primitive object={cloned} />
+    </group>
   );
 }
 
 function StagePreview({ id }: { id: StageId }) {
   const stage = useMemo(() => stages.find((s) => s.id === id) ?? stages[0], [id]);
   const lampRef = useRef<Mesh>(null);
+  const decor = STAGE_DECOR[id] ?? [];
 
   useFrame(({ clock }) => {
     if (!lampRef.current) {
@@ -154,11 +128,8 @@ function StagePreview({ id }: { id: StageId }) {
         <ringGeometry args={[2.8, 2.95, 64]} />
         <meshBasicMaterial color={stage.ringColor} transparent opacity={0.32} toneMapped={false} />
       </mesh>
-      {[-2.4, -0.6, 1.8].map((x, index) => (
-        <mesh key={x} position={[x, 0.2 + index * 0.18, -2 - index * 0.4]}>
-          <boxGeometry args={[0.7, 1.2 + index * 0.4, 0.7]} />
-          <meshStandardMaterial color={stage.buildingColor} emissive={stage.buildingEmissive} emissiveIntensity={0.18} metalness={0.5} roughness={0.4} />
-        </mesh>
+      {decor.map((item, idx) => (
+        <StageDecorItem key={idx} {...item} />
       ))}
       <mesh ref={lampRef} position={[2.6, 1.2, -1.6]}>
         <sphereGeometry args={[0.16, 16, 16]} />

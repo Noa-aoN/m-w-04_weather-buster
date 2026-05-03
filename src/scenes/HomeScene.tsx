@@ -327,6 +327,46 @@ function ThunderFlicker() {
   );
 }
 
+const BACKDROP_URLS = [
+  "/models/space-kit/hangar_smallA.glb",
+  "/models/space-kit/hangar_smallB.glb",
+  "/models/space-kit/hangar_roundA.glb",
+  "/models/space-kit/hangar_roundB.glb",
+  "/models/space-kit/structure.glb",
+  "/models/space-kit/structure_detailed.glb",
+];
+
+const BACKDROP_PLACEMENTS: Array<{ x: number; z: number; rotY: number; scale: number; idx: number }> = [
+  { x: -9.2, z: -5.4, rotY: 0.4, scale: 2.4, idx: 0 },
+  { x: -5.6, z: -6.4, rotY: -0.3, scale: 2.6, idx: 1 },
+  { x: -1.4, z: -7.0, rotY: 1.2, scale: 2.4, idx: 2 },
+  { x: 2.4, z: -7.0, rotY: 0.6, scale: 2.6, idx: 3 },
+  { x: 5.4, z: -6.4, rotY: -0.5, scale: 2.4, idx: 4 },
+  { x: 8.6, z: -5.4, rotY: 0.2, scale: 2.6, idx: 5 },
+];
+
+function BackdropStructures() {
+  return (
+    <>
+      {BACKDROP_PLACEMENTS.map((p, i) => (
+        <BackdropItem key={i} url={BACKDROP_URLS[p.idx % BACKDROP_URLS.length]} x={p.x} z={p.z} rotY={p.rotY} scale={p.scale} />
+      ))}
+    </>
+  );
+}
+
+function BackdropItem({ url, x, z, rotY, scale }: { url: string; x: number; z: number; rotY: number; scale: number }) {
+  const { scene } = useGLTF(url);
+  const cloned = useMemo(() => scene.clone(true), [scene]);
+  return (
+    <group position={[x, 0, z]} rotation={[0, rotY, 0]} scale={scale}>
+      <primitive object={cloned} />
+    </group>
+  );
+}
+
+BACKDROP_URLS.forEach((url) => useGLTF.preload(url));
+
 function RotatingScenery({ children }: { children: React.ReactNode }) {
   const groupRef = useRef<Group>(null);
   useFrame((state) => {
@@ -384,15 +424,7 @@ function HomeStage({
         <WarningTower position={[-3.6, 0, -4.6]} />
         <WarningTower position={[3.4, 0, -5.2]} />
         <WarningTower position={[6.6, 0, 1.4]} />
-        {[-9.2, -5.6, -1.4, 2.4, 5.4, 8.6].map((x, index) => (
-          <mesh
-            key={x}
-            position={[x, 0.7 + Math.abs(index - 2) * 0.18, -5.2 - Math.abs(index - 2.5) * 0.6]}
-          >
-            <boxGeometry args={[1.5, 1.4 + Math.abs(index - 2) * 0.34, 1.5]} />
-            <meshStandardMaterial color="#22343f" emissive="#0a8ec2" emissiveIntensity={0.12} metalness={0.5} roughness={0.4} />
-          </mesh>
-        ))}
+        <BackdropStructures />
         {[3, 5, 8].map((radius) => (
           <mesh key={radius} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
             <ringGeometry args={[radius, radius + 0.04, 96]} />
