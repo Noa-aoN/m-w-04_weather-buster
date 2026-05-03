@@ -39,14 +39,27 @@ function ArenaRings({ stage, scale }: { stage: Stage; scale: number }) {
 function LabTerrain({ stage, isClear }: { stage: Stage; isClear: boolean }) {
   const labProps = useMemo(
     () => [
-      { url: "/models/space-kit/machine_generatorLarge.glb", x: -8, z: -5, scale: 1.3 },
-      { url: "/models/space-kit/machine_generator.glb", x: -3, z: -7, scale: 1.4 },
-      { url: "/models/space-kit/machine_barrelLarge.glb", x: 4, z: -6, scale: 1.4 },
-      { url: "/models/space-kit/machine_wireless.glb", x: 8, z: -4, scale: 1.4 },
-      { url: "/models/space-kit/machine_barrel.glb", x: 7, z: 2, scale: 1.5 },
-      { url: "/models/space-kit/structure.glb", x: -7, z: 4, scale: 1.5 },
-      { url: "/models/space-kit/structure_detailed.glb", x: 6, z: 6, scale: 1.5 },
-      { url: "/models/space-station-kit/computer-wide.glb", x: 0, z: -8.5, scale: 1.6 },
+      // Heavy machinery clustered in back
+      { url: "/models/space-kit/machine_generatorLarge.glb", x: -8, z: -5, scale: 1.3, rotY: 0.2 },
+      { url: "/models/space-kit/machine_generator.glb", x: -3, z: -7, scale: 1.4, rotY: -0.3 },
+      { url: "/models/space-kit/machine_barrelLarge.glb", x: 4, z: -6, scale: 1.4, rotY: 0 },
+      { url: "/models/space-kit/machine_wireless.glb", x: 8, z: -4, scale: 1.4, rotY: -0.5 },
+      // Side structures
+      { url: "/models/space-kit/machine_barrel.glb", x: 9, z: 2, scale: 1.5, rotY: 0.4 },
+      { url: "/models/space-kit/machine_barrel.glb", x: 8.5, z: 5, scale: 1.4, rotY: -0.2 },
+      { url: "/models/space-kit/structure.glb", x: -8.5, z: 3, scale: 1.5, rotY: 0.3 },
+      { url: "/models/space-kit/structure_detailed.glb", x: -8, z: 6, scale: 1.4, rotY: -0.4 },
+      // Center backdrop
+      { url: "/models/space-station-kit/computer-wide.glb", x: 0, z: -8.5, scale: 1.6, rotY: 0 },
+      { url: "/models/space-station-kit/computer-system.glb", x: -3, z: -8.6, scale: 1.4, rotY: 0.3 },
+      { url: "/models/space-station-kit/computer.glb", x: 3, z: -8.6, scale: 1.4, rotY: -0.3 },
+      // Side props
+      { url: "/models/factory-kit/cog-a.glb", x: -10, z: 0, scale: 1.4, rotY: 0 },
+      { url: "/models/factory-kit/cog-b.glb", x: 10, z: -1, scale: 1.4, rotY: 0.5 },
+      // Containers
+      { url: "/models/space-station-kit/container.glb", x: -5, z: 7, scale: 1.0, rotY: 0.6 },
+      { url: "/models/space-station-kit/container-tall.glb", x: -3.5, z: 7.4, scale: 1.0, rotY: -0.2 },
+      { url: "/models/space-station-kit/container-wide.glb", x: 4.6, z: 7.6, scale: 1.0, rotY: 0.4 },
     ],
     [],
   );
@@ -58,8 +71,8 @@ function LabTerrain({ stage, isClear }: { stage: Stage; isClear: boolean }) {
         <meshStandardMaterial color={isClear ? "#d9f6ff" : stage.groundColor} metalness={0.32} roughness={0.5} />
       </mesh>
       <ArenaRings stage={stage} scale={1} />
-      {labProps.map((prop) => (
-        <group key={`${prop.url}-${prop.x}`} position={[prop.x, 0, prop.z]} scale={prop.scale}>
+      {labProps.map((prop, idx) => (
+        <group key={`${prop.url}-${idx}`} position={[prop.x, 0, prop.z]} rotation={[0, prop.rotY, 0]} scale={prop.scale}>
           <GLTFInstance url={prop.url} />
         </group>
       ))}
@@ -152,6 +165,12 @@ function RuinsTerrain({ stage, isClear }: { stage: Stage; isClear: boolean }) {
           <GLTFInstance url={piece.url} />
         </group>
       ))}
+      <group position={[0, 0, 14]} scale={1.4} rotation={[0, 0.6, 0.05]}>
+        <GLTFInstance url="/models/space-kit/hangar_largeB.glb" />
+      </group>
+      <group position={[-9, 0, 12]} scale={1.6} rotation={[0, -0.3, 0]}>
+        <GLTFInstance url="/models/space-kit/craft_cargoB.glb" />
+      </group>
     </>
   );
 }
@@ -161,11 +180,17 @@ function HighlandTerrain({ stage, isClear }: { stage: Stage; isClear: boolean })
     "/models/space-kit/rock_crystalsLargeA.glb",
     "/models/space-kit/rock_crystalsLargeB.glb",
     "/models/space-kit/rock_crystals.glb",
+    "/models/tower-defense-kit/snow-detail-crystal-large.glb",
   ];
   const rockPool = [
     "/models/space-kit/rock_largeA.glb",
     "/models/space-kit/rock_largeB.glb",
     "/models/space-kit/rocks_smallA.glb",
+    "/models/tower-defense-kit/snow-detail-rocks-large.glb",
+  ];
+  const decorPool = [
+    "/models/tower-defense-kit/snow-detail-tree.glb",
+    "/models/tower-defense-kit/snow-detail-tree-large.glb",
   ];
 
   const peaks = useMemo(
@@ -238,8 +263,27 @@ function HighlandTerrain({ stage, isClear }: { stage: Stage; isClear: boolean })
           <GLTFInstance url={peak.url} />
         </group>
       ))}
+      {Array.from({ length: 6 }, (_, index) => {
+        const angle = (index / 6) * Math.PI * 2 + 0.5;
+        const radius = 11 + pseudoRandom(index + 71) * 4;
+        return (
+          <group
+            key={`decor-${index}`}
+            position={[Math.cos(angle) * radius, 0, Math.sin(angle) * radius]}
+            scale={1.2 + pseudoRandom(index + 79) * 0.6}
+          >
+            <GLTFInstance url={decorPool[index % decorPool.length]} />
+          </group>
+        );
+      })}
       <group position={[0, 0, -16]} scale={2.4}>
         <GLTFInstance url="/models/space-kit/hangar_roundGlass.glb" />
+      </group>
+      <group position={[6, 0, -14]} scale={1.6} rotation={[0, 0.4, 0]}>
+        <GLTFInstance url="/models/space-kit/satelliteDish_large.glb" />
+      </group>
+      <group position={[-6, 0, -14]} scale={1.6} rotation={[0, -0.6, 0]}>
+        <GLTFInstance url="/models/space-kit/satelliteDish.glb" />
       </group>
     </>
   );

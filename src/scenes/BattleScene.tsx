@@ -7,13 +7,12 @@ import { BulletTrails } from "../entities/BulletTrails";
 import { EnemyFigure } from "../entities/EnemyFigure";
 import { LightningWarnings } from "../entities/LightningWarnings";
 import { StageTerrain } from "../entities/StageTerrain";
+import { WEAPON_MODEL_URL } from "../entities/WeaponModel";
 import { BattleHud } from "../features/hud/BattleHud";
 import { PlayerController } from "../features/player/PlayerController";
-import { difficultyModifiers, findCharacter, stages, weatherEnemies } from "../game/data";
+import { difficultyModifiers, stages, weatherEnemies } from "../game/data";
 import { useBattleStore } from "../game/battleStore";
 import type { Stage, WeatherEnemy, WeatherEnemyId } from "../game/types";
-
-const PLAYER_WEAPON_URL = "/models/blaster-kit/blaster-h.glb";
 
 function PlayerWeapon() {
   const { camera } = useThree();
@@ -23,7 +22,8 @@ function PlayerWeapon() {
   const [flashVisible, setFlashVisible] = useState(false);
   const lastShotAt = useBattleStore((state) => state.lastShotAt);
   const cameraMode = useBattleStore((state) => state.cameraMode);
-  const { scene } = useGLTF(PLAYER_WEAPON_URL);
+  const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
+  const { scene } = useGLTF(WEAPON_MODEL_URL[selectedWeaponId]);
   const cloned = useMemo(() => scene.clone(true), [scene]);
 
   useEffect(() => {
@@ -44,7 +44,9 @@ function PlayerWeapon() {
     node.quaternion.copy(camera.quaternion);
     node.translateX(0.34);
     node.translateY(-0.3);
-    node.translateZ(-0.5);
+    node.translateZ(-0.55);
+    const recoil = Math.max(0, 1 - (performance.now() - lastShotAt) / 90);
+    node.translateZ(recoil * 0.08);
   });
 
   if (cameraMode === "tps") {
@@ -53,13 +55,13 @@ function PlayerWeapon() {
 
   return (
     <group ref={groupRef}>
-      <group rotation={[0, Math.PI, 0]} scale={0.55}>
+      <group rotation={[0, Math.PI, 0]} scale={0.45}>
         <primitive object={cloned} />
       </group>
       {flashVisible ? (
         <>
           <mesh ref={flashRef} position={[0, 0, -0.55]}>
-            <sphereGeometry args={[0.12, 12, 12]} />
+            <sphereGeometry args={[0.14, 12, 12]} />
             <meshBasicMaterial color="#fff7a0" transparent opacity={0.95} toneMapped={false} />
           </mesh>
           <pointLight ref={flashLightRef} position={[0, 0, -0.5]} intensity={6} color="#fff7a0" distance={4} />
@@ -69,14 +71,20 @@ function PlayerWeapon() {
   );
 }
 
-useGLTF.preload(PLAYER_WEAPON_URL);
+const TPS_AVATAR_URL: Record<string, string> = {
+  iris: "/models/space-kit/astronautA.glb",
+  halo: "/models/space-kit/astronautB.glb",
+  raika: "/models/space-kit/alien.glb",
+};
 
 function PlayerBackAvatar() {
   const { camera } = useThree();
   const groupRef = useRef<Group>(null);
   const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
   const cameraMode = useBattleStore((state) => state.cameraMode);
-  const character = findCharacter(selectedCharacterId);
+  const url = TPS_AVATAR_URL[selectedCharacterId] ?? TPS_AVATAR_URL.iris;
+  const { scene } = useGLTF(url);
+  const cloned = useMemo(() => scene.clone(true), [scene]);
 
   useFrame(() => {
     const node = groupRef.current;
@@ -95,45 +103,16 @@ function PlayerBackAvatar() {
 
   return (
     <group ref={groupRef}>
-      <mesh position={[0, 0.78, 0]}>
-        <boxGeometry args={[0.38, 0.34, 0.34]} />
-        <meshStandardMaterial color="#1c2a35" metalness={0.65} roughness={0.32} />
-      </mesh>
-      <mesh position={[0, 0.24, 0]}>
-        <boxGeometry args={[0.82, 0.72, 0.58]} />
-        <meshStandardMaterial color="#344d5c" metalness={0.55} roughness={0.36} />
-      </mesh>
-      <mesh position={[0, 0.24, 0.34]}>
-        <boxGeometry args={[0.6, 0.48, 0.14]} />
-        <meshStandardMaterial color="#122532" metalness={0.72} roughness={0.28} />
-      </mesh>
-      <mesh position={[-0.22, 0.14, 0.46]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.07, 0.07, 0.24, 14]} />
-        <meshStandardMaterial color={character.accentColor} emissive={character.accentColor} emissiveIntensity={1.1} toneMapped={false} />
-      </mesh>
-      <mesh position={[0.22, 0.14, 0.46]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.07, 0.07, 0.24, 14]} />
-        <meshStandardMaterial color={character.accentColor} emissive={character.accentColor} emissiveIntensity={1.1} toneMapped={false} />
-      </mesh>
-      <mesh position={[-0.58, 0.2, 0.02]}>
-        <boxGeometry args={[0.2, 0.62, 0.22]} />
-        <meshStandardMaterial color="#1f3441" metalness={0.55} roughness={0.42} />
-      </mesh>
-      <mesh position={[0.58, 0.2, 0.02]}>
-        <boxGeometry args={[0.2, 0.62, 0.22]} />
-        <meshStandardMaterial color="#1f3441" metalness={0.55} roughness={0.42} />
-      </mesh>
-      <mesh position={[-0.24, -0.48, 0.02]}>
-        <boxGeometry args={[0.26, 0.72, 0.3]} />
-        <meshStandardMaterial color="#1c2c38" metalness={0.55} roughness={0.34} />
-      </mesh>
-      <mesh position={[0.24, -0.48, 0.02]}>
-        <boxGeometry args={[0.26, 0.72, 0.3]} />
-        <meshStandardMaterial color="#1c2c38" metalness={0.55} roughness={0.34} />
-      </mesh>
+      <group rotation={[0, Math.PI, 0]} scale={2.4}>
+        <primitive object={cloned} />
+      </group>
     </group>
   );
 }
+
+useGLTF.preload(TPS_AVATAR_URL.iris);
+useGLTF.preload(TPS_AVATAR_URL.halo);
+useGLTF.preload(TPS_AVATAR_URL.raika);
 
 function FovController() {
   const { camera } = useThree();
