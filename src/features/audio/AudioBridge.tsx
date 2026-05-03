@@ -9,6 +9,9 @@ import {
   playItem,
   playMarkerImpact,
   playMarkerSpawn,
+  playBlocked,
+  playEnemyChargeFire,
+  playEnemyChargeStart,
   playLowAmmoBeep,
   playMiss,
   playReload,
@@ -90,6 +93,15 @@ export function AudioBridge() {
       }
       if (state.reloadingStartedAt !== prev.reloadingStartedAt && state.reloadingStartedAt !== 0) {
         playReload();
+      }
+      if (state.lastBlockedAt !== prev.lastBlockedAt && state.lastBlockedAt !== 0) {
+        playBlocked();
+      }
+      if (state.enemyChargeStartedAt !== prev.enemyChargeStartedAt && state.enemyChargeStartedAt !== 0) {
+        playEnemyChargeStart();
+      }
+      if (state.lastSpecialFiredAt !== prev.lastSpecialFiredAt && state.lastSpecialFiredAt !== 0) {
+        playEnemyChargeFire();
       }
       if (state.lastShieldBlockAt !== prev.lastShieldBlockAt && state.lastShieldBlockAt !== 0) {
         playShieldBlock();
