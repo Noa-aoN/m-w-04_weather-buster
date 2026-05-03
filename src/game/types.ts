@@ -85,6 +85,7 @@ export type Character = {
   gaugeGainMultiplier: number;
   accentColor: string;
   description: string;
+  flavor: string;
 };
 
 export type Stage = {

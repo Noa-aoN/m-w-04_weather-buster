@@ -80,6 +80,7 @@ export function CharacterGridScene({
                 <div>
                   <strong>{character.codename} <em style={{ color: character.accentColor }}>/ {character.callSign}</em></strong>
                   <em>{character.role} / {character.passiveName}</em>
+                  <q className="characterFlavor" style={{ color: character.accentColor }}>{character.flavor}</q>
                   <p>{character.description}</p>
                 </div>
               </div>

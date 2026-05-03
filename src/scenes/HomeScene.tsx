@@ -441,6 +441,18 @@ function RotatingScenery({ children }: { children: React.ReactNode }) {
   return <group ref={groupRef}>{children}</group>;
 }
 
+function HomeOrbit({ children, speed = 0.06 }: { children: React.ReactNode; speed?: number }) {
+  const groupRef = useRef<Group>(null);
+  useFrame((state) => {
+    const node = groupRef.current;
+    if (!node) {
+      return;
+    }
+    node.rotation.y = state.clock.getElapsedTime() * speed;
+  });
+  return <group ref={groupRef}>{children}</group>;
+}
+
 function HomeStage({
   accent,
   ringColor,
@@ -479,36 +491,38 @@ function HomeStage({
       <pointLight position={[-4, 2.4, 1]} intensity={1.2} color="#ff315b" distance={8} />
       <fog attach="fog" args={[fogColor, fogNear, fogFar]} />
 
-      <FloorGrid ringColor={ringColor} />
-      <SatelliteDish />
-      <WarningTower position={[-7, 0, -3.5]} />
-      <WarningTower position={[-3.6, 0, -5.6]} />
-      <WarningTower position={[3.4, 0, -6.2]} />
-      <WarningTower position={[6.6, 0, -3.4]} />
-      <BackdropStructures />
-      <RotatingScenery>
-        {[3, 5, 8].map((radius) => (
-          <mesh key={radius} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-            <ringGeometry args={[radius, radius + 0.04, 96]} />
-            <meshBasicMaterial color={ringColor} transparent opacity={0.18} toneMapped={false} />
-          </mesh>
-        ))}
-        {Array.from({ length: 12 }, (_, i) => {
-          const angle = (i / 12) * Math.PI * 2;
-          const r = 6.8;
-          return (
-            <mesh
-              key={`tick-${i}`}
-              position={[Math.cos(angle) * r, -0.02, Math.sin(angle) * r]}
-              rotation={[-Math.PI / 2, 0, -angle]}
-            >
-              <planeGeometry args={[0.6, 0.08]} />
-              <meshBasicMaterial color={ringColor} transparent opacity={0.55} toneMapped={false} />
+      <HomeOrbit speed={0.06}>
+        <FloorGrid ringColor={ringColor} />
+        <SatelliteDish />
+        <WarningTower position={[-7, 0, -3.5]} />
+        <WarningTower position={[-3.6, 0, -5.6]} />
+        <WarningTower position={[3.4, 0, -6.2]} />
+        <WarningTower position={[6.6, 0, -3.4]} />
+        <BackdropStructures />
+        <RotatingScenery>
+          {[3, 5, 8].map((radius) => (
+            <mesh key={radius} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
+              <ringGeometry args={[radius, radius + 0.04, 96]} />
+              <meshBasicMaterial color={ringColor} transparent opacity={0.18} toneMapped={false} />
             </mesh>
-          );
-        })}
-      </RotatingScenery>
-      <HeroMech accent={accent} characterId={characterId} />
+          ))}
+          {Array.from({ length: 12 }, (_, i) => {
+            const angle = (i / 12) * Math.PI * 2;
+            const r = 6.8;
+            return (
+              <mesh
+                key={`tick-${i}`}
+                position={[Math.cos(angle) * r, -0.02, Math.sin(angle) * r]}
+                rotation={[-Math.PI / 2, 0, -angle]}
+              >
+                <planeGeometry args={[0.6, 0.08]} />
+                <meshBasicMaterial color={ringColor} transparent opacity={0.55} toneMapped={false} />
+              </mesh>
+            );
+          })}
+        </RotatingScenery>
+        <HeroMech accent={accent} characterId={characterId} />
+      </HomeOrbit>
 
       {isClear ? null : isSnow ? (
         <HomeSnowDrift />
@@ -652,15 +666,15 @@ export function HomeScene({
 
       <div className="screenFrame" aria-hidden="true" />
       <header className="homeHeader">
-        <span>PROJECT: WEATHER BUSTER</span>
-        <div className="homeHeaderActions">
+        <div className="homeHeaderLeft">
           <GpsToggle />
+        </div>
+        <div className="homeHeaderActions">
           <AudioToggle />
         </div>
       </header>
 
       <section className="titleBlock">
-        <p>PROJECT: WEATHER BUSTER</p>
         <h1>ウェザーバスター</h1>
         <strong>CLEAR THE SKY</strong>
         <span>荒れた天候を撃ち抜き、空を晴らせ</span>
@@ -789,7 +803,10 @@ export function HomeScene({
         </div>
       </aside>
 
-      <blockquote className="pilotLog">梅雨だけは、許さない。</blockquote>
+      <blockquote className="pilotLog">
+        <span className="pilotLogCallSign" style={{ color: character.accentColor }}>{character.callSign} / {character.codename}</span>
+        <em>{character.flavor}</em>
+      </blockquote>
     </main>
   );
 }
