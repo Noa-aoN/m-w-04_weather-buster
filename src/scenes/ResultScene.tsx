@@ -4,6 +4,34 @@ import { useBattleStore } from "../game/battleStore";
 import { calculateRank, calculateSunnyScore } from "../game/score";
 import type { BattleResult } from "../game/types";
 
+const RANK_VALUE: Record<string, number> = { S: 5, A: 4, B: 3, C: 2, D: 1 };
+
+function ResultPersonalBest({ enemyId, difficulty, rank, cleared }: {
+  enemyId: BattleResult["enemyId"];
+  difficulty: number;
+  rank: string;
+  cleared: boolean;
+}) {
+  const seedHistory = useBattleStore((state) => state.seedHistory);
+  if (!cleared) return null;
+  const past = seedHistory.filter((e) => e.enemyId === enemyId && e.difficulty === difficulty);
+  // Exclude the just-recorded entry (the most recent matching at)
+  const previous = past.slice(1);
+  const previousBest = previous.reduce((acc, e) => {
+    const v = RANK_VALUE[e.rank] ?? 0;
+    return Math.max(acc, v);
+  }, 0);
+  const currentValue = RANK_VALUE[rank] ?? 0;
+  const isFirst = previous.length === 0;
+  const isBest = currentValue > previousBest && previous.length > 0;
+  if (!isBest && !isFirst) return null;
+  return (
+    <span className="resultPersonalBest">
+      {isFirst ? "FIRST CLEAR" : "NEW BEST"}
+    </span>
+  );
+}
+
 function snapshot(): BattleResult {
   const state = useBattleStore.getState();
   const accuracyRatio = state.shotsFired === 0 ? 0 : state.shotsHit / state.shotsFired;
@@ -102,6 +130,7 @@ export function ResultScene({
       <section className={`resultRank rank--${result.rank.toLowerCase()}`}>
         <span>RANK</span>
         <strong>{result.rank}</strong>
+        <ResultPersonalBest enemyId={result.enemyId} difficulty={useBattleStore.getState().selectedDifficulty} rank={result.rank} cleared={result.cleared} />
       </section>
 
       <section className="resultStats">
