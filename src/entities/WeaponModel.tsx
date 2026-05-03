@@ -1,26 +1,26 @@
 import { useFrame } from "@react-three/fiber";
-import { useGLTF } from "@react-three/drei";
+import { useFBX } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import type { Group } from "three";
 import type { WeaponId } from "../game/types";
 import { fitObjectToSize } from "./fitObject";
 
 export const WEAPON_MODEL_URL: Record<WeaponId, string> = {
-  weatherGun: "/models/blaster-kit/blaster-c.glb",
-  clearSkyGun: "/models/blaster-kit/blaster-h.glb",
-  rainySeasonKiller: "/models/blaster-kit/blaster-m.glb",
-  stormwallRifle: "/models/blaster-kit/blaster-q.glb",
-  frostlance: "/models/blaster-kit/blaster-l.glb",
+  weatherGun: "/models/quaternius-guns/AssaultRifle_2.fbx",
+  clearSkyGun: "/models/quaternius-guns/Bullpup_2.fbx",
+  rainySeasonKiller: "/models/quaternius-guns/Shotgun_2.fbx",
+  stormwallRifle: "/models/quaternius-guns/SniperRifle_3.fbx",
+  frostlance: "/models/quaternius-guns/AssaultRifle2_3.fbx",
 };
 
 export function WeaponModel({ id, accent }: { id: WeaponId; accent: string }) {
   const groupRef = useRef<Group>(null);
-  const { scene } = useGLTF(WEAPON_MODEL_URL[id]);
+  const fbx = useFBX(WEAPON_MODEL_URL[id]);
   const fitted = useMemo(() => {
-    const c = scene.clone(true);
+    const c = fbx.clone(true) as Group;
     fitObjectToSize(c, 1.6);
     return c;
-  }, [scene]);
+  }, [fbx]);
 
   useFrame(({ clock }) => {
     if (!groupRef.current) {
@@ -54,5 +54,5 @@ export function WeaponModel({ id, accent }: { id: WeaponId; accent: string }) {
 }
 
 Object.values(WEAPON_MODEL_URL).forEach((url) => {
-  useGLTF.preload(url);
+  useFBX.preload(url);
 });
