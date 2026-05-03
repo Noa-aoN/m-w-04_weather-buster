@@ -99,10 +99,16 @@ type BattleState = {
   selectWeapon: (id: WeaponId) => void;
   selectCharacter: (id: CharacterId) => void;
   selectStage: (id: StageId) => void;
+  sfxEnabled: boolean;
+  bgmEnabled: boolean;
+  masterVolume: number;
   setMouseSensitivity: (value: number) => void;
   setFov: (value: number) => void;
   setCameraMode: (value: BattleCameraMode) => void;
   setCrosshairColor: (value: string) => void;
+  setSfxEnabled: (value: boolean) => void;
+  setBgmEnabled: (value: boolean) => void;
+  setMasterVolume: (value: number) => void;
   setLocationEnabled: (value: boolean) => void;
   setCurrentWeather: (enemyId: WeatherEnemyId | null, code: number | null) => void;
   start: () => void;
@@ -215,10 +221,16 @@ export const useBattleStore = create<BattleState>((set, get) => {
     selectStage: (id) => {
       set({ selectedStageId: id });
     },
+    sfxEnabled: true,
+    bgmEnabled: true,
+    masterVolume: 0.6,
     setMouseSensitivity: (value) => set({ mouseSensitivity: value }),
     setFov: (value) => set({ fov: value }),
     setCameraMode: (value) => set({ cameraMode: value }),
     setCrosshairColor: (value) => set({ crosshairColor: value }),
+    setSfxEnabled: (value) => set({ sfxEnabled: value }),
+    setBgmEnabled: (value) => set({ bgmEnabled: value }),
+    setMasterVolume: (value) => set({ masterVolume: Math.max(0, Math.min(1, value)) }),
     setLocationEnabled: (value) => set({ locationEnabled: value }),
     setCurrentWeather: (enemyId, code) => set({ currentWeatherEnemyId: enemyId, currentWeatherCode: code }),
     start: () => {

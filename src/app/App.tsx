@@ -5,6 +5,8 @@ import { HomeScene } from "../scenes/HomeScene";
 import { PilotScene, StageScene, WeaponScene } from "../scenes/LoadoutScene";
 import { ResultScene } from "../scenes/ResultScene";
 import { SettingsScene } from "../scenes/SettingsScene";
+import { AudioBridge } from "../features/audio/AudioBridge";
+import { AudioToggle } from "../features/audio/AudioToggle";
 import { useBattleStore } from "../game/battleStore";
 import type { AppView, LoadoutTab, WeatherEnemyId } from "../game/types";
 
@@ -30,51 +32,48 @@ export function App() {
     setView(tab === "character" ? "pilot" : tab);
   }
 
+  let scene;
   if (view === "enemyGrid") {
-    return (
+    scene = (
       <EnemyGridScene
         onBack={() => setView("home")}
         onSelectEnemy={selectEnemyAndBattle}
       />
     );
-  }
-
-  if (view === "battle") {
-    return (
+  } else if (view === "battle") {
+    scene = (
       <BattleScene
         onBack={() => setView("home")}
         onOpenEnemyGrid={() => setView("enemyGrid")}
         onShowResult={() => setView("result")}
       />
     );
-  }
-
-  if (view === "weapon") {
-    return <WeaponScene onBack={() => setView("home")} />;
-  }
-
-  if (view === "pilot") {
-    return <PilotScene onBack={() => setView("home")} />;
-  }
-
-  if (view === "stage") {
-    return <StageScene onBack={() => setView("home")} />;
-  }
-
-  if (view === "settings") {
-    return <SettingsScene onBack={() => setView("home")} />;
-  }
-
-  if (view === "result") {
-    return <ResultScene onRetry={retryBattle} onHome={returnToHome} />;
+  } else if (view === "weapon") {
+    scene = <WeaponScene onBack={() => setView("home")} />;
+  } else if (view === "pilot") {
+    scene = <PilotScene onBack={() => setView("home")} />;
+  } else if (view === "stage") {
+    scene = <StageScene onBack={() => setView("home")} />;
+  } else if (view === "settings") {
+    scene = <SettingsScene onBack={() => setView("home")} />;
+  } else if (view === "result") {
+    scene = <ResultScene onRetry={retryBattle} onHome={returnToHome} />;
+  } else {
+    scene = (
+      <HomeScene
+        onStart={() => setView("battle")}
+        onOpenEnemyGrid={() => setView("enemyGrid")}
+        onOpenLoadout={openLoadout}
+        onOpenSettings={() => setView("settings")}
+      />
+    );
   }
 
   return (
-    <HomeScene
-      onStart={() => setView("battle")}
-      onOpenEnemyGrid={() => setView("enemyGrid")}
-      onOpenLoadout={openLoadout}
-      onOpenSettings={() => setView("settings")}
-    />
+    <>
+      {scene}
+      <AudioBridge />
+      <AudioToggle />
+    </>
   );
 }

@@ -301,43 +301,138 @@ function SnowDrift({ color }: { color: string }) {
   );
 }
 
+type AiPhase = "approach" | "circle" | "telegraph" | "retreat";
+
 function EnemyMotion({
   enemy,
   enemyRef,
   enemyPositionRef,
   baseZ,
+  arenaX,
 }: {
   enemy: WeatherEnemy;
   enemyRef: React.RefObject<Group | null>;
   enemyPositionRef: React.RefObject<Vector3>;
   baseZ: number;
+  arenaX: number;
 }) {
+  const { camera } = useThree();
   const status = useBattleStore((state) => state.status);
-  useFrame(({ clock }) => {
+  const phaseRef = useRef<{ mode: AiPhase; t: number; orbitDir: 1 | -1; angle: number }>({
+    mode: "approach",
+    t: 0,
+    orbitDir: 1,
+    angle: 0,
+  });
+
+  useFrame((state, delta) => {
     const node = enemyRef.current;
     if (!node) {
       return;
     }
-    const baseY = 2.3;
+    const baseY = 2.6;
+    const idleY = baseY + Math.sin(state.clock.getElapsedTime() * 1.1) * 0.18;
     if (status !== "battle") {
-      node.position.set(0, baseY, baseZ);
+      node.position.set(0, idleY, baseZ);
+      node.rotation.y = Math.sin(state.clock.getElapsedTime() * 0.4) * 0.25;
       enemyPositionRef.current.copy(node.position);
       return;
     }
+
     const aggression = difficultyModifiers[enemy.difficulty].movementAggression;
-    const t = clock.getElapsedTime();
-    const ax = enemy.id === "tornado" ? 4.4 : enemy.id === "typhoon" ? 5.6 : enemy.id === "blizzard" ? 5 : enemy.id === "cloudy" ? 1.4 : 3.2;
-    const az = enemy.id === "tornado" ? 1.6 : enemy.id === "typhoon" ? 2.8 : 1.2;
-    const speed = 0.55 + aggression * 0.55;
-    const x = Math.sin(t * speed) * ax + Math.sin(t * speed * 1.7) * 0.6;
-    const z = baseZ + Math.cos(t * speed * 0.78) * az;
-    const y = baseY + Math.sin(t * (1.1 + aggression * 0.4)) * 0.4;
-    node.position.set(x, y, z);
-    if (enemy.id === "tornado" || enemy.id === "typhoon") {
-      node.rotation.y = t * (1.4 + aggression * 0.6);
-    } else {
-      node.rotation.y = Math.sin(t * 0.4) * 0.3;
+    const phase = phaseRef.current;
+    phase.t += delta;
+    const playerX = camera.position.x;
+    const playerZ = camera.position.z;
+
+    const phaseDurations: Record<AiPhase, number> = {
+      approach: 1.6 - aggression * 0.4,
+      circle: 2.6 + aggression * 0.6,
+      telegraph: 0.55,
+      retreat: 1.1 - aggression * 0.2,
+    };
+
+    if (phase.t > phaseDurations[phase.mode]) {
+      phase.t = 0;
+      const next: Record<AiPhase, AiPhase> = {
+        approach: "circle",
+        circle: Math.random() < 0.55 ? "telegraph" : "retreat",
+        telegraph: "approach",
+        retreat: "approach",
+      };
+      phase.mode = next[phase.mode];
+      if (phase.mode === "circle") {
+        phase.orbitDir = Math.random() < 0.5 ? 1 : -1;
+      }
     }
+
+    const orbitRadius = enemy.id === "tornado" || enemy.id === "blizzard" ? 4.2 + aggression * 1.2
+      : enemy.id === "typhoon" ? 5 + aggression * 1.4
+      : enemy.id === "cloudy" ? 4.8
+      : 5.4 + aggression * 0.8;
+
+    let targetX = 0;
+    let targetZ = baseZ;
+
+    if (phase.mode === "approach") {
+      const k = Math.min(1, phase.t / phaseDurations.approach);
+      const desiredZ = playerZ - 4.2;
+      const desiredX = playerX * 0.55;
+      const homeZ = baseZ;
+      targetX = desiredX * k + 0 * (1 - k);
+      targetZ = desiredZ * k + homeZ * (1 - k);
+    } else if (phase.mode === "circle") {
+      phase.angle += delta * (0.9 + aggression * 0.7) * phase.orbitDir;
+      targetX = playerX + Math.cos(phase.angle) * orbitRadius;
+      targetZ = playerZ + Math.sin(phase.angle) * orbitRadius - 1.4;
+    } else if (phase.mode === "telegraph") {
+      const dx = playerX - node.position.x;
+      const dz = playerZ - node.position.z;
+      const dist = Math.max(Math.sqrt(dx * dx + dz * dz), 0.001);
+      const lean = 0.6;
+      targetX = node.position.x + (dx / dist) * lean;
+      targetZ = node.position.z + (dz / dist) * lean;
+    } else {
+      const k = Math.min(1, phase.t / phaseDurations.retreat);
+      targetX = node.position.x * (1 - k * 0.7);
+      targetZ = baseZ * (k * 0.5 + 0.5);
+    }
+
+    targetX += Math.sin(state.clock.getElapsedTime() * 1.3 + enemy.difficulty) * 0.4;
+    targetZ += Math.cos(state.clock.getElapsedTime() * 1.1 + enemy.difficulty * 0.7) * 0.3;
+    targetX = Math.max(-arenaX + 1, Math.min(arenaX - 1, targetX));
+    targetZ = Math.max(baseZ * 1.6, Math.min(baseZ * 0.1 + 4, targetZ));
+
+    const lerpRate = 0.9 + aggression * 0.7;
+    const factor = 1 - Math.exp(-lerpRate * delta);
+    node.position.x += (targetX - node.position.x) * factor;
+    node.position.z += (targetZ - node.position.z) * factor;
+
+    const t = state.clock.getElapsedTime();
+    const verticalAmp = enemy.id === "tornado" || enemy.id === "typhoon"
+      ? 1.2 + aggression * 0.5
+      : enemy.id === "thunderstorm" ? 0.9
+      : 0.6 + aggression * 0.3;
+    const verticalFreq = 1.2 + aggression * 0.4;
+    const verticalBase = baseY + (phase.mode === "telegraph" ? -0.6 : 0);
+    node.position.y = verticalBase + Math.sin(t * verticalFreq) * verticalAmp + Math.sin(t * verticalFreq * 1.9) * 0.18;
+
+    const dxFace = playerX - node.position.x;
+    const dzFace = playerZ - node.position.z;
+    const facing = Math.atan2(dxFace, dzFace);
+    if (enemy.id === "tornado" || enemy.id === "typhoon") {
+      node.rotation.y = t * (1.6 + aggression * 0.6);
+    } else if (phase.mode === "telegraph") {
+      node.rotation.y = facing;
+    } else {
+      const lerpY = 1 - Math.exp(-3 * delta);
+      const current = node.rotation.y;
+      let diff = facing - current;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      node.rotation.y = current + diff * lerpY;
+    }
+
     enemyPositionRef.current.copy(node.position);
   });
   return null;
@@ -386,10 +481,16 @@ function ExperimentField({
 
       <StageTerrain stage={stage} isClear={isClear} />
 
-      <group ref={enemyRef} position={[0, 2.3, baseZ]} scale={1.55}>
+      <group ref={enemyRef} position={[0, 2.6, baseZ]} scale={1.55}>
         <EnemyFigure enemy={enemy} clear={isClear} />
       </group>
-      <EnemyMotion enemy={enemy} enemyRef={enemyRef} enemyPositionRef={enemyPositionRef} baseZ={baseZ} />
+      <EnemyMotion
+        enemy={enemy}
+        enemyRef={enemyRef}
+        enemyPositionRef={enemyPositionRef}
+        baseZ={baseZ}
+        arenaX={stage.arena.x}
+      />
 
       {!isClear && enemy.id === "thunderstorm" ? <ThunderstormStrikes /> : null}
       {!isClear && (enemy.id === "heavyRain" || enemy.id === "rainySeason" || enemy.id === "typhoon")

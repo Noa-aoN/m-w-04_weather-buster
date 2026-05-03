@@ -17,6 +17,12 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
   const setCameraMode = useBattleStore((state) => state.setCameraMode);
   const crosshairColor = useBattleStore((state) => state.crosshairColor);
   const setCrosshairColor = useBattleStore((state) => state.setCrosshairColor);
+  const sfxEnabled = useBattleStore((state) => state.sfxEnabled);
+  const setSfxEnabled = useBattleStore((state) => state.setSfxEnabled);
+  const bgmEnabled = useBattleStore((state) => state.bgmEnabled);
+  const setBgmEnabled = useBattleStore((state) => state.setBgmEnabled);
+  const masterVolume = useBattleStore((state) => state.masterVolume);
+  const setMasterVolume = useBattleStore((state) => state.setMasterVolume);
 
   return (
     <main className="settingsShell sceneEnter">
@@ -131,10 +137,45 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
             <span>音量</span>
             <strong>マスターボリューム</strong>
           </header>
-          <p>BGM・効果音の総音量。MVP では未配線。</p>
+          <p>BGM・効果音の総音量。`,` / `.` キーでも 0.1 単位で増減できる。</p>
           <div className="settingControl">
-            <input type="range" min="0" max="100" defaultValue="80" disabled />
-            <span className="settingValue">80</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={masterVolume}
+              onChange={(event) => setMasterVolume(Number.parseFloat(event.target.value))}
+            />
+            <span className="settingValue">{Math.round(masterVolume * 100)}</span>
+          </div>
+        </article>
+
+        <article className="settingRow tacticalPanel">
+          <header>
+            <span>音響</span>
+            <strong>SFX / BGM</strong>
+          </header>
+          <p>効果音と BGM の ON/OFF。`M` キーで両方をまとめて切り替えられる。右上のミニトグルからも操作可能。</p>
+          <div className="cameraModeSwitch" role="group" aria-label="音響トグル">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={sfxEnabled}
+              className={sfxEnabled ? "selected" : ""}
+              onClick={() => setSfxEnabled(!sfxEnabled)}
+            >
+              SFX {sfxEnabled ? "ON" : "OFF"}
+            </button>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={bgmEnabled}
+              className={bgmEnabled ? "selected" : ""}
+              onClick={() => setBgmEnabled(!bgmEnabled)}
+            >
+              BGM {bgmEnabled ? "ON" : "OFF"}
+            </button>
           </div>
         </article>
       </section>

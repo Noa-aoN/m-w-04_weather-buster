@@ -838,6 +838,64 @@ canvas {
   background: rgba(4, 18, 28, 0.78);
 }
 
+.audioToggle {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid rgba(40, 217, 255, 0.32);
+  background: rgba(3, 16, 24, 0.7);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+
+.audioChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgba(40, 217, 255, 0.45);
+  color: #94c2cf;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  background: rgba(4, 18, 28, 0.7);
+}
+
+.audioChip svg {
+  width: 14px;
+  height: 14px;
+}
+
+.audioChip.on {
+  color: #28d9ff;
+  border-color: rgba(40, 217, 255, 0.7);
+  box-shadow: 0 0 12px rgba(40, 217, 255, 0.18);
+}
+
+.audioVolume {
+  width: 92px;
+  accent-color: #28d9ff;
+}
+
+@media (max-width: 900px) {
+  .audioToggle {
+    top: 6px;
+    right: 6px;
+    padding: 4px 6px;
+  }
+  .audioChip span {
+    display: none;
+  }
+  .audioVolume {
+    width: 70px;
+  }
+}
+
 .gridShell {
   padding: 28px 34px;
 }
