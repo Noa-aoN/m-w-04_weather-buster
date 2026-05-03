@@ -2543,6 +2543,103 @@ canvas {
   100% { opacity: 0; transform: scale(1.04); }
 }
 
+.skillStatus--ready {
+  border-color: rgba(255, 220, 110, 0.95);
+  box-shadow: 0 0 24px rgba(255, 200, 70, 0.55), inset 0 0 18px rgba(255, 220, 110, 0.18);
+  animation: skillStatusReadyPulse 1.2s ease-in-out infinite alternate;
+}
+
+.skillStatus--ready strong {
+  color: #fff7c2;
+  text-shadow: 0 0 12px rgba(255, 220, 110, 0.85);
+}
+
+.skillStatus--ready small {
+  color: #fff7c2;
+  font-weight: 700;
+}
+
+.segmentedMeter--ready i {
+  background: linear-gradient(90deg, #ffe16a, #fff8c2, #ffe16a);
+  box-shadow: 0 0 20px rgba(255, 220, 110, 0.85);
+  animation: meterReadyShimmer 1.6s linear infinite;
+}
+
+@keyframes skillStatusReadyPulse {
+  0% { box-shadow: 0 0 14px rgba(255, 200, 70, 0.35), inset 0 0 10px rgba(255, 220, 110, 0.12); }
+  100% { box-shadow: 0 0 32px rgba(255, 200, 70, 0.85), inset 0 0 22px rgba(255, 220, 110, 0.28); }
+}
+
+@keyframes meterReadyShimmer {
+  0% { background-position: 0% 50%; filter: brightness(1); }
+  50% { filter: brightness(1.25); }
+  100% { background-position: 100% 50%; filter: brightness(1); }
+}
+
+.skillReadyToast {
+  position: absolute;
+  bottom: 158px;
+  right: 28px;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 10px 12px;
+  border: 1px solid rgba(255, 220, 110, 0.85);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(60, 28, 8, 0.92), rgba(40, 20, 6, 0.95));
+  box-shadow: 0 0 28px rgba(255, 200, 70, 0.55), inset 0 0 18px rgba(255, 220, 110, 0.22);
+  pointer-events: none;
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  letter-spacing: 0.16em;
+  animation: skillReadyToastAnim 2.2s cubic-bezier(0.18, 0.9, 0.3, 1) forwards;
+}
+
+.skillReadyKey {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 2px solid rgba(255, 220, 110, 0.95);
+  border-radius: 8px;
+  background: rgba(255, 200, 70, 0.18);
+  color: #fff7c2;
+  font-size: 18px;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(255, 220, 110, 0.8);
+  animation: skillReadyKeyPulse 0.7s ease-in-out infinite alternate;
+}
+
+.skillReadyBody {
+  display: grid;
+  gap: 2px;
+}
+
+.skillReadyBody small {
+  color: #ffe9aa;
+  font-size: 11px;
+}
+
+.skillReadyBody strong {
+  color: #fff7c2;
+  font-size: 18px;
+  text-shadow: 0 0 10px rgba(255, 220, 110, 0.85);
+}
+
+@keyframes skillReadyToastAnim {
+  0% { opacity: 0; transform: translateX(28px) scale(0.94); }
+  10% { opacity: 1; transform: translateX(0) scale(1.05); }
+  18% { transform: translateX(0) scale(1); }
+  82% { opacity: 1; transform: translateX(0) scale(1); }
+  100% { opacity: 0; transform: translateX(8px) scale(0.97); }
+}
+
+@keyframes skillReadyKeyPulse {
+  0% { transform: scale(1); box-shadow: 0 0 8px rgba(255, 200, 70, 0.5); }
+  100% { transform: scale(1.08); box-shadow: 0 0 18px rgba(255, 220, 110, 0.95); }
+}
+
 @media (max-width: 900px) {
   body {
     overflow: auto;

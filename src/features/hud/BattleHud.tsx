@@ -235,6 +235,42 @@ function LowHpVignette() {
   return <div className={`lowHpVignette lowHpVignette--${intensity}`} aria-hidden="true" />;
 }
 
+function SkillReadyToast({ pressureGauge, weaponSkillName }: { pressureGauge: number; weaponSkillName: string }) {
+  const lastSkillAt = useBattleStore((state) => state.lastSkillAt);
+  const wasReady = useRef(false);
+  const [show, setShow] = useState<{ at: number } | null>(null);
+  useEffect(() => {
+    const ready = pressureGauge >= 100;
+    if (ready && !wasReady.current) {
+      setShow({ at: Date.now() });
+    }
+    wasReady.current = ready;
+  }, [pressureGauge]);
+  // hide on skill activation or after timer
+  useEffect(() => {
+    if (lastSkillAt > 0) {
+      setShow(null);
+    }
+  }, [lastSkillAt]);
+  useEffect(() => {
+    if (!show) return;
+    const t = window.setTimeout(() => setShow(null), 2200);
+    return () => window.clearTimeout(t);
+  }, [show]);
+  if (!show) {
+    return null;
+  }
+  return (
+    <div className="skillReadyToast" key={show.at} aria-hidden="true">
+      <span className="skillReadyKey">Q</span>
+      <div className="skillReadyBody">
+        <small>武器スキル READY</small>
+        <strong>{weaponSkillName}</strong>
+      </div>
+    </div>
+  );
+}
+
 function ItemToast() {
   const lastItemAt = useBattleStore((state) => state.lastItemAt);
   const lastItemId = useBattleStore((state) => state.lastItemId);
@@ -509,12 +545,15 @@ export function BattleHud({
         <small>命中率 {accuracy}%</small>
       </div>
 
-      <div className="skillStatus tacticalPanel">
+      <div className={`skillStatus tacticalPanel ${pressureGauge >= 100 ? "skillStatus--ready" : ""}`}>
         <span>武器スキル</span>
         <strong>{weapon.skillName}</strong>
-        <div className="segmentedMeter yellow"><i style={{ width: `${pressureGauge}%` }} /></div>
+        <div className={`segmentedMeter yellow ${pressureGauge >= 100 ? "segmentedMeter--ready" : ""}`}>
+          <i style={{ width: `${pressureGauge}%` }} />
+        </div>
         <small>{pressureGauge >= 100 ? "Q で発動可能" : weapon.skillDescription}</small>
       </div>
+      <SkillReadyToast pressureGauge={pressureGauge} weaponSkillName={weapon.skillName} />
 
       <div
         className="reticle"
