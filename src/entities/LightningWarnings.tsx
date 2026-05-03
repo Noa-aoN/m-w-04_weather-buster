@@ -16,6 +16,7 @@ type AttackMarker = {
   damage: number;
   color: string;
   trailGlow: number;
+  kind: "arc" | "linear" | "falling";
 };
 
 function MarkerRing({
@@ -94,9 +95,33 @@ function MarkerProjectile({
 
     const x = marker.fromX + (marker.x - marker.fromX) * t;
     const z = marker.fromZ + (marker.z - marker.fromZ) * t;
-    const linearY = marker.fromY + (0.4 - marker.fromY) * t;
-    const arc = 4 * t * (1 - t) * Math.max(2, marker.fromY);
-    node.position.set(x, linearY + arc, z);
+    let y: number;
+    if (marker.kind === "linear") {
+      const targetY = 1.6;
+      y = marker.fromY + (targetY - marker.fromY) * t;
+    } else if (marker.kind === "falling") {
+      y = marker.fromY + (0.3 - marker.fromY) * t;
+    } else {
+      const linearY = marker.fromY + (0.4 - marker.fromY) * t;
+      const arc = 4 * t * (1 - t) * Math.max(2, marker.fromY);
+      y = linearY + arc;
+    }
+    node.position.set(x, y, z);
+
+    if (marker.kind === "linear") {
+      const dx = marker.x - marker.fromX;
+      const dz = marker.z - marker.fromZ;
+      const dy = 1.6 - marker.fromY;
+      node.rotation.set(0, Math.atan2(dx, dz), Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)));
+      node.scale.set(1, 1, 1);
+    } else if (marker.kind === "falling") {
+      node.rotation.set(0, 0, 0);
+      const stretch = 1 + (1 - t) * 1.2;
+      node.scale.set(0.9, stretch, 0.9);
+    } else {
+      node.rotation.set(0, 0, 0);
+      node.scale.set(1, 1, 1);
+    }
 
     if (trailRef.current) {
       trailRef.current.position.copy(node.position);
@@ -115,7 +140,13 @@ function MarkerProjectile({
   return (
     <group>
       <mesh ref={meshRef}>
-        <sphereGeometry args={[0.22, 14, 14]} />
+        {marker.kind === "linear" ? (
+          <capsuleGeometry args={[0.16, 0.9, 8, 12]} />
+        ) : marker.kind === "falling" ? (
+          <capsuleGeometry args={[0.18, 1.2, 8, 12]} />
+        ) : (
+          <sphereGeometry args={[0.22, 14, 14]} />
+        )}
         <meshStandardMaterial
           color={marker.color}
           emissive={marker.color}

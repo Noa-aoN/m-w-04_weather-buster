@@ -1838,6 +1838,7 @@ canvas {
 .readyActions,
 .pauseActions {
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 4px;
 }
@@ -1845,6 +1846,13 @@ canvas {
 .readyActions button,
 .pauseActions button {
   min-height: 48px;
+}
+
+.bannerHint {
+  margin: 6px 0 12px;
+  color: #b9d8e6;
+  font-size: 12px;
+  letter-spacing: 0.16em;
 }
 
 .gameShell .reticle,

@@ -209,8 +209,38 @@ function LightningBolt({
 }
 
 function ThunderstormStrikes() {
+  const groupRef = useRef<Group>(null);
+  const startedAtRef = useRef(performance.now());
+
+  useFrame(() => {
+    const node = groupRef.current;
+    if (!node) {
+      return;
+    }
+    const elapsed = (performance.now() - startedAtRef.current) / 1000;
+    const visibleFor = 3.4;
+    const fadeFor = 1.8;
+    const total = visibleFor + fadeFor;
+    if (elapsed > total) {
+      node.visible = false;
+      return;
+    }
+    node.visible = true;
+    const opacity = elapsed < visibleFor ? 1 : 1 - (elapsed - visibleFor) / fadeFor;
+    node.traverse((child) => {
+      const mat = (child as { material?: { opacity?: number; transparent?: boolean; emissiveIntensity?: number } }).material;
+      if (mat && mat.opacity !== undefined) {
+        mat.transparent = true;
+        mat.opacity = opacity;
+      }
+      if (mat && mat.emissiveIntensity !== undefined) {
+        mat.emissiveIntensity = mat.emissiveIntensity * opacity + 0.001;
+      }
+    });
+  });
+
   return (
-    <group>
+    <group ref={groupRef}>
       <LightningBolt origin={[0.2, 4.6, -5.2]} target={[-0.4, 0.1, -4.2]} color="#fff7a8" />
       <LightningBolt origin={[-1.4, 5.1, -5.0]} target={[-2.6, 0.1, -4.0]} color="#ffd84d" />
       <LightningBolt origin={[1.6, 5.4, -5.4]} target={[2.4, 0.1, -3.8]} color="#ffe16a" />
@@ -301,7 +331,10 @@ function SnowDrift({ color }: { color: string }) {
   );
 }
 
-type AiPhase = "approach" | "circle" | "telegraph" | "retreat";
+type AiPhase = "approach" | "circle" | "telegraph" | "retreat" | "idle";
+
+const STANDOFF_DISTANCE = 7.5;
+const MIN_DISTANCE = 5.5;
 
 function EnemyMotion({
   enemy,
@@ -350,70 +383,96 @@ function EnemyMotion({
       circle: 2.6 + aggression * 0.6,
       telegraph: 0.55,
       retreat: 1.1 - aggression * 0.2,
+      idle: 1.2 + Math.random() * 0.8,
     };
 
     if (phase.t > phaseDurations[phase.mode]) {
       phase.t = 0;
-      const next: Record<AiPhase, AiPhase> = {
-        approach: "circle",
-        circle: Math.random() < 0.55 ? "telegraph" : "retreat",
-        telegraph: "approach",
-        retreat: "approach",
-      };
-      phase.mode = next[phase.mode];
+      const sluggishChance = enemy.id === "cloudy" ? 0.32 : enemy.id === "rainySeason" ? 0.26 : 0.18;
+      const willIdle = phase.mode !== "idle" && Math.random() < sluggishChance;
+      if (willIdle) {
+        phase.mode = "idle";
+      } else {
+        const next: Record<AiPhase, AiPhase> = {
+          approach: "circle",
+          circle: Math.random() < 0.5 ? "telegraph" : "retreat",
+          telegraph: Math.random() < 0.4 ? "retreat" : "circle",
+          retreat: "approach",
+          idle: "approach",
+        };
+        phase.mode = next[phase.mode];
+      }
       if (phase.mode === "circle") {
         phase.orbitDir = Math.random() < 0.5 ? 1 : -1;
       }
     }
 
-    const orbitRadius = enemy.id === "tornado" || enemy.id === "blizzard" ? 4.2 + aggression * 1.2
-      : enemy.id === "typhoon" ? 5 + aggression * 1.4
-      : enemy.id === "cloudy" ? 4.8
-      : 5.4 + aggression * 0.8;
+    const orbitRadius = enemy.id === "tornado" || enemy.id === "blizzard" ? 6.6 + aggression * 1.2
+      : enemy.id === "typhoon" ? 7.4 + aggression * 1.4
+      : enemy.id === "cloudy" ? 6.2
+      : 7.2 + aggression * 0.9;
 
     let targetX = 0;
     let targetZ = baseZ;
 
     if (phase.mode === "approach") {
       const k = Math.min(1, phase.t / phaseDurations.approach);
-      const desiredZ = playerZ - 4.2;
-      const desiredX = playerX * 0.55;
-      const homeZ = baseZ;
-      targetX = desiredX * k + 0 * (1 - k);
-      targetZ = desiredZ * k + homeZ * (1 - k);
+      const dxFromPlayer = node.position.x - playerX;
+      const dzFromPlayer = node.position.z - playerZ;
+      const dist = Math.max(Math.sqrt(dxFromPlayer * dxFromPlayer + dzFromPlayer * dzFromPlayer), 0.001);
+      const desiredX = playerX + (dxFromPlayer / dist) * STANDOFF_DISTANCE;
+      const desiredZ = playerZ + (dzFromPlayer / dist) * STANDOFF_DISTANCE;
+      targetX = desiredX * k;
+      targetZ = desiredZ * k + baseZ * (1 - k);
     } else if (phase.mode === "circle") {
-      phase.angle += delta * (0.9 + aggression * 0.7) * phase.orbitDir;
+      phase.angle += delta * (0.7 + aggression * 0.6) * phase.orbitDir;
       targetX = playerX + Math.cos(phase.angle) * orbitRadius;
-      targetZ = playerZ + Math.sin(phase.angle) * orbitRadius - 1.4;
+      targetZ = playerZ + Math.sin(phase.angle) * orbitRadius;
     } else if (phase.mode === "telegraph") {
       const dx = playerX - node.position.x;
       const dz = playerZ - node.position.z;
       const dist = Math.max(Math.sqrt(dx * dx + dz * dz), 0.001);
-      const lean = 0.6;
+      const lean = 0.5;
       targetX = node.position.x + (dx / dist) * lean;
       targetZ = node.position.z + (dz / dist) * lean;
+    } else if (phase.mode === "idle") {
+      targetX = node.position.x + Math.sin(state.clock.getElapsedTime() * 0.8) * 0.18;
+      targetZ = node.position.z + Math.cos(state.clock.getElapsedTime() * 0.65) * 0.14;
     } else {
       const k = Math.min(1, phase.t / phaseDurations.retreat);
-      targetX = node.position.x * (1 - k * 0.7);
-      targetZ = baseZ * (k * 0.5 + 0.5);
+      const dxFromPlayer = node.position.x - playerX;
+      const dzFromPlayer = node.position.z - playerZ;
+      const dist = Math.max(Math.sqrt(dxFromPlayer * dxFromPlayer + dzFromPlayer * dzFromPlayer), 0.001);
+      targetX = playerX + (dxFromPlayer / dist) * (orbitRadius + 2.4) * k + node.position.x * (1 - k);
+      targetZ = playerZ + (dzFromPlayer / dist) * (orbitRadius + 2.4) * k + baseZ * (1 - k);
     }
 
-    targetX += Math.sin(state.clock.getElapsedTime() * 1.3 + enemy.difficulty) * 0.4;
-    targetZ += Math.cos(state.clock.getElapsedTime() * 1.1 + enemy.difficulty * 0.7) * 0.3;
-    targetX = Math.max(-arenaX + 1, Math.min(arenaX - 1, targetX));
-    targetZ = Math.max(baseZ * 1.6, Math.min(baseZ * 0.1 + 4, targetZ));
+    targetX += Math.sin(state.clock.getElapsedTime() * 1.3 + enemy.difficulty) * 0.3;
+    targetZ += Math.cos(state.clock.getElapsedTime() * 1.1 + enemy.difficulty * 0.7) * 0.25;
 
-    const lerpRate = 0.9 + aggression * 0.7;
+    const dxClamp = targetX - playerX;
+    const dzClamp = targetZ - playerZ;
+    const distClamp = Math.sqrt(dxClamp * dxClamp + dzClamp * dzClamp);
+    if (distClamp < MIN_DISTANCE && distClamp > 0.001) {
+      targetX = playerX + (dxClamp / distClamp) * MIN_DISTANCE;
+      targetZ = playerZ + (dzClamp / distClamp) * MIN_DISTANCE;
+    }
+
+    targetX = Math.max(-arenaX + 1, Math.min(arenaX - 1, targetX));
+    targetZ = Math.max(baseZ * 1.8, Math.min(baseZ * 0.1 + 5, targetZ));
+
+    const lerpRate = phase.mode === "idle" ? 0.4 : (0.9 + aggression * 0.7);
     const factor = 1 - Math.exp(-lerpRate * delta);
     node.position.x += (targetX - node.position.x) * factor;
     node.position.z += (targetZ - node.position.z) * factor;
 
     const t = state.clock.getElapsedTime();
-    const verticalAmp = enemy.id === "tornado" || enemy.id === "typhoon"
+    const verticalAmpBase = enemy.id === "tornado" || enemy.id === "typhoon"
       ? 1.2 + aggression * 0.5
       : enemy.id === "thunderstorm" ? 0.9
       : 0.6 + aggression * 0.3;
-    const verticalFreq = 1.2 + aggression * 0.4;
+    const verticalAmp = phase.mode === "idle" ? verticalAmpBase * 0.35 : verticalAmpBase;
+    const verticalFreq = phase.mode === "idle" ? 0.7 : (1.2 + aggression * 0.4);
     const verticalBase = baseY + (phase.mode === "telegraph" ? -0.6 : 0);
     node.position.y = verticalBase + Math.sin(t * verticalFreq) * verticalAmp + Math.sin(t * verticalFreq * 1.9) * 0.18;
 

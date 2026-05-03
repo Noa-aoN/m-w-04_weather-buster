@@ -142,19 +142,23 @@ export function PlayerController({
       const clampedX = Math.max(-arena.x, Math.min(arena.x, targetX));
       const clampedZ = Math.max(arena.zFront, Math.min(arena.zBack, targetZ));
       const origin = enemyPositionRef.current;
+      const fromX = pattern.kind === "falling" ? clampedX : origin.x;
+      const fromZ = pattern.kind === "falling" ? clampedZ : origin.z;
+      const fromY = pattern.kind === "falling" ? 14 : origin.y + 0.6;
       const marker = {
         id: now + Math.random(),
         x: clampedX,
         z: clampedZ,
         triggersAt: now + pattern.warningMs,
         spawnAt: now,
-        fromX: origin.x,
-        fromY: origin.y + 0.6,
-        fromZ: origin.z,
+        fromX,
+        fromY,
+        fromZ,
         radius: pattern.radius,
         damage,
         color: pattern.projectileColor,
         trailGlow: pattern.trailGlow,
+        kind: pattern.kind,
       };
       state.spawnLightning(marker);
       nextLightningAt.current = now + interval;

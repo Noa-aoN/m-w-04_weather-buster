@@ -21,7 +21,7 @@ import type {
   WeatherEnemyId,
 } from "./types";
 
-const PLAYER_MAX_HP = 1250;
+const PLAYER_MAX_HP = 1000;
 const ENEMY_TICK_DAMAGE_BASE = 4;
 const HIT_GAUGE_GAIN = 8;
 const CRITICAL_GAUGE_GAIN = 14;
@@ -46,6 +46,8 @@ const initialStocks = (multiplier: number): Record<ItemId, number> => {
 const enemyMaxHpFor = (enemy: WeatherEnemy) =>
   Math.round(enemy.maxHp * difficultyModifiers[enemy.difficulty].hp);
 
+type AttackKind = "arc" | "linear" | "falling";
+
 type LightningMarker = {
   id: number;
   x: number;
@@ -59,6 +61,7 @@ type LightningMarker = {
   damage: number;
   color: string;
   trailGlow: number;
+  kind: AttackKind;
 };
 
 type BattleState = {
