@@ -1,8 +1,9 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Sky, Stars, useGLTF } from "@react-three/drei";
+import { Sky, Stars, useAnimations, useFBX, useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Group, Mesh, PerspectiveCamera, PointLight } from "three";
+import type { AnimationClip, Group, Mesh, PerspectiveCamera, PointLight } from "three";
 import { Color, Vector3 } from "three";
+import { SkeletonUtils } from "three-stdlib";
 import { BulletTrails } from "../entities/BulletTrails";
 import { EnemyFigure } from "../entities/EnemyFigure";
 import { LightningWarnings } from "../entities/LightningWarnings";
@@ -80,6 +81,7 @@ function PlayerWeapon() {
 function PlayerBackAvatar() {
   const { camera } = useThree();
   const groupRef = useRef<Group>(null);
+  const charRef = useRef<Group>(null);
   const flashRef = useRef<Mesh>(null);
   const lookTarget = useRef(new Vector3());
   const forwardVec = useRef(new Vector3());
@@ -88,14 +90,14 @@ function PlayerBackAvatar() {
   const cameraMode = useBattleStore((state) => state.cameraMode);
   const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
-  const charGltf = useGLTF(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.iris);
+  const charFbx = useFBX(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.iris);
   const weaponGltf = useGLTF(WEAPON_MODEL_URL[selectedWeaponId]);
 
-  const charFitted = useMemo(() => {
-    const c = charGltf.scene.clone(true);
-    fitObjectToHeight(c, 1.7);
-    return c;
-  }, [charGltf]);
+  const { charFitted, animations } = useMemo(() => {
+    const cloned = SkeletonUtils.clone(charFbx) as Group;
+    fitObjectToHeight(cloned, 1.7);
+    return { charFitted: cloned, animations: charFbx.animations as AnimationClip[] };
+  }, [charFbx]);
 
   const weaponFitted = useMemo(() => {
     const c = weaponGltf.scene.clone(true);
@@ -103,14 +105,55 @@ function PlayerBackAvatar() {
     return c;
   }, [weaponGltf]);
 
+  const { actions, names } = useAnimations(animations, charRef);
+
   useEffect(() => {
-    if (lastShotAt === 0) {
+    if (!actions || names.length === 0) {
+      return;
+    }
+    const idleName = names.find((n) => n.toLowerCase().includes("idle")) ?? names[0];
+    if (!idleName) {
+      return;
+    }
+    const action = actions[idleName];
+    if (action) {
+      action.reset().fadeIn(0.25).play();
+      return () => {
+        action.fadeOut(0.25);
+      };
+    }
+  }, [actions, names]);
+
+  useEffect(() => {
+    if (lastShotAt === 0 || !actions || names.length === 0) {
       return;
     }
     setFlashVisible(true);
-    const id = window.setTimeout(() => setFlashVisible(false), 80);
-    return () => window.clearTimeout(id);
-  }, [lastShotAt]);
+    const flashId = window.setTimeout(() => setFlashVisible(false), 80);
+    const punchName = names.find((n) => /punch|attack|shoot|fire/i.test(n));
+    if (punchName) {
+      const punch = actions[punchName];
+      if (punch) {
+        punch.reset();
+        punch.setLoop(2200, 1);
+        punch.clampWhenFinished = true;
+        punch.fadeIn(0.05).play();
+        const idleName = names.find((n) => n.toLowerCase().includes("idle")) ?? names[0];
+        const idle = idleName ? actions[idleName] : null;
+        const back = window.setTimeout(() => {
+          punch.fadeOut(0.2);
+          if (idle) {
+            idle.reset().fadeIn(0.2).play();
+          }
+        }, 400);
+        return () => {
+          window.clearTimeout(flashId);
+          window.clearTimeout(back);
+        };
+      }
+    }
+    return () => window.clearTimeout(flashId);
+  }, [lastShotAt, actions, names]);
 
   useFrame(() => {
     const node = groupRef.current;
@@ -142,8 +185,10 @@ function PlayerBackAvatar() {
 
   return (
     <group ref={groupRef}>
-      <primitive object={charFitted} />
-      <group position={[0.32, 1.05, -0.5]}>
+      <group ref={charRef}>
+        <primitive object={charFitted} />
+      </group>
+      <group position={[0.32, 1.15, -0.55]}>
         <group rotation={[0, Math.PI, 0]}>
           <primitive object={weaponFitted} />
         </group>
@@ -161,9 +206,9 @@ function PlayerBackAvatar() {
   );
 }
 
-useGLTF.preload(CHARACTER_MODEL_URL.iris);
-useGLTF.preload(CHARACTER_MODEL_URL.halo);
-useGLTF.preload(CHARACTER_MODEL_URL.raika);
+useFBX.preload(CHARACTER_MODEL_URL.iris);
+useFBX.preload(CHARACTER_MODEL_URL.halo);
+useFBX.preload(CHARACTER_MODEL_URL.raika);
 
 function FovController() {
   const { camera } = useThree();

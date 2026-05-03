@@ -4,6 +4,18 @@
 
 すべて Creative Commons CC0 (Public Domain) ライセンスのため、クレジット表記は必須ではありませんが、敬意とトレース性のためここに残します。
 
+## Quaternius (CC0, アニメ付き人型)
+
+リアル等身寄りのアニメ付きキャラ。`@react-three/drei` の `useFBX` で読み込み、`useAnimations` で idle / walk / punch を再生。クローン時は `three-stdlib` の `SkeletonUtils.clone` を使用してスケルトンを保持する。
+
+| ディレクトリ | 出典パック | 出典 URL | ファイル | 用途 |
+| --- | --- | --- | --- | --- |
+| `public/models/quaternius-characters/` | Ultimate Animated Character Pack (Nov 2019) | https://opengameart.org/content/animated-characters-pack | `BlueSoldier_Female.fbx` | NOA (IRIS / バランス) |
+| 同上 | 同上 | 同上 | `BlueSoldier_Male.fbx` | HALO (重装) |
+| 同上 | 同上 | 同上 | `Ninja_Female.fbx` | SAKA (RAIKA / 攻撃) |
+
+ライセンスは CC0 1.0 Universal（パック内 `License.txt` 同梱）。Patreon サポート任意。
+
 ## Kenney (kenney.nl)
 
 すべて CC0 1.0 Universal。GLB 形式。

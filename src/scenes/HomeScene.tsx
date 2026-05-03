@@ -1,7 +1,8 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Sky, Stars, useGLTF } from "@react-three/drei";
+import { Sky, Stars, useFBX, useAnimations, useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef } from "react";
-import type { Group, Mesh } from "three";
+import type { AnimationClip, Group, Mesh } from "three";
+import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
 import { findCharacter, findStage, findWeapon, stages, weatherEnemies } from "../game/data";
 import { useGeolocationWeather, weatherCodeLabel } from "../features/weather/useGeolocationWeather";
@@ -95,14 +96,33 @@ function GpsToggle() {
 }
 
 function HeroMech({ accent, characterId }: { accent: string; characterId: CharacterId }) {
-  const { scene } = useGLTF(CHARACTER_MODEL_URL[characterId]);
-  const fitted = useMemo(() => {
-    const c = scene.clone(true);
-    fitObjectToHeight(c, 2.0);
-    return c;
-  }, [scene]);
+  const fbx = useFBX(CHARACTER_MODEL_URL[characterId]);
+  const { fitted, animations } = useMemo(() => {
+    const cloned = SkeletonUtils.clone(fbx) as Group;
+    fitObjectToHeight(cloned, 2.2);
+    return { fitted: cloned, animations: fbx.animations as AnimationClip[] };
+  }, [fbx]);
   const groupRef = useRef<Group>(null);
+  const innerRef = useRef<Group>(null);
   const accentRingRef = useRef<Mesh>(null);
+  const { actions, names } = useAnimations(animations, innerRef);
+
+  useEffect(() => {
+    if (!actions || names.length === 0) {
+      return;
+    }
+    const idleName = names.find((n) => n.toLowerCase().includes("idle")) ?? names[0];
+    if (!idleName) {
+      return;
+    }
+    const action = actions[idleName];
+    if (action) {
+      action.reset().fadeIn(0.3).play();
+      return () => {
+        action.fadeOut(0.3);
+      };
+    }
+  }, [actions, names]);
 
   useFrame(({ clock }) => {
     const node = groupRef.current;
@@ -110,8 +130,8 @@ function HeroMech({ accent, characterId }: { accent: string; characterId: Charac
       return;
     }
     const t = clock.getElapsedTime();
-    node.position.y = Math.sin(t * 0.6) * 0.05;
-    node.rotation.y = Math.sin(t * 0.3) * 0.16;
+    node.position.y = Math.sin(t * 0.6) * 0.04;
+    node.rotation.y = Math.sin(t * 0.3) * 0.12;
     if (accentRingRef.current) {
       const mat = accentRingRef.current.material as { emissiveIntensity?: number };
       if (mat.emissiveIntensity !== undefined) {
@@ -122,7 +142,9 @@ function HeroMech({ accent, characterId }: { accent: string; characterId: Charac
 
   return (
     <group ref={groupRef} position={[0, 0, 0]}>
-      <primitive object={fitted} />
+      <group ref={innerRef}>
+        <primitive object={fitted} />
+      </group>
       <mesh ref={accentRingRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
         <ringGeometry args={[0.7, 0.86, 48]} />
         <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.0} toneMapped={false} />
