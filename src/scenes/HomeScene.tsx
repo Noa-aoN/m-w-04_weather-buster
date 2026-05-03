@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Sky, Stars } from "@react-three/drei";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { Group, Mesh } from "three";
 import { useBattleStore } from "../game/battleStore";
 import { findCharacter, findStage, findWeapon, stages, weatherEnemies } from "../game/data";
@@ -16,6 +16,15 @@ function StartIcon() {
   );
 }
 
+function StoryIcon() {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M6 5h14a4 4 0 0 1 4 4v18l-5-3-5 3-5-3-5 3V7a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M10 11h12 M10 16h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function GridIcon() {
   return (
     <svg viewBox="0 0 32 32" aria-hidden="true">
@@ -23,6 +32,15 @@ function GridIcon() {
       <rect x="18" y="4" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.6" />
       <rect x="4" y="18" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.6" />
       <rect x="18" y="18" width="10" height="10" fill="currentColor" opacity="0.7" />
+    </svg>
+  );
+}
+
+function CharacterIcon() {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="11" r="5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M5 28c2-6 7-9 11-9s9 3 11 9" fill="none" stroke="currentColor" strokeWidth="1.6" />
     </svg>
   );
 }
@@ -87,7 +105,7 @@ function HeroMech({ accent }: { accent: string }) {
   });
 
   return (
-    <group ref={groupRef} position={[1.35, 0, 1.15]} rotation={[0, Math.PI, 0]} scale={1.14}>
+    <group ref={groupRef} position={[0, 0, 0.4]} rotation={[0, Math.PI, 0]} scale={1.2}>
       <mesh position={[0, 1.7, 0]}>
         <boxGeometry args={[0.46, 0.34, 0.4]} />
         <meshStandardMaterial color="#1c2a35" metalness={0.65} roughness={0.32} />
@@ -360,6 +378,20 @@ function ThunderFlicker() {
   );
 }
 
+function RotatingScenery({ children }: { children: React.ReactNode }) {
+  const groupRef = useRef<Group>(null);
+  useFrame((state) => {
+    const node = groupRef.current;
+    if (!node) {
+      return;
+    }
+    const t = state.clock.getElapsedTime();
+    node.rotation.y = t * 0.085;
+    node.position.y = Math.sin(t * 0.4) * 0.05;
+  });
+  return <group ref={groupRef}>{children}</group>;
+}
+
 function HomeStage({
   accent,
   ringColor,
@@ -396,22 +428,30 @@ function HomeStage({
       <pointLight position={[-4, 2.4, 1]} intensity={1.2} color="#ff315b" distance={8} />
       <fog attach="fog" args={[fogColor, fogNear, fogFar]} />
 
-      <FloorGrid ringColor={ringColor} />
-      <SatelliteDish />
+      <RotatingScenery>
+        <FloorGrid ringColor={ringColor} />
+        <SatelliteDish />
+        <WarningTower position={[-7, 0, -2.5]} />
+        <WarningTower position={[-3.6, 0, -4.6]} />
+        <WarningTower position={[3.4, 0, -5.2]} />
+        <WarningTower position={[6.6, 0, 1.4]} />
+        {[-9.2, -5.6, -1.4, 2.4, 5.4, 8.6].map((x, index) => (
+          <mesh
+            key={x}
+            position={[x, 0.7 + Math.abs(index - 2) * 0.18, -5.2 - Math.abs(index - 2.5) * 0.6]}
+          >
+            <boxGeometry args={[1.5, 1.4 + Math.abs(index - 2) * 0.34, 1.5]} />
+            <meshStandardMaterial color="#22343f" emissive="#0a8ec2" emissiveIntensity={0.12} metalness={0.5} roughness={0.4} />
+          </mesh>
+        ))}
+        {[3, 5, 8].map((radius) => (
+          <mesh key={radius} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
+            <ringGeometry args={[radius, radius + 0.04, 96]} />
+            <meshBasicMaterial color={ringColor} transparent opacity={0.18} toneMapped={false} />
+          </mesh>
+        ))}
+      </RotatingScenery>
       <HeroMech accent={accent} />
-      <WarningTower position={[-7, 0, -2.5]} />
-      <WarningTower position={[-3.6, 0, -4.6]} />
-      <WarningTower position={[3.4, 0, -5.2]} />
-
-      {[-9.2, -5.6, -1.4, 2.4, 5.4, 8.6].map((x, index) => (
-        <mesh
-          key={x}
-          position={[x, 0.7 + Math.abs(index - 2) * 0.18, -5.2 - Math.abs(index - 2.5) * 0.6]}
-        >
-          <boxGeometry args={[1.5, 1.4 + Math.abs(index - 2) * 0.34, 1.5]} />
-          <meshStandardMaterial color="#22343f" emissive="#0a8ec2" emissiveIntensity={0.12} metalness={0.5} roughness={0.4} />
-        </mesh>
-      ))}
 
       {isClear ? null : isSnow ? (
         <HomeSnowDrift />
@@ -433,11 +473,15 @@ export function HomeScene({
   onOpenEnemyGrid,
   onOpenLoadout,
   onOpenSettings,
+  onOpenCharacterGrid,
+  onOpenStory,
 }: {
   onStart: () => void;
   onOpenEnemyGrid: () => void;
   onOpenLoadout: (tab?: LoadoutTab) => void;
   onOpenSettings: () => void;
+  onOpenCharacterGrid: () => void;
+  onOpenStory: () => void;
 }) {
   useGeolocationWeather();
   const selectedEnemyId = useBattleStore((state) => state.selectedEnemyId);
@@ -466,6 +510,45 @@ export function HomeScene({
     const nextIndex = (currentIndex + direction + playableEnemies.length) % playableEnemies.length;
     selectEnemy(playableEnemies[nextIndex].id);
   }
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.target instanceof HTMLElement && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === "enter" || event.key === "Enter") {
+        event.preventDefault();
+        onStart();
+      } else if (key === "t") {
+        event.preventDefault();
+        onOpenStory();
+      } else if (key === "g") {
+        event.preventDefault();
+        onOpenEnemyGrid();
+      } else if (key === "c") {
+        event.preventDefault();
+        onOpenCharacterGrid();
+      } else if (key === "l") {
+        event.preventDefault();
+        onOpenLoadout("weapon");
+      } else if (key === "s") {
+        event.preventDefault();
+        onOpenSettings();
+      } else if (event.key === "ArrowLeft") {
+        cycleEnemy(-1);
+      } else if (event.key === "ArrowRight") {
+        cycleEnemy(1);
+      } else if (event.key === "[") {
+        cycleStage(-1);
+      } else if (event.key === "]") {
+        cycleStage(1);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onStart, onOpenEnemyGrid, onOpenLoadout, onOpenSettings, onOpenCharacterGrid, onOpenStory]);
 
   return (
     <main className="homeShell sceneEnter">
@@ -497,18 +580,32 @@ export function HomeScene({
         <button className="primaryMenuButton menuItem" type="button" onClick={onStart}>
           <span className="menuIcon"><StartIcon /></span>
           <span className="menuLabel">ゲーム開始</span>
+          <span className="menuKey">Enter</span>
+        </button>
+        <button className="menuItem" type="button" onClick={onOpenStory}>
+          <span className="menuIcon"><StoryIcon /></span>
+          <span className="menuLabel">ストーリー</span>
+          <span className="menuKey">T</span>
         </button>
         <button className="menuItem" type="button" onClick={onOpenEnemyGrid}>
           <span className="menuIcon"><GridIcon /></span>
           <span className="menuLabel">観測記録</span>
+          <span className="menuKey">G</span>
+        </button>
+        <button className="menuItem" type="button" onClick={onOpenCharacterGrid}>
+          <span className="menuIcon"><CharacterIcon /></span>
+          <span className="menuLabel">キャラ</span>
+          <span className="menuKey">C</span>
         </button>
         <button className="menuItem" type="button" onClick={() => onOpenLoadout("weapon")}>
           <span className="menuIcon"><LoadoutIcon /></span>
           <span className="menuLabel">装備</span>
+          <span className="menuKey">L</span>
         </button>
         <button className="menuItem" type="button" onClick={onOpenSettings}>
           <span className="menuIcon"><GearIcon /></span>
           <span className="menuLabel">設定</span>
+          <span className="menuKey">S</span>
         </button>
       </nav>
 
@@ -545,6 +642,30 @@ export function HomeScene({
             <em>{selectedEnemy.trait}</em>
           </div>
           <button type="button" className="cyclerArrow" aria-label="次の敵" onClick={() => cycleEnemy(1)}>▶</button>
+        </div>
+
+        <span className="difficultyLabel">難易度</span>
+        <div
+          className={`difficultyLine difficulty--${selectedEnemy.difficulty}`}
+          role="img"
+          aria-label={`難易度 ${selectedEnemy.difficulty} / 5`}
+        >
+          {Array.from({ length: 5 }, (_, index) => (
+            <b key={index} className={index < selectedEnemy.difficulty ? "filled" : ""}>
+              {index < selectedEnemy.difficulty ? "■" : ""}
+            </b>
+          ))}
+          <em className="difficultyTag">
+            {selectedEnemy.difficulty <= 1
+              ? "EASY"
+              : selectedEnemy.difficulty === 2
+              ? "NORMAL"
+              : selectedEnemy.difficulty === 3
+              ? "TOUGH"
+              : selectedEnemy.difficulty === 4
+              ? "HARD"
+              : "EXTREME"}
+          </em>
         </div>
 
         <span className="threatLabel">脅威レベル</span>

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import {
+  difficultyModifiers,
   findCharacter,
   findStage,
   findWeapon,
@@ -16,36 +17,51 @@ import type {
   StageId,
   Weapon,
   WeaponId,
+  WeatherEnemy,
   WeatherEnemyId,
 } from "./types";
 
-const PLAYER_MAX_HP = 1250;
+const PLAYER_MAX_HP = 1000;
 const ENEMY_TICK_DAMAGE_BASE = 4;
 const HIT_GAUGE_GAIN = 8;
+const CRITICAL_GAUGE_GAIN = 14;
 const MISS_GAUGE_GAIN = 2;
 const HEAL_AMOUNT = 350;
 const STABILIZER_GAUGE_GAIN = 60;
 const DECOY_DURATION_MS = 5000;
 const DECOY_DAMAGE_RATIO = 0.4;
+const CORE_DAMAGE_MULTIPLIER = 2.4;
 const DEFAULT_ENEMY_INDEX = 2;
 const DEFAULT_WEAPON_INDEX = 1;
 const DEFAULT_CHARACTER_ID: CharacterId = "halo";
 
-const initialStocks = (): Record<ItemId, number> => {
+const initialStocks = (multiplier: number): Record<ItemId, number> => {
   const stocks = {} as Record<ItemId, number>;
   for (const item of items) {
-    stocks[item.id] = item.initialStock;
+    stocks[item.id] = Math.max(0, Math.floor(item.initialStock * multiplier + 0.001));
   }
   return stocks;
 };
+
+const enemyMaxHpFor = (enemy: WeatherEnemy) =>
+  Math.round(enemy.maxHp * difficultyModifiers[enemy.difficulty].hp);
+
+type AttackKind = "arc" | "linear" | "falling";
 
 type LightningMarker = {
   id: number;
   x: number;
   z: number;
   triggersAt: number;
+  spawnAt: number;
+  fromX: number;
+  fromY: number;
+  fromZ: number;
   radius: number;
   damage: number;
+  color: string;
+  trailGlow: number;
+  kind: AttackKind;
 };
 
 type BattleState = {
@@ -81,19 +97,26 @@ type BattleState = {
   lastItemId: ItemId | null;
   lastSkillAt: number;
   lastDefeatAt: number;
+  lastShotCritical: boolean;
   selectEnemy: (id: WeatherEnemyId) => void;
   selectWeapon: (id: WeaponId) => void;
   selectCharacter: (id: CharacterId) => void;
   selectStage: (id: StageId) => void;
+  sfxEnabled: boolean;
+  bgmEnabled: boolean;
+  masterVolume: number;
   setMouseSensitivity: (value: number) => void;
   setFov: (value: number) => void;
   setCameraMode: (value: BattleCameraMode) => void;
   setCrosshairColor: (value: string) => void;
+  setSfxEnabled: (value: boolean) => void;
+  setBgmEnabled: (value: boolean) => void;
+  setMasterVolume: (value: number) => void;
   setLocationEnabled: (value: boolean) => void;
   setCurrentWeather: (enemyId: WeatherEnemyId | null, code: number | null) => void;
   start: () => void;
   reset: () => void;
-  shoot: (didHit: boolean) => void;
+  shoot: (didHit: boolean, critical?: boolean) => void;
   reload: () => void;
   takeDamageTick: () => void;
   takeMarkerDamage: (amount: number) => void;
@@ -105,7 +128,7 @@ type BattleState = {
   setPointerLocked: (locked: boolean) => void;
 };
 
-const baseLoadout = (weapon: Weapon) => ({
+const baseLoadout = (weapon: Weapon, enemy: WeatherEnemy) => ({
   playerHp: PLAYER_MAX_HP,
   ammo: weapon.maxAmmo,
   pressureGauge: 0,
@@ -113,11 +136,12 @@ const baseLoadout = (weapon: Weapon) => ({
   shotsHit: 0,
   damageTaken: 0,
   elapsedSeconds: 0,
-  itemStocks: initialStocks(),
+  itemStocks: initialStocks(difficultyModifiers[enemy.difficulty].itemMultiplier),
   lightningMarkers: [] as LightningMarker[],
   decoyUntil: 0,
   lastShotAt: 0,
   lastShotHit: false,
+  lastShotCritical: false,
   lastItemAt: 0,
   lastItemId: null,
   lastSkillAt: 0,
@@ -167,29 +191,31 @@ export const useBattleStore = create<BattleState>((set, get) => {
     locationEnabled: false,
     currentWeatherEnemyId: null,
     currentWeatherCode: null,
-    enemyHp: defaultEnemy.maxHp,
-    enemyMaxHp: defaultEnemy.maxHp,
-    ...baseLoadout(defaultWeapon),
+    enemyHp: enemyMaxHpFor(defaultEnemy),
+    enemyMaxHp: enemyMaxHpFor(defaultEnemy),
+    ...baseLoadout(defaultWeapon, defaultEnemy),
     selectEnemy: (id) => {
       const target = findEnemy(id);
       const weapon = findWeapon(get().selectedWeaponId);
+      const maxHp = enemyMaxHpFor(target);
       set({
         selectedEnemyId: id,
         status: "ready",
-        ...baseLoadout(weapon),
-        enemyHp: target.maxHp,
-        enemyMaxHp: target.maxHp,
+        ...baseLoadout(weapon, target),
+        enemyHp: maxHp,
+        enemyMaxHp: maxHp,
       });
     },
     selectWeapon: (id) => {
       const weapon = findWeapon(id);
       const target = findEnemy(get().selectedEnemyId);
+      const maxHp = enemyMaxHpFor(target);
       set({
         selectedWeaponId: id,
         status: "ready",
-        ...baseLoadout(weapon),
-        enemyHp: target.maxHp,
-        enemyMaxHp: target.maxHp,
+        ...baseLoadout(weapon, target),
+        enemyHp: maxHp,
+        enemyMaxHp: maxHp,
       });
     },
     selectCharacter: (id) => {
@@ -198,44 +224,53 @@ export const useBattleStore = create<BattleState>((set, get) => {
     selectStage: (id) => {
       set({ selectedStageId: id });
     },
+    sfxEnabled: true,
+    bgmEnabled: true,
+    masterVolume: 0.6,
     setMouseSensitivity: (value) => set({ mouseSensitivity: value }),
     setFov: (value) => set({ fov: value }),
     setCameraMode: (value) => set({ cameraMode: value }),
     setCrosshairColor: (value) => set({ crosshairColor: value }),
+    setSfxEnabled: (value) => set({ sfxEnabled: value }),
+    setBgmEnabled: (value) => set({ bgmEnabled: value }),
+    setMasterVolume: (value) => set({ masterVolume: Math.max(0, Math.min(1, value)) }),
     setLocationEnabled: (value) => set({ locationEnabled: value }),
     setCurrentWeather: (enemyId, code) => set({ currentWeatherEnemyId: enemyId, currentWeatherCode: code }),
     start: () => {
       const weapon = findWeapon(get().selectedWeaponId);
       const target = findEnemy(get().selectedEnemyId);
+      const maxHp = enemyMaxHpFor(target);
       set({
         status: "battle",
-        ...baseLoadout(weapon),
-        enemyHp: target.maxHp,
-        enemyMaxHp: target.maxHp,
+        ...baseLoadout(weapon, target),
+        enemyHp: maxHp,
+        enemyMaxHp: maxHp,
       });
     },
     reset: () => {
       const weapon = findWeapon(get().selectedWeaponId);
       const target = findEnemy(get().selectedEnemyId);
+      const maxHp = enemyMaxHpFor(target);
       set({
         status: "ready",
-        ...baseLoadout(weapon),
-        enemyHp: target.maxHp,
-        enemyMaxHp: target.maxHp,
+        ...baseLoadout(weapon, target),
+        enemyHp: maxHp,
+        enemyMaxHp: maxHp,
       });
     },
-    shoot: (didHit) => {
+    shoot: (didHit, critical = false) => {
       const state = get();
       if (state.status !== "battle" || state.ammo <= 0) {
         return;
       }
       const weapon = findWeapon(state.selectedWeaponId);
       const character = findCharacter(state.selectedCharacterId);
-      const damage = didHit
+      const baseDamage = didHit
         ? computeOutgoingDamage(weapon, state.selectedEnemyId, character.damageMultiplier)
         : 0;
+      const damage = critical ? baseDamage * CORE_DAMAGE_MULTIPLIER : baseDamage;
       const nextHp = Math.max(state.enemyHp - damage, 0);
-      const baseGauge = didHit ? HIT_GAUGE_GAIN : MISS_GAUGE_GAIN;
+      const baseGauge = didHit ? (critical ? CRITICAL_GAUGE_GAIN : HIT_GAUGE_GAIN) : MISS_GAUGE_GAIN;
       const gauge = Math.min(
         state.pressureGauge + baseGauge * character.gaugeGainMultiplier,
         100,
@@ -250,6 +285,7 @@ export const useBattleStore = create<BattleState>((set, get) => {
         status: nextHp === 0 ? "clear" : state.status,
         lastShotAt: Date.now(),
         lastShotHit: didHit,
+        lastShotCritical: didHit && critical,
         lastDefeatAt: becomesClear ? Date.now() : state.lastDefeatAt,
       });
     },
@@ -268,8 +304,9 @@ export const useBattleStore = create<BattleState>((set, get) => {
       }
       const enemy = findEnemy(state.selectedEnemyId);
       const character = findCharacter(state.selectedCharacterId);
+      const diffMod = difficultyModifiers[enemy.difficulty];
       const damage = computeIncomingDamage(
-        enemy.threat * ENEMY_TICK_DAMAGE_BASE,
+        enemy.threat * ENEMY_TICK_DAMAGE_BASE * diffMod.attackDamage,
         state.decoyUntil,
         character.damageTakenMultiplier,
       );

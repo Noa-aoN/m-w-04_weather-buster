@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { findCharacter, findStage, findWeapon, weatherEnemies } from "../game/data";
 import { useBattleStore } from "../game/battleStore";
 import { calculateRank, calculateSunnyScore } from "../game/score";
@@ -54,6 +54,24 @@ export function ResultScene({
   const accuracyPct = result.shotsFired === 0 ? 0 : Math.round((result.shotsHit / result.shotsFired) * 100);
   const damageTakenPct = Math.min(100, Math.round((result.damageTaken / result.playerMaxHp) * 100));
 
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.target instanceof HTMLElement && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === "r" || event.key === "Enter") {
+        event.preventDefault();
+        onRetry();
+      } else if (key === "h") {
+        event.preventDefault();
+        onHome();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onRetry, onHome]);
+
   return (
     <main className="resultShell sceneEnter">
       <div className="screenFrame" aria-hidden="true" />
@@ -98,8 +116,8 @@ export function ResultScene({
       </section>
 
       <footer className="resultFooter">
-        <button type="button" onClick={onRetry}>再観測</button>
-        <button type="button" className="primaryMenuButton" onClick={onHome}>タイトルへ戻る</button>
+        <button type="button" onClick={onRetry}>再観測 (R / Enter)</button>
+        <button type="button" className="primaryMenuButton" onClick={onHome}>タイトルへ戻る (H)</button>
       </footer>
     </main>
   );

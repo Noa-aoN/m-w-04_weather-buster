@@ -47,15 +47,22 @@ export function WeatherEnemyModel({
         ))
       )}
 
-      <mesh position={[0, 0.05, 0.15]}>
-        <sphereGeometry args={[0.34, 40, 40]} />
+      <mesh name="enemyCore" position={[0, 0.05, 0.15]} userData={{ isCore: true }}>
+        <sphereGeometry args={[0.42, 40, 40]} />
         <meshStandardMaterial
           color={clear ? "#fff9bf" : enemy.coreColor}
           emissive={clear ? "#fff3a0" : enemy.coreColor}
-          emissiveIntensity={clear ? 1.15 : 0.85}
+          emissiveIntensity={clear ? 1.15 : 1.05}
           roughness={0.2}
+          toneMapped={false}
         />
       </mesh>
+      {!compact && !clear ? (
+        <mesh position={[0, 0.05, 0.15]}>
+          <sphereGeometry args={[0.62, 24, 24]} />
+          <meshBasicMaterial color={enemy.coreColor} transparent opacity={0.18} toneMapped={false} />
+        </mesh>
+      ) : null}
 
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[1.25, 0.018, 10, 96]} />

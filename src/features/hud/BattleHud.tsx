@@ -164,6 +164,43 @@ export function BattleHud({
     requestPointerLock();
   }
 
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.target instanceof HTMLElement && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (status === "ready") {
+        if (key === "enter" || event.key === "Enter") {
+          event.preventDefault();
+          handleStart();
+        } else if (key === "h") {
+          event.preventDefault();
+          onBack();
+        }
+      } else if (status === "battle" && !isPointerLocked) {
+        if (key === "enter" || event.key === "Enter") {
+          event.preventDefault();
+          handleResume();
+        } else if (key === "h") {
+          event.preventDefault();
+          onBack();
+        }
+      } else if (status === "clear" || status === "defeat") {
+        if (key === "enter" || event.key === "Enter") {
+          event.preventDefault();
+          onShowResult();
+        } else if (key === "h") {
+          event.preventDefault();
+          onBack();
+        }
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, isPointerLocked, onBack, onShowResult]);
+
   return (
     <div className={`battleHud ${status === "battle" && isPointerLocked ? "battleHud--engaged" : ""}`}>
       <header className="battleBrand">
@@ -240,14 +277,22 @@ export function BattleHud({
       <ItemToast />
       <SkillFlash />
 
+      {status === "battle" ? (
+        <div className="escHint" aria-live="polite">
+          <kbd>ESC</kbd>
+          <span>マウス操作に戻す（ポーズ）</span>
+        </div>
+      ) : null}
+
       {status === "ready" ? (
         <div className="centerBanner">
           <p>{stage.name} / {character.codename}</p>
           <h1>{enemy.name}を撃破する</h1>
           <ControlsHelp />
+          <p className="bannerHint">※ 戦闘中は「ESC」キーでマウス操作に戻せます</p>
           <div className="readyActions">
-            <button type="button" className="primaryMenuButton" onClick={handleStart}>戦闘開始</button>
-            <button type="button" onClick={onBack}>ホームへ</button>
+            <button type="button" className="primaryMenuButton" onClick={handleStart}>戦闘開始 (Enter)</button>
+            <button type="button" onClick={onBack}>ホームへ (H)</button>
           </div>
         </div>
       ) : null}
@@ -257,9 +302,10 @@ export function BattleHud({
           <p>POINTER UNLOCKED</p>
           <h1>一時停止中</h1>
           <ControlsHelp />
+          <p className="bannerHint">※「ESC」キーでマウス操作を戻せます</p>
           <div className="pauseActions">
-            <button type="button" className="primaryMenuButton" onClick={handleResume}>プレイ続行</button>
-            <button type="button" onClick={onBack}>撤退してタイトルへ</button>
+            <button type="button" className="primaryMenuButton" onClick={handleResume}>プレイ続行 (Enter)</button>
+            <button type="button" onClick={onBack}>撤退してタイトルへ (H)</button>
           </div>
         </div>
       ) : null}
@@ -268,7 +314,10 @@ export function BattleHud({
         <div className="centerBanner clearBanner">
           <p>雲が割れ、空が戻った</p>
           <h1>CLEAR SKY!</h1>
-          <button type="button" className="primaryMenuButton" onClick={onShowResult}>結果を見る</button>
+          <div className="readyActions">
+            <button type="button" className="primaryMenuButton" onClick={onShowResult}>結果を見る (Enter)</button>
+            <button type="button" onClick={onBack}>ホームへ (H)</button>
+          </div>
         </div>
       ) : null}
 
@@ -276,7 +325,10 @@ export function BattleHud({
         <div className="centerBanner defeatBanner">
           <p>計測機を失った</p>
           <h1>WEATHER OVER</h1>
-          <button type="button" className="primaryMenuButton" onClick={onShowResult}>結果を見る</button>
+          <div className="readyActions">
+            <button type="button" className="primaryMenuButton" onClick={onShowResult}>結果を見る (Enter)</button>
+            <button type="button" onClick={onBack}>ホームへ (H)</button>
+          </div>
         </div>
       ) : null}
     </div>
