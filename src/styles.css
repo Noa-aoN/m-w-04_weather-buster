@@ -188,7 +188,7 @@ canvas {
 .titleBlock {
   position: absolute;
   z-index: 4;
-  top: 18%;
+  top: 8%;
   left: 50%;
   width: min(820px, calc(100vw - 40px));
   transform: translateX(-50%);
@@ -475,14 +475,14 @@ canvas {
 .bossBar i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #ff315b, #ff315b 82%, #ffd84d 82%);
+  background: #ff315b;
 }
 
 .scorePanel {
   position: absolute;
   top: 52px;
   right: 26px;
-  width: 250px;
+  width: 290px;
   padding: 16px;
 }
 
@@ -566,10 +566,11 @@ canvas {
 
 .itemPanel {
   position: absolute;
-  left: 41%;
+  left: 50%;
   bottom: 24px;
   width: 250px;
   padding: 14px;
+  transform: translateX(-50%);
 }
 
 .itemSlots {
@@ -804,6 +805,7 @@ canvas {
   z-index: 4;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-auto-rows: 320px;
   gap: 10px;
   height: calc(100vh - 128px);
   overflow-y: auto;
@@ -1062,6 +1064,7 @@ canvas {
   grid-template-columns: 1fr;
   gap: 14px;
   max-width: 720px;
+  margin-inline: auto;
 }
 
 .settingRow {
@@ -1186,6 +1189,7 @@ canvas {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
+  align-self: start;
 }
 
 .resultStats article {
@@ -1267,8 +1271,10 @@ canvas {
   position: relative;
   z-index: 5;
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 22px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(40, 217, 255, 0.32);
