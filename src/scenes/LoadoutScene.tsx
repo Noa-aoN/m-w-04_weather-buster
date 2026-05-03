@@ -31,6 +31,7 @@ const WEAPON_ACCENT: Record<WeaponId, string> = {
   rainySeasonKiller: "#4ce0b3",
   stormwallRifle: "#7ed5ff",
   frostlance: "#bce6ff",
+  windBlade: "#fff0a2",
 };
 
 function WeaponSilhouette({ id }: { id: WeaponId }) {
@@ -294,8 +295,8 @@ export function WeaponScene({ onBack }: { onBack: () => void }) {
           <span>PROJECT: WEATHER BUSTER</span>
           <h1>WEAPON</h1>
           <small>武装選択</small>
+          <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
-        <button type="button" className="screenBack" onClick={onBack}>← ホーム (H)</button>
       </header>
 
       <WeaponTab
@@ -322,8 +323,8 @@ export function PilotScene({ onBack }: { onBack: () => void }) {
           <span>PROJECT: WEATHER BUSTER</span>
           <h1>PILOT</h1>
           <small>パイロット選択</small>
+          <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
-        <button type="button" className="screenBack" onClick={onBack}>← ホーム (H)</button>
       </header>
 
       <CharacterTab
@@ -349,8 +350,8 @@ export function StageScene({ onBack }: { onBack: () => void }) {
           <span>PROJECT: WEATHER BUSTER</span>
           <h1>STAGE</h1>
           <small>戦域詳細</small>
+          <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
-        <button type="button" className="screenBack" onClick={onBack}>← ホーム (H)</button>
       </header>
 
       <section className="stageDetailLayout">

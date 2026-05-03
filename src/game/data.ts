@@ -185,6 +185,20 @@ export const weapons: Weapon[] = [
     specialtyAgainst: ["blizzard", "tornado"],
     specialtyMultiplier: 1.4,
   },
+  {
+    id: "windBlade",
+    name: "風向ブレード",
+    damage: 28,
+    maxAmmo: 45,
+    fireRateMs: 260,
+    skillName: "風向反転",
+    skillDescription: "近接斬撃の気圧刃で竜巻の向きをそらし、竜巻/台風に追加ダメージ",
+    skillBurstRatio: 0.46,
+    skillBurstShots: 3,
+    description: "風向を斬って乱流を逸らす近接型ブレード。弾数は少ないが一撃が重い。",
+    specialtyAgainst: ["tornado", "typhoon"],
+    specialtyMultiplier: 1.5,
+  },
 ];
 
 export const items: Item[] = [

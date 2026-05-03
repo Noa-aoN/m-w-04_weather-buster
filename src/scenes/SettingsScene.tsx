@@ -48,8 +48,8 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
           <span>PROJECT: WEATHER BUSTER</span>
           <h1>SETTINGS</h1>
           <small>動作設定 / HUD設定</small>
+          <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
-        <button type="button" className="screenBack" onClick={onBack}>← ホーム (H)</button>
       </header>
 
       <section className="settingsLayout">

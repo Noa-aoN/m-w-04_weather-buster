@@ -7,8 +7,8 @@ import type { CharacterId } from "../game/types";
 import { fitObjectToHeight } from "./fitObject";
 
 export const CHARACTER_MODEL_URL: Record<CharacterId, string> = {
-  iris: "/models/quaternius-characters/BlueSoldier_Female.fbx",
-  halo: "/models/quaternius-characters/BlueSoldier_Male.fbx",
+  iris: "/models/quaternius-characters/BlueSoldier_Male.fbx",
+  halo: "/models/quaternius-characters/BlueSoldier_Female.fbx",
   raika: "/models/quaternius-characters/Ninja_Female.fbx",
 };
 
@@ -75,7 +75,7 @@ export function CharacterModel({
     }
     const t = clock.getElapsedTime();
     groupRef.current.rotation.y = Math.sin(t * 0.4) * 0.22 + t * 0.12;
-    groupRef.current.position.y = Math.sin(t * 0.9) * 0.06;
+    // 上下振動を止め、足元を常にリング位置 (y=0) に揃える
   });
 
   return (

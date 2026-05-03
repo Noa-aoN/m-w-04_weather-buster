@@ -15,12 +15,15 @@ export type BattleCameraMode = "fps" | "tps";
 
 export type BattleStatus = "ready" | "battle" | "clear" | "defeat";
 
+export type DifficultyLevel = 1 | 2 | 3 | 4 | 5;
+
 export type WeaponId =
   | "weatherGun"
   | "clearSkyGun"
   | "rainySeasonKiller"
   | "stormwallRifle"
-  | "frostlance";
+  | "frostlance"
+  | "windBlade";
 
 export type ItemId = "clearTonic" | "decoyUmbrella" | "lightningRod" | "pressureStabilizer";
 
@@ -41,7 +44,7 @@ export type WeatherEnemy = {
   icon: string;
   trait: string;
   threat: number;
-  difficulty: 1 | 2 | 3 | 4 | 5;
+  difficulty: DifficultyLevel;
   description: string;
   playableInMvp: boolean;
 };

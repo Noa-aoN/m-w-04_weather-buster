@@ -1,18 +1,19 @@
-import { useEffect, useState } from "react";
-import { findCharacter, findStage, findWeapon, items, weatherEnemies } from "../../game/data";
+import { useEffect, useRef, useState } from "react";
+import { findCharacter, findStage, findWeapon, weatherEnemies } from "../../game/data";
 import { useBattleStore } from "../../game/battleStore";
 import { calculateSunnyScore } from "../../game/score";
 import { requestPointerLock } from "../player/lockControls";
+import { playCountdownGo, playCountdownTick } from "../audio/audio";
 
 const controlHints: Array<[string, string]> = [
   ["W A S D", "移動"],
   ["MOUSE", "視点"],
   ["CLICK", "射撃"],
+  ["RIGHT", "シールド"],
   ["SPACE", "ジャンプ"],
   ["SHIFT", "ダッシュ"],
   ["R", "リロード"],
   ["Q", "武器スキル"],
-  ["1-4", "アイテム"],
   ["ESC", "ポーズ"],
 ];
 
@@ -46,33 +47,6 @@ function WeaponIcon() {
       />
       <path d="M22 14 L26 14" stroke="#ffd84d" strokeWidth="1.6" />
     </svg>
-  );
-}
-
-function ItemToast() {
-  const lastItemId = useBattleStore((state) => state.lastItemId);
-  const lastItemAt = useBattleStore((state) => state.lastItemAt);
-  const [active, setActive] = useState(false);
-
-  useEffect(() => {
-    if (!lastItemId || lastItemAt === 0) {
-      return;
-    }
-    setActive(true);
-    const id = window.setTimeout(() => setActive(false), 2200);
-    return () => window.clearTimeout(id);
-  }, [lastItemAt, lastItemId]);
-
-  if (!active || !lastItemId) {
-    return null;
-  }
-  const item = items.find((entry) => entry.id === lastItemId);
-  return (
-    <div className="hudToast" key={lastItemAt}>
-      <span>ITEM</span>
-      <strong>{item?.name}</strong>
-      <small>{item?.effect}</small>
-    </div>
   );
 }
 
@@ -111,6 +85,77 @@ function HitMarker({ color }: { color: string }) {
   );
 }
 
+type DamagePopup = { id: number; value: number; critical: boolean; x: number; y: number };
+
+function DamagePopups() {
+  const lastShotAt = useBattleStore((state) => state.lastShotAt);
+  const lastShotHit = useBattleStore((state) => state.lastShotHit);
+  const lastShotCritical = useBattleStore((state) => state.lastShotCritical);
+  const lastShotDamage = useBattleStore((state) => state.lastShotDamage);
+  const [popups, setPopups] = useState<DamagePopup[]>([]);
+
+  useEffect(() => {
+    if (lastShotAt === 0 || !lastShotHit) {
+      return;
+    }
+    const id = lastShotAt;
+    const popup: DamagePopup = {
+      id,
+      value: Math.round(lastShotDamage),
+      critical: lastShotCritical,
+      x: 50 + (Math.random() - 0.5) * 8,
+      y: 48 + (Math.random() - 0.5) * 5,
+    };
+    setPopups((prev) => [...prev.slice(-7), popup]);
+    const timer = window.setTimeout(() => {
+      setPopups((prev) => prev.filter((p) => p.id !== id));
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [lastShotAt, lastShotHit, lastShotCritical, lastShotDamage]);
+
+  if (popups.length === 0) {
+    return null;
+  }
+  return (
+    <div className="damagePopups" aria-hidden="true">
+      {popups.map((p) => (
+        <span
+          key={p.id}
+          className={`damagePopup ${p.critical ? "critical" : ""}`}
+          style={{ left: `${p.x}%`, top: `${p.y}%` }}
+        >
+          {p.critical ? `${p.value} CRIT!` : p.value}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ComboCounter() {
+  const combo = useBattleStore((state) => state.combo);
+  const lastComboAt = useBattleStore((state) => state.lastComboAt);
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (combo < 2) {
+      setShow(false);
+      return;
+    }
+    setShow(true);
+    const timer = window.setTimeout(() => setShow(false), 2400);
+    return () => window.clearTimeout(timer);
+  }, [combo, lastComboAt]);
+  if (!show || combo < 2) {
+    return null;
+  }
+  return (
+    <div className="comboCounter" key={lastComboAt} aria-hidden="true">
+      <span className="comboLabel">COMBO</span>
+      <strong>{combo}</strong>
+      <span className="comboHit">HIT</span>
+    </div>
+  );
+}
+
 export function BattleHud({
   onBack,
   onOpenEnemyGrid,
@@ -132,10 +177,11 @@ export function BattleHud({
   const playerMaxHp = useBattleStore((state) => state.playerMaxHp);
   const ammo = useBattleStore((state) => state.ammo);
   const pressureGauge = useBattleStore((state) => state.pressureGauge);
+  const shieldEnergy = useBattleStore((state) => state.shieldEnergy);
+  const shieldActive = useBattleStore((state) => state.shieldActive);
   const shotsFired = useBattleStore((state) => state.shotsFired);
   const shotsHit = useBattleStore((state) => state.shotsHit);
   const elapsedSeconds = useBattleStore((state) => state.elapsedSeconds);
-  const itemStocks = useBattleStore((state) => state.itemStocks);
   const crosshairColor = useBattleStore((state) => state.crosshairColor);
   const decoyUntil = useBattleStore((state) => state.decoyUntil);
   const start = useBattleStore((state) => state.start);
@@ -155,10 +201,45 @@ export function BattleHud({
     shotsHit,
   });
 
-  function handleStart() {
-    start();
-    requestPointerLock();
+  const [countdown, setCountdown] = useState<null | "3" | "2" | "1" | "GO">(null);
+  const countdownTimers = useRef<number[]>([]);
+
+  function clearCountdownTimers() {
+    countdownTimers.current.forEach((id) => window.clearTimeout(id));
+    countdownTimers.current = [];
   }
+
+  function handleStart() {
+    if (countdown !== null) {
+      return;
+    }
+    clearCountdownTimers();
+    setCountdown("3");
+    playCountdownTick();
+    countdownTimers.current.push(
+      window.setTimeout(() => {
+        setCountdown("2");
+        playCountdownTick();
+      }, 700),
+      window.setTimeout(() => {
+        setCountdown("1");
+        playCountdownTick();
+      }, 1400),
+      window.setTimeout(() => {
+        setCountdown("GO");
+        playCountdownGo();
+      }, 2100),
+      window.setTimeout(() => {
+        setCountdown(null);
+        start();
+        requestPointerLock();
+      }, 2700),
+    );
+  }
+
+  useEffect(() => {
+    return () => clearCountdownTimers();
+  }, []);
 
   function handleResume() {
     requestPointerLock();
@@ -213,6 +294,8 @@ export function BattleHud({
         <div className="segmentedMeter cyan"><i style={{ width: `${playerHpRatio * 100}%` }} /></div>
         <span>気圧ゲージ{decoyActive ? " / DECOY" : ""}</span>
         <div className="segmentedMeter yellow"><i style={{ width: `${pressureGauge}%` }} /></div>
+        <span>気象シールド{shieldActive ? " / DEPLOYED" : ""}</span>
+        <div className="segmentedMeter shield"><i style={{ width: `${shieldEnergy}%` }} /></div>
       </div>
 
       <div className="bossBar">
@@ -235,23 +318,12 @@ export function BattleHud({
         </label>
       </aside>
 
-      <button className="enemyBookButton" type="button" onClick={onOpenEnemyGrid}>観測記録</button>
+      <button className="enemyBookButton" type="button" onClick={onOpenEnemyGrid}>気象モンスター図鑑</button>
 
       <div className="radarPanel tacticalPanel">
         <div className="radarCircle"><i /><b /></div>
         <p>戦域: {stage.name}</p>
         <p>敵性質: {enemy.trait}</p>
-      </div>
-
-      <div className="itemPanel tacticalPanel">
-        <span>アイテム</span>
-        <div className="itemSlots">
-          {items.map((item) => (
-            <b key={item.id} className={itemStocks[item.id] === 0 ? "depleted" : ""}>
-              {item.slotKey} {item.name} x{itemStocks[item.id].toString().padStart(2, "0")}
-            </b>
-          ))}
-        </div>
       </div>
 
       <div className="weaponStatus tacticalPanel">
@@ -274,8 +346,16 @@ export function BattleHud({
         aria-hidden="true"
       />
       <HitMarker color={enemy.accentColor} />
-      <ItemToast />
       <SkillFlash />
+      <DamagePopups />
+      <ComboCounter />
+
+      {countdown !== null ? (
+        <div className={`countdownOverlay ${countdown === "GO" ? "go" : ""}`} aria-hidden="true">
+          <div key={countdown} className="countdownNumber">{countdown}</div>
+          <div className="countdownRing" />
+        </div>
+      ) : null}
 
       {status === "battle" ? (
         <div className="escHint" aria-live="polite">
@@ -289,10 +369,10 @@ export function BattleHud({
           <p>{stage.name} / {character.codename}</p>
           <h1>{enemy.name}を撃破する</h1>
           <ControlsHelp />
-          <p className="bannerHint">※ 戦闘中は「ESC」キーでマウス操作に戻せます</p>
+          <p className="bannerHint">※ 右クリック長押しで気象シールド / ESC でマウス操作に戻せます</p>
           <div className="readyActions">
-            <button type="button" className="primaryMenuButton" onClick={handleStart}>戦闘開始 (Enter)</button>
             <button type="button" onClick={onBack}>ホームへ (H)</button>
+            <button type="button" className="primaryMenuButton" onClick={handleStart}>戦闘開始 (Enter)</button>
           </div>
         </div>
       ) : null}
@@ -302,7 +382,7 @@ export function BattleHud({
           <p>POINTER UNLOCKED</p>
           <h1>一時停止中</h1>
           <ControlsHelp />
-          <p className="bannerHint">※「ESC」キーでマウス操作を戻せます</p>
+          <p className="bannerHint">※ 右クリック長押しで気象シールド</p>
           <div className="pauseActions">
             <button type="button" className="primaryMenuButton" onClick={handleResume}>プレイ続行 (Enter)</button>
             <button type="button" onClick={onBack}>撤退してタイトルへ (H)</button>

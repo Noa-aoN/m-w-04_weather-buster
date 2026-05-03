@@ -63,8 +63,8 @@ export function EnemyGridScene({
           <span>PROJECT: WEATHER BUSTER</span>
           <h1>WEATHER ENEMY GRID</h1>
           <small>ウェザーエネミー図鑑</small>
+          <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
-        <button type="button" className="screenBack" onClick={onBack}>← ホーム (H)</button>
       </header>
 
       <section className="enemyGrid">

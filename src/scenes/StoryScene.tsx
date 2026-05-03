@@ -47,8 +47,8 @@ export function StoryScene({ onBack }: { onBack: () => void }) {
           <span>PROJECT: WEATHER BUSTER</span>
           <h1>STORY</h1>
           <small>導入ストーリー</small>
+          <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
-        <button type="button" className="screenBack" onClick={onBack}>← ホーム (H)</button>
       </header>
 
       <section className="storyLayout">
