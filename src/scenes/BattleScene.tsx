@@ -189,6 +189,8 @@ function PlayerBackAvatar() {
     return () => window.clearTimeout(flashId);
   }, [lastShotAt, actions, names]);
 
+  const weaponGroupRef = useRef<Group>(null);
+
   useFrame(() => {
     const node = groupRef.current;
     if (!node || cameraMode !== "tps") {
@@ -211,6 +213,19 @@ function PlayerBackAvatar() {
       node.position.z + forwardVec.current.z * 10,
     );
     node.lookAt(lookTarget.current);
+
+    // Weapon follows camera orientation fully (yaw + pitch) so the barrel always
+    // points where the camera looks, even when aiming up/down at flying enemies.
+    // Position is computed in camera-local space so the gun appears over the
+    // avatar's right shoulder.
+    const weapon = weaponGroupRef.current;
+    if (weapon) {
+      weapon.position.copy(camera.position);
+      weapon.quaternion.copy(camera.quaternion);
+      weapon.translateX(0.4);
+      weapon.translateY(-0.05);
+      weapon.translateZ(-1.4);
+    }
   });
 
   if (cameraMode !== "tps") {
@@ -218,11 +233,13 @@ function PlayerBackAvatar() {
   }
 
   return (
-    <group ref={groupRef}>
-      <group ref={charRef}>
-        <primitive object={charFitted} />
+    <>
+      <group ref={groupRef}>
+        <group ref={charRef}>
+          <primitive object={charFitted} />
+        </group>
       </group>
-      <group position={[0.32, 1.15, -0.55]}>
+      <group ref={weaponGroupRef}>
         <group rotation={weaponModelRotation(selectedWeaponId)}>
           <WeaponObject id={selectedWeaponId} targetSize={0.6} />
         </group>
@@ -236,7 +253,7 @@ function PlayerBackAvatar() {
           </>
         ) : null}
       </group>
-    </group>
+    </>
   );
 }
 
