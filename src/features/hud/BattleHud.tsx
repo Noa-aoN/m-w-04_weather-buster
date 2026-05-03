@@ -377,6 +377,37 @@ function BossIntro({ enemyName, enemyTrait, threat }: { enemyName: string; enemy
   );
 }
 
+function ReloadIndicator() {
+  const reloadingUntil = useBattleStore((state) => state.reloadingUntil);
+  const reloadingStartedAt = useBattleStore((state) => state.reloadingStartedAt);
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    if (reloadingUntil === 0) {
+      setProgress(0);
+      return;
+    }
+    const id = window.setInterval(() => {
+      const total = Math.max(reloadingUntil - reloadingStartedAt, 1);
+      const elapsed = performance.now() - reloadingStartedAt;
+      const p = Math.min(1, Math.max(0, elapsed / total));
+      setProgress(p);
+      if (p >= 1) {
+        window.clearInterval(id);
+      }
+    }, 30);
+    return () => window.clearInterval(id);
+  }, [reloadingUntil, reloadingStartedAt]);
+  if (reloadingUntil === 0 || performance.now() >= reloadingUntil) {
+    return null;
+  }
+  return (
+    <div className="reloadIndicator" aria-hidden="true">
+      <span>RELOADING</span>
+      <div className="reloadBar"><i style={{ width: `${progress * 100}%` }} /></div>
+    </div>
+  );
+}
+
 function BlockedIndicator() {
   const lastBlockedAt = useBattleStore((state) => state.lastBlockedAt);
   const [show, setShow] = useState(0);
@@ -656,6 +687,7 @@ export function BattleHud({
       <CriticalFlash />
       <BlockedIndicator />
       <BarrierWarning />
+      <ReloadIndicator />
       <ItemToast />
 
       {countdown !== null ? (

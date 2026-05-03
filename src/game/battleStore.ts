@@ -117,6 +117,8 @@ type BattleState = {
   knockbackVx: number;
   knockbackVz: number;
   lastKnockbackAt: number;
+  reloadingUntil: number;
+  reloadingStartedAt: number;
   selectEnemy: (id: WeatherEnemyId) => void;
   selectWeapon: (id: WeaponId) => void;
   selectCharacter: (id: CharacterId) => void;
@@ -184,6 +186,8 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   knockbackVx: 0,
   knockbackVz: 0,
   lastKnockbackAt: 0,
+  reloadingUntil: 0,
+  reloadingStartedAt: 0,
 });
 
 const findEnemy = (id: WeatherEnemyId) =>
@@ -216,6 +220,14 @@ const computeOutgoingDamage = (
     ? weapon.specialtyMultiplier
     : 1;
   return weapon.damage * specialty * characterMul;
+};
+
+const computeReloadMs = (weapon: Weapon) => {
+  // Heavier weapons take longer to reload, capped to a reasonable range
+  if (weapon.maxAmmo <= 8) return 1700;
+  if (weapon.maxAmmo <= 14) return 1300;
+  if (weapon.maxAmmo <= 22) return 1100;
+  return 950;
 };
 
 export const useBattleStore = create<BattleState>((set, get) => {
@@ -323,12 +335,13 @@ export const useBattleStore = create<BattleState>((set, get) => {
     },
     shoot: (didHit, critical = false) => {
       const state = get();
-      if (state.status !== "battle" || state.ammo <= 0) {
+      const now = performance.now();
+      if (state.status !== "battle" || state.ammo <= 0 || now < state.reloadingUntil) {
         return;
       }
       const weapon = findWeapon(state.selectedWeaponId);
       const character = findCharacter(state.selectedCharacterId);
-      const nowMs = performance.now();
+      const nowMs = now;
       const blocked = didHit && nowMs < state.enemyBarrierUntil;
       const baseDamage = didHit
         ? computeOutgoingDamage(weapon, state.selectedEnemyId, character.damageMultiplier)
@@ -363,14 +376,31 @@ export const useBattleStore = create<BattleState>((set, get) => {
         comboBest: nextComboBest,
         lastComboAt: didHit && !blocked ? nowMs : state.lastComboAt,
       });
+      // Auto-reload when the magazine empties (battle continues)
+      if (state.ammo - 1 === 0 && nextHp > 0) {
+        useBattleStore.getState().reload();
+      }
     },
     reload: () => {
       const state = get();
-      if (state.status !== "battle") {
+      const now = performance.now();
+      if (state.status !== "battle" || now < state.reloadingUntil) {
         return;
       }
       const weapon = findWeapon(state.selectedWeaponId);
-      set({ ammo: weapon.maxAmmo });
+      if (state.ammo >= weapon.maxAmmo) {
+        return;
+      }
+      const reloadMs = computeReloadMs(weapon);
+      set({ reloadingStartedAt: now, reloadingUntil: now + reloadMs });
+      window.setTimeout(() => {
+        const s = useBattleStore.getState();
+        if (s.status !== "battle") {
+          return;
+        }
+        const w = findWeapon(s.selectedWeaponId);
+        useBattleStore.setState({ ammo: w.maxAmmo, reloadingUntil: 0, reloadingStartedAt: 0 });
+      }, reloadMs);
     },
     takeDamageTick: () => {
       const state = get();
