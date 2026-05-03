@@ -1,29 +1,15 @@
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { useMemo, useRef } from "react";
-import { Box3, Vector3 } from "three";
-import type { Group, Object3D } from "three";
+import type { Group } from "three";
 import type { CharacterId } from "../game/types";
+import { fitObjectToHeight } from "./fitObject";
 
-const MODEL_URL: Record<CharacterId, string> = {
+export const CHARACTER_MODEL_URL: Record<CharacterId, string> = {
   iris: "/models/space-kit/astronautA.glb",
   halo: "/models/space-kit/astronautB.glb",
   raika: "/models/space-kit/alien.glb",
 };
-
-function fitObjectToHeight(object: Object3D, targetHeight: number) {
-  object.updateMatrixWorld(true);
-  const box = new Box3().setFromObject(object);
-  const size = new Vector3();
-  box.getSize(size);
-  const factor = targetHeight / Math.max(size.y, 0.001);
-  object.scale.setScalar(factor);
-  const center = new Vector3();
-  box.getCenter(center);
-  object.position.x = -center.x * factor;
-  object.position.z = -center.z * factor;
-  object.position.y = -box.min.y * factor;
-}
 
 export function CharacterModel({
   id,
@@ -33,7 +19,7 @@ export function CharacterModel({
   accent: string;
 }) {
   const groupRef = useRef<Group>(null);
-  const { scene } = useGLTF(MODEL_URL[id]);
+  const { scene } = useGLTF(CHARACTER_MODEL_URL[id]);
   const fitted = useMemo(() => {
     const c = scene.clone(true);
     fitObjectToHeight(c, 1.5);
@@ -66,6 +52,6 @@ export function CharacterModel({
   );
 }
 
-useGLTF.preload(MODEL_URL.iris);
-useGLTF.preload(MODEL_URL.halo);
-useGLTF.preload(MODEL_URL.raika);
+useGLTF.preload(CHARACTER_MODEL_URL.iris);
+useGLTF.preload(CHARACTER_MODEL_URL.halo);
+useGLTF.preload(CHARACTER_MODEL_URL.raika);

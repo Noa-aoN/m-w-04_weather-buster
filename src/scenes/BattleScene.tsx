@@ -8,6 +8,8 @@ import { EnemyFigure } from "../entities/EnemyFigure";
 import { LightningWarnings } from "../entities/LightningWarnings";
 import { StageTerrain } from "../entities/StageTerrain";
 import { WEAPON_MODEL_URL } from "../entities/WeaponModel";
+import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
+import { fitObjectToHeight, fitObjectToSize } from "../entities/fitObject";
 import { BattleHud } from "../features/hud/BattleHud";
 import { PlayerController } from "../features/player/PlayerController";
 import { difficultyModifiers, stages, weatherEnemies } from "../game/data";
@@ -24,7 +26,11 @@ function PlayerWeapon() {
   const cameraMode = useBattleStore((state) => state.cameraMode);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
   const { scene } = useGLTF(WEAPON_MODEL_URL[selectedWeaponId]);
-  const cloned = useMemo(() => scene.clone(true), [scene]);
+  const fitted = useMemo(() => {
+    const c = scene.clone(true);
+    fitObjectToSize(c, 0.55);
+    return c;
+  }, [scene]);
 
   useEffect(() => {
     if (lastShotAt === 0) {
@@ -55,8 +61,8 @@ function PlayerWeapon() {
 
   return (
     <group ref={groupRef}>
-      <group rotation={[0, Math.PI, 0]} scale={0.45}>
-        <primitive object={cloned} />
+      <group rotation={[0, Math.PI, 0]}>
+        <primitive object={fitted} />
       </group>
       {flashVisible ? (
         <>
@@ -71,20 +77,38 @@ function PlayerWeapon() {
   );
 }
 
-const TPS_AVATAR_URL: Record<string, string> = {
-  iris: "/models/space-kit/astronautA.glb",
-  halo: "/models/space-kit/astronautB.glb",
-  raika: "/models/space-kit/alien.glb",
-};
-
 function PlayerBackAvatar() {
   const { camera } = useThree();
   const groupRef = useRef<Group>(null);
-  const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
+  const flashRef = useRef<Mesh>(null);
+  const [flashVisible, setFlashVisible] = useState(false);
+  const lastShotAt = useBattleStore((state) => state.lastShotAt);
   const cameraMode = useBattleStore((state) => state.cameraMode);
-  const url = TPS_AVATAR_URL[selectedCharacterId] ?? TPS_AVATAR_URL.iris;
-  const { scene } = useGLTF(url);
-  const cloned = useMemo(() => scene.clone(true), [scene]);
+  const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
+  const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
+  const charGltf = useGLTF(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.iris);
+  const weaponGltf = useGLTF(WEAPON_MODEL_URL[selectedWeaponId]);
+
+  const charFitted = useMemo(() => {
+    const c = charGltf.scene.clone(true);
+    fitObjectToHeight(c, 1.5);
+    return c;
+  }, [charGltf]);
+
+  const weaponFitted = useMemo(() => {
+    const c = weaponGltf.scene.clone(true);
+    fitObjectToSize(c, 0.55);
+    return c;
+  }, [weaponGltf]);
+
+  useEffect(() => {
+    if (lastShotAt === 0) {
+      return;
+    }
+    setFlashVisible(true);
+    const id = window.setTimeout(() => setFlashVisible(false), 80);
+    return () => window.clearTimeout(id);
+  }, [lastShotAt]);
 
   useFrame(() => {
     const node = groupRef.current;
@@ -93,8 +117,8 @@ function PlayerBackAvatar() {
     }
     node.position.copy(camera.position);
     node.quaternion.copy(camera.quaternion);
-    node.translateY(-1.05);
-    node.translateZ(-1.75);
+    node.translateY(-1.0);
+    node.translateZ(-2.0);
   });
 
   if (cameraMode !== "tps") {
@@ -103,16 +127,28 @@ function PlayerBackAvatar() {
 
   return (
     <group ref={groupRef}>
-      <group rotation={[0, Math.PI, 0]} scale={2.4}>
-        <primitive object={cloned} />
+      <primitive object={charFitted} />
+      <group position={[0.32, 0.95, -0.5]}>
+        <group rotation={[0, Math.PI, 0]}>
+          <primitive object={weaponFitted} />
+        </group>
+        {flashVisible ? (
+          <>
+            <mesh ref={flashRef} position={[0, 0, -0.35]}>
+              <sphereGeometry args={[0.14, 12, 12]} />
+              <meshBasicMaterial color="#fff7a0" transparent opacity={0.95} toneMapped={false} />
+            </mesh>
+            <pointLight position={[0, 0, -0.35]} intensity={6} color="#fff7a0" distance={4} />
+          </>
+        ) : null}
       </group>
     </group>
   );
 }
 
-useGLTF.preload(TPS_AVATAR_URL.iris);
-useGLTF.preload(TPS_AVATAR_URL.halo);
-useGLTF.preload(TPS_AVATAR_URL.raika);
+useGLTF.preload(CHARACTER_MODEL_URL.iris);
+useGLTF.preload(CHARACTER_MODEL_URL.halo);
+useGLTF.preload(CHARACTER_MODEL_URL.raika);
 
 function FovController() {
   const { camera } = useThree();

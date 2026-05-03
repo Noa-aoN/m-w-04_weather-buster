@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useBattleStore } from "../../game/battleStore";
 import {
+  loadSamples,
   playClear,
   playDefeat,
   playHit,
@@ -54,6 +55,7 @@ export function AudioBridge() {
       setSfxEnabled(state.sfxEnabled);
       setMasterVolume(state.masterVolume);
       setBgmEnabled(state.bgmEnabled);
+      void loadSamples();
       if (state.bgmEnabled) {
         startBgm();
       }

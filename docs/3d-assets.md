@@ -19,6 +19,28 @@
 
 各ディレクトリ直下に `License.txt` を同梱しています（CC0 + Kenney からの公開クレジット）。
 
+## 音声 (Kenney CC0)
+
+すべて Creative Commons CC0 1.0 Universal。出典の `License.txt` は `public/audio/sfx/License.txt` に同梱しています。
+
+| ファイル | 元 | 出典パック |
+| --- | --- | --- |
+| `shoot-1..5.ogg` | digital-audio/laser1,4,6 + sci-fi-sounds/laserRetro_001, laserSmall_002 | https://kenney.nl/assets/digital-audio , https://kenney.nl/assets/sci-fi-sounds |
+| `hit-1..3.ogg` | sci-fi-sounds/impactMetal_001/003 + impact-sounds/impactGlass_medium_001 | https://kenney.nl/assets/sci-fi-sounds , https://kenney.nl/assets/impact-sounds |
+| `critical-1..2.ogg` | sci-fi-sounds/laserLarge_002 + impact-sounds/impactBell_heavy_002 | 同上 |
+| `miss-1.ogg` | sci-fi-sounds/laserSmall_004 | https://kenney.nl/assets/sci-fi-sounds |
+| `skill-1..2.ogg` | sci-fi-sounds/forceField_001 + digital-audio/phaseJump1 | 同上 |
+| `item-1.ogg` | digital-audio/pepSound2 | https://kenney.nl/assets/digital-audio |
+| `marker-spawn.ogg` | digital-audio/lowDown | 同上 |
+| `impact-1..2.ogg` | sci-fi-sounds/explosionCrunch_002 + lowFrequency_explosion_001 | https://kenney.nl/assets/sci-fi-sounds |
+| `clear-1.ogg` | digital-audio/phaseJump3 | https://kenney.nl/assets/digital-audio |
+| `defeat-1.ogg` | digital-audio/lowThreeTone | 同上 |
+| `ui-click.ogg` `ui-rollover.ogg` `ui-switch.ogg` | ui-audio/click2, rollover2, switch11 | https://kenney.nl/assets/ui-audio |
+
+`audio.ts` は初回ユーザー操作（pointerdown / keydown）で `loadSamples()` を実行し、Web Audio API で AudioBuffer に decode → 各 SFX 関数は変種からランダム再生する。サンプルが未ロードの場合は既存のオシレータ合成にフォールバックする。
+
+BGM は引き続き 4小節進行のオシレータ合成（Dm → B♭ → F → C）を使用。
+
 ## 取り込み判断のルール
 
 - ライセンス: CC0 のみ（CC-BY 等の場合はパック単位で本ファイルに作者・元 URL を残す）
