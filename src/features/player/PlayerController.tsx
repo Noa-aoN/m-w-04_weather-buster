@@ -140,7 +140,9 @@ export function PlayerController({
     const arena = stage.arena;
     const keys = heldKeys.current;
     const dash = keys.has("shift") ? DASH_MULTIPLIER : 1;
-    const speed = MOVE_SPEED * dash * delta;
+    const slowed = performance.now() < state.slowUntil;
+    const slowMul = slowed ? 0.55 : 1;
+    const speed = MOVE_SPEED * dash * slowMul * delta;
 
     camera.getWorldDirection(forward.current);
     forward.current.y = 0;
@@ -280,10 +282,16 @@ export function PlayerController({
           const pat = markerEnemyId ? enemyAttackPatterns[markerEnemyId] : null;
           if (pat && pat.knockback > 0) {
             const len = Math.max(distance, 0.0001);
-            // Push player AWAY from impact center
-            const nx = dx / len;
-            const nz = dz / len;
+            // Tornado pulls player TOWARD impact (and toward the enemy in
+            // the case of a colocated marker) — that's its signature feel.
+            const direction = markerEnemyId === "tornado" ? -1 : 1;
+            const nx = (dx / len) * direction;
+            const nz = (dz / len) * direction;
             state.applyKnockback(nx * pat.knockback * 6, nz * pat.knockback * 6);
+          }
+          // RainySeason marker leaves a temporary slow on the player.
+          if (markerEnemyId === "rainySeason") {
+            useBattleStore.setState({ slowUntil: now + 2200 });
           }
         }
         state.removeLightning(marker.id);
