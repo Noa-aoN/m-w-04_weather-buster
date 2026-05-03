@@ -1,4 +1,5 @@
 import { Canvas } from "@react-three/fiber";
+import { useEffect } from "react";
 import { EnemyAura } from "../entities/EnemyAura";
 import { WeatherEnemyModel } from "../entities/WeatherEnemyModel";
 import { useBattleStore } from "../game/battleStore";
@@ -37,6 +38,22 @@ export function EnemyGridScene({
   onSelectEnemy: (enemyId: WeatherEnemyId) => void;
 }) {
   const selectedEnemyId = useBattleStore((state) => state.selectedEnemyId);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.target instanceof HTMLElement && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === "h" || event.key === "Escape") {
+        event.preventDefault();
+        onBack();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onBack]);
+
   return (
     <main className="gridShell sceneEnter">
       <div className="gridBackdrop" />
@@ -47,7 +64,7 @@ export function EnemyGridScene({
           <h1>WEATHER ENEMY GRID</h1>
           <small>ウェザーエネミー図鑑</small>
         </div>
-        <button type="button" className="screenBack" onClick={onBack}>← ホーム</button>
+        <button type="button" className="screenBack" onClick={onBack}>← ホーム (H)</button>
       </header>
 
       <section className="enemyGrid">

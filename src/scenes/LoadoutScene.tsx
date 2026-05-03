@@ -1,9 +1,26 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Group, Mesh } from "three";
 import { characters, stages, weapons } from "../game/data";
 import { useBattleStore } from "../game/battleStore";
 import type { CharacterId, StageId, WeaponId } from "../game/types";
+
+function useBackKey(onBack: () => void) {
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.target instanceof HTMLElement && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === "h" || event.key === "Escape") {
+        event.preventDefault();
+        onBack();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onBack]);
+}
 
 function WeaponSilhouette({ id }: { id: WeaponId }) {
   const palette: Record<WeaponId, [string, string]> = {
@@ -296,6 +313,7 @@ export function WeaponScene({ onBack }: { onBack: () => void }) {
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
   const selectWeapon = useBattleStore((state) => state.selectWeapon);
   const [previewWeapon, setPreviewWeapon] = useState<WeaponId>(selectedWeaponId);
+  useBackKey(onBack);
 
   return (
     <main className="loadoutShell sceneEnter">
@@ -306,7 +324,7 @@ export function WeaponScene({ onBack }: { onBack: () => void }) {
           <h1>WEAPON</h1>
           <small>武装選択</small>
         </div>
-        <button type="button" className="screenBack" onClick={onBack}>← ホーム</button>
+        <button type="button" className="screenBack" onClick={onBack}>← ホーム (H)</button>
       </header>
 
       <WeaponTab
@@ -323,6 +341,7 @@ export function PilotScene({ onBack }: { onBack: () => void }) {
   const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
   const selectCharacter = useBattleStore((state) => state.selectCharacter);
   const [previewCharacter, setPreviewCharacter] = useState<CharacterId>(selectedCharacterId);
+  useBackKey(onBack);
 
   return (
     <main className="loadoutShell sceneEnter">
@@ -333,7 +352,7 @@ export function PilotScene({ onBack }: { onBack: () => void }) {
           <h1>PILOT</h1>
           <small>パイロット選択</small>
         </div>
-        <button type="button" className="screenBack" onClick={onBack}>← ホーム</button>
+        <button type="button" className="screenBack" onClick={onBack}>← ホーム (H)</button>
       </header>
 
       <CharacterTab
@@ -349,6 +368,7 @@ export function PilotScene({ onBack }: { onBack: () => void }) {
 export function StageScene({ onBack }: { onBack: () => void }) {
   const selectedStageId = useBattleStore((state) => state.selectedStageId);
   const stage = stages.find((candidate) => candidate.id === selectedStageId) ?? stages[0];
+  useBackKey(onBack);
 
   return (
     <main className="loadoutShell sceneEnter">
@@ -359,7 +379,7 @@ export function StageScene({ onBack }: { onBack: () => void }) {
           <h1>STAGE</h1>
           <small>戦域詳細</small>
         </div>
-        <button type="button" className="screenBack" onClick={onBack}>← ホーム</button>
+        <button type="button" className="screenBack" onClick={onBack}>← ホーム (H)</button>
       </header>
 
       <section className="stageDetailLayout">

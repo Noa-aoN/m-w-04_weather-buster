@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useBattleStore } from "../game/battleStore";
 
 const crosshairPresets: Array<{ id: string; label: string; color: string }> = [
@@ -24,6 +25,21 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
   const masterVolume = useBattleStore((state) => state.masterVolume);
   const setMasterVolume = useBattleStore((state) => state.setMasterVolume);
 
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.target instanceof HTMLElement && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === "h" || event.key === "Escape") {
+        event.preventDefault();
+        onBack();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onBack]);
+
   return (
     <main className="settingsShell sceneEnter">
       <div className="gridBackdrop" aria-hidden="true" />
@@ -33,7 +49,7 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
           <h1>SETTINGS</h1>
           <small>動作設定 / HUD設定</small>
         </div>
-        <button type="button" className="screenBack" onClick={onBack}>← ホーム</button>
+        <button type="button" className="screenBack" onClick={onBack}>← ホーム (H)</button>
       </header>
 
       <section className="settingsLayout">

@@ -7,7 +7,7 @@ export type WeatherEnemyId =
   | "blizzard"
   | "typhoon";
 
-export type AppView = "home" | "battle" | "enemyGrid" | "weapon" | "pilot" | "stage" | "settings" | "result";
+export type AppView = "home" | "battle" | "enemyGrid" | "characterGrid" | "story" | "weapon" | "pilot" | "stage" | "settings" | "result";
 
 export type LoadoutTab = "weapon" | "character" | "stage";
 

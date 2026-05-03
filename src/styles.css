@@ -237,19 +237,19 @@ canvas {
   position: absolute;
   z-index: 5;
   left: 5vw;
-  top: 44%;
+  top: 36%;
   display: grid;
-  gap: 10px;
-  width: min(390px, 44vw);
+  gap: 6px;
+  width: min(420px, 46vw);
 }
 
 .mainMenu button {
-  min-height: 70px;
-  padding: 0 28px;
+  min-height: 48px;
+  padding: 0 24px;
   clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 50%, calc(100% - 22px) 100%, 0 100%, 10px 50%);
   text-align: left;
   color: #35e4ff;
-  font-size: clamp(20px, 2.4vw, 30px);
+  font-size: clamp(15px, 1.7vw, 22px);
   font-weight: 800;
   background: linear-gradient(90deg, rgba(2, 26, 39, 0.92), rgba(4, 56, 73, 0.68));
   box-shadow: inset 0 0 22px rgba(34, 216, 255, 0.12);
@@ -258,7 +258,18 @@ canvas {
 .mainMenu .menuItem {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+}
+
+.menuKey {
+  margin-left: auto;
+  padding: 2px 10px;
+  border: 1px solid currentColor;
+  color: inherit;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  opacity: 0.8;
 }
 
 .menuIcon {
@@ -840,17 +851,18 @@ canvas {
 
 .audioToggle {
   position: fixed;
-  top: 8px;
-  right: 8px;
-  z-index: 50;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
-  border: 1px solid rgba(40, 217, 255, 0.32);
-  background: rgba(3, 16, 24, 0.7);
+  padding: 6px 10px;
+  border: 1px solid rgba(40, 217, 255, 0.55);
+  background: rgba(3, 16, 24, 0.92);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.42), 0 0 14px rgba(40, 217, 255, 0.22);
 }
 
 .audioChip {
@@ -896,8 +908,72 @@ canvas {
   }
 }
 
-.gridShell {
+.gridShell,
+.storyShell {
   padding: 28px 34px;
+}
+
+.storyShell {
+  width: 100vw;
+  height: 100vh;
+  background: #061019;
+  position: relative;
+  overflow: hidden;
+}
+
+.storyLayout {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  height: calc(100vh - 116px);
+  overflow-y: auto;
+  padding-right: 4px;
+  padding-bottom: 28px;
+}
+
+.storyChapter {
+  padding: 22px 26px;
+}
+
+.storyEyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: #28d9ff;
+  letter-spacing: 0.32em;
+  font-size: 12px;
+}
+
+.storyChapter h2 {
+  margin: 0 0 10px;
+  color: #f7fbff;
+  font-size: clamp(20px, 2.2vw, 26px);
+  letter-spacing: 0.04em;
+}
+
+.storyChapter p {
+  margin: 0;
+  color: #cee0e9;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.characterGrid {
+  grid-auto-rows: 360px;
+}
+
+.characterKeyHint {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 2px 9px;
+  border: 1px solid rgba(40, 217, 255, 0.55);
+  color: #28d9ff;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  background: rgba(4, 18, 28, 0.86);
+  font-style: normal;
 }
 
 .gridBackdrop {

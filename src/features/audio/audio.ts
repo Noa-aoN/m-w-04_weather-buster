@@ -184,9 +184,18 @@ export function playMarkerSpawn() {
 }
 
 export function playMarkerImpact() {
-  tone({ freq: 70, duration: 0.18, type: "sine", volume: 0.34, release: 0.2 });
-  tone({ freq: 110, duration: 0.16, type: "triangle", volume: 0.22, release: 0.18 });
-  noiseBurst({ duration: 0.14, volume: 0.18, filter: 800 });
+  // Massive sub thump
+  tone({ freq: 50, duration: 0.32, type: "sine", volume: 0.55, attack: 0.001, release: 0.32 });
+  tone({ freq: 75, duration: 0.28, type: "triangle", volume: 0.34, attack: 0.002, release: 0.28 });
+  // Mid-band crack
+  tone({ freq: 220, duration: 0.12, type: "sawtooth", volume: 0.22, attack: 0.001, release: 0.14 });
+  tone({ freq: 110, duration: 0.18, type: "square", volume: 0.18, release: 0.2, delay: 0.005 });
+  // Multi-band noise: low rumble + mid splash + high crack
+  noiseBurst({ duration: 0.4, volume: 0.42, filter: 240 });
+  noiseBurst({ duration: 0.22, volume: 0.32, filter: 1200 });
+  noiseBurst({ duration: 0.1, volume: 0.42, filter: 5800 });
+  // Late tail rumble
+  tone({ freq: 60, duration: 0.6, type: "sine", volume: 0.18, attack: 0.06, release: 0.6, delay: 0.12 });
 }
 
 export function playClear() {

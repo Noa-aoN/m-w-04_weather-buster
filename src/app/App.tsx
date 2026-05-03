@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { BattleScene } from "../scenes/BattleScene";
+import { CharacterGridScene } from "../scenes/CharacterGridScene";
 import { EnemyGridScene } from "../scenes/EnemyGridScene";
 import { HomeScene } from "../scenes/HomeScene";
 import { PilotScene, StageScene, WeaponScene } from "../scenes/LoadoutScene";
 import { ResultScene } from "../scenes/ResultScene";
 import { SettingsScene } from "../scenes/SettingsScene";
+import { StoryScene } from "../scenes/StoryScene";
 import { AudioBridge } from "../features/audio/AudioBridge";
 import { AudioToggle } from "../features/audio/AudioToggle";
 import { useBattleStore } from "../game/battleStore";
@@ -58,6 +60,10 @@ export function App() {
     scene = <SettingsScene onBack={() => setView("home")} />;
   } else if (view === "result") {
     scene = <ResultScene onRetry={retryBattle} onHome={returnToHome} />;
+  } else if (view === "characterGrid") {
+    scene = <CharacterGridScene onBack={() => setView("home")} />;
+  } else if (view === "story") {
+    scene = <StoryScene onBack={() => setView("home")} />;
   } else {
     scene = (
       <HomeScene
@@ -65,6 +71,8 @@ export function App() {
         onOpenEnemyGrid={() => setView("enemyGrid")}
         onOpenLoadout={openLoadout}
         onOpenSettings={() => setView("settings")}
+        onOpenCharacterGrid={() => setView("characterGrid")}
+        onOpenStory={() => setView("story")}
       />
     );
   }
