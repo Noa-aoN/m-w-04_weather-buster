@@ -350,6 +350,33 @@ function DamageFlash() {
   );
 }
 
+function BossIntro({ enemyName, enemyTrait, threat }: { enemyName: string; enemyTrait: string; threat: number }) {
+  const status = useBattleStore((state) => state.status);
+  const [introAt, setIntroAt] = useState(0);
+  useEffect(() => {
+    if (status === "battle") {
+      setIntroAt(Date.now());
+      const t = window.setTimeout(() => setIntroAt(0), 2000);
+      return () => window.clearTimeout(t);
+    }
+  }, [status]);
+  if (introAt === 0) {
+    return null;
+  }
+  return (
+    <div className="bossIntro" key={introAt} aria-hidden="true">
+      <span className="bossIntroLabel">CONFIRMED THREAT</span>
+      <strong className="bossIntroName">{enemyName}</strong>
+      <span className="bossIntroTrait">{enemyTrait}</span>
+      <span className="bossIntroThreat">
+        {Array.from({ length: 9 }, (_, i) => (
+          <b key={i} className={i < threat ? "filled" : ""}>{i < threat ? "▲" : "△"}</b>
+        ))}
+      </span>
+    </div>
+  );
+}
+
 function HealFlash() {
   const lastItemAt = useBattleStore((state) => state.lastItemAt);
   const lastItemId = useBattleStore((state) => state.lastItemId);
@@ -567,6 +594,7 @@ export function BattleHud({
       <ScreenShake />
       <LowHpVignette />
       <BattleStartFlash />
+      <BossIntro enemyName={enemy.name} enemyTrait={enemy.trait} threat={enemy.threat} />
       <DamageFlash />
       <HealFlash />
       <ItemToast />
