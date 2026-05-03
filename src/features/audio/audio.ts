@@ -21,6 +21,90 @@ const audioState = {
   masterVolume: 0.6,
 };
 
+const sampleBuffers = new Map<string, AudioBuffer>();
+let samplesLoaded = false;
+
+const SAMPLE_FILES: Record<string, string[]> = {
+  shoot: [
+    "/audio/sfx/shoot-1.ogg",
+    "/audio/sfx/shoot-2.ogg",
+    "/audio/sfx/shoot-3.ogg",
+    "/audio/sfx/shoot-4.ogg",
+    "/audio/sfx/shoot-5.ogg",
+  ],
+  hit: ["/audio/sfx/hit-1.ogg", "/audio/sfx/hit-2.ogg", "/audio/sfx/hit-3.ogg"],
+  critical: ["/audio/sfx/critical-1.ogg", "/audio/sfx/critical-2.ogg"],
+  miss: ["/audio/sfx/miss-1.ogg"],
+  skill: ["/audio/sfx/skill-1.ogg", "/audio/sfx/skill-2.ogg"],
+  item: ["/audio/sfx/item-1.ogg"],
+  markerSpawn: ["/audio/sfx/marker-spawn.ogg"],
+  impact: ["/audio/sfx/impact-1.ogg", "/audio/sfx/impact-2.ogg"],
+  clear: ["/audio/sfx/clear-1.ogg"],
+  defeat: ["/audio/sfx/defeat-1.ogg"],
+  uiClick: ["/audio/sfx/ui-click.ogg"],
+};
+
+async function loadOneSample(url: string) {
+  if (sampleBuffers.has(url)) {
+    return;
+  }
+  const ctx = ensureContext();
+  if (!ctx) {
+    return;
+  }
+  try {
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = await ctx.decodeAudioData(arrayBuffer);
+    sampleBuffers.set(url, buffer);
+  } catch {
+    // ignore failures (network / decode)
+  }
+}
+
+export async function loadSamples() {
+  if (samplesLoaded) {
+    return;
+  }
+  samplesLoaded = true;
+  const ctx = ensureContext();
+  if (!ctx) {
+    return;
+  }
+  const all = Object.values(SAMPLE_FILES).flat();
+  await Promise.all(all.map((url) => loadOneSample(url)));
+}
+
+function playBuffer(url: string, volume: number, delay = 0) {
+  if (!audioState.sfxEnabled) {
+    return;
+  }
+  const ctx = ensureContext();
+  if (!ctx || !masterGain) {
+    return;
+  }
+  const buffer = sampleBuffers.get(url);
+  if (!buffer) {
+    return;
+  }
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  const gain = ctx.createGain();
+  gain.gain.value = volume;
+  source.connect(gain);
+  gain.connect(masterGain);
+  source.start(ctx.currentTime + delay);
+}
+
+function playRandomSample(category: keyof typeof SAMPLE_FILES, volume: number) {
+  const list = SAMPLE_FILES[category];
+  if (!list || list.length === 0) {
+    return;
+  }
+  const url = list[Math.floor(Math.random() * list.length)];
+  playBuffer(url, volume);
+}
+
 function ensureContext(): AudioContext | null {
   if (typeof window === "undefined") {
     return null;
@@ -138,19 +222,28 @@ function noiseBurst({
 }
 
 export function playShoot() {
-  // Sharp crack: high-frequency noise that decays fast
+  if (sampleBuffers.size > 0) {
+    playRandomSample("shoot", 0.7);
+    return;
+  }
+  // Fallback: synthesized
   noiseBurst({ duration: 0.06, volume: 0.45, filter: 5200 });
-  // Body / boom: low-frequency noise
   noiseBurst({ duration: 0.18, volume: 0.26, filter: 600 });
-  // Sub thump
   tone({ freq: 70, duration: 0.05, type: "sine", volume: 0.42, attack: 0.001, release: 0.1 });
-  // Mid pop snap
   tone({ freq: 220, duration: 0.04, type: "sawtooth", volume: 0.16, attack: 0.001, release: 0.05 });
-  // High click
   tone({ freq: 1600, duration: 0.02, type: "square", volume: 0.18, attack: 0.001, release: 0.03, delay: 0.002 });
 }
 
 export function playHit(critical = false) {
+  if (sampleBuffers.size > 0) {
+    if (critical) {
+      playRandomSample("critical", 0.85);
+      playRandomSample("hit", 0.5);
+    } else {
+      playRandomSample("hit", 0.7);
+    }
+    return;
+  }
   if (critical) {
     tone({ freq: 940, duration: 0.06, type: "triangle", volume: 0.32 });
     tone({ freq: 1320, duration: 0.05, type: "sine", volume: 0.22, delay: 0.02 });
@@ -162,10 +255,18 @@ export function playHit(critical = false) {
 }
 
 export function playMiss() {
+  if (sampleBuffers.size > 0) {
+    playRandomSample("miss", 0.45);
+    return;
+  }
   tone({ freq: 220, duration: 0.05, type: "sawtooth", volume: 0.08, release: 0.08 });
 }
 
 export function playSkill() {
+  if (sampleBuffers.size > 0) {
+    playRandomSample("skill", 0.7);
+    return;
+  }
   tone({ freq: 392, duration: 0.45, type: "sine", volume: 0.18, attack: 0.04, release: 0.4 });
   tone({ freq: 587.33, duration: 0.45, type: "sine", volume: 0.14, attack: 0.04, release: 0.4 });
   tone({ freq: 784, duration: 0.45, type: "triangle", volume: 0.12, attack: 0.04, release: 0.4 });
@@ -173,32 +274,45 @@ export function playSkill() {
 }
 
 export function playItem() {
+  if (sampleBuffers.size > 0) {
+    playRandomSample("item", 0.7);
+    return;
+  }
   tone({ freq: 660, duration: 0.06, type: "sine", volume: 0.2, release: 0.12 });
   tone({ freq: 880, duration: 0.06, type: "sine", volume: 0.18, release: 0.12, delay: 0.07 });
   tone({ freq: 1175, duration: 0.06, type: "sine", volume: 0.14, release: 0.12, delay: 0.14 });
 }
 
 export function playMarkerSpawn() {
+  if (sampleBuffers.size > 0) {
+    playRandomSample("markerSpawn", 0.55);
+    return;
+  }
   tone({ freq: 280, duration: 0.07, type: "square", volume: 0.12, release: 0.1 });
   tone({ freq: 500, duration: 0.05, type: "triangle", volume: 0.08, release: 0.08, delay: 0.04 });
 }
 
 export function playMarkerImpact() {
-  // Massive sub thump
+  if (sampleBuffers.size > 0) {
+    playRandomSample("impact", 0.85);
+    tone({ freq: 50, duration: 0.32, type: "sine", volume: 0.32, attack: 0.001, release: 0.32 });
+    return;
+  }
   tone({ freq: 50, duration: 0.32, type: "sine", volume: 0.55, attack: 0.001, release: 0.32 });
   tone({ freq: 75, duration: 0.28, type: "triangle", volume: 0.34, attack: 0.002, release: 0.28 });
-  // Mid-band crack
   tone({ freq: 220, duration: 0.12, type: "sawtooth", volume: 0.22, attack: 0.001, release: 0.14 });
   tone({ freq: 110, duration: 0.18, type: "square", volume: 0.18, release: 0.2, delay: 0.005 });
-  // Multi-band noise: low rumble + mid splash + high crack
   noiseBurst({ duration: 0.4, volume: 0.42, filter: 240 });
   noiseBurst({ duration: 0.22, volume: 0.32, filter: 1200 });
   noiseBurst({ duration: 0.1, volume: 0.42, filter: 5800 });
-  // Late tail rumble
   tone({ freq: 60, duration: 0.6, type: "sine", volume: 0.18, attack: 0.06, release: 0.6, delay: 0.12 });
 }
 
 export function playClear() {
+  if (sampleBuffers.size > 0) {
+    playRandomSample("clear", 0.85);
+    return;
+  }
   tone({ freq: 523.25, duration: 0.18, type: "sine", volume: 0.22, attack: 0.03, release: 0.22 });
   tone({ freq: 659.25, duration: 0.18, type: "sine", volume: 0.2, attack: 0.03, release: 0.22, delay: 0.12 });
   tone({ freq: 783.99, duration: 0.32, type: "triangle", volume: 0.22, attack: 0.04, release: 0.32, delay: 0.24 });
@@ -206,12 +320,20 @@ export function playClear() {
 }
 
 export function playDefeat() {
+  if (sampleBuffers.size > 0) {
+    playRandomSample("defeat", 0.85);
+    return;
+  }
   tone({ freq: 220, duration: 0.36, type: "sawtooth", volume: 0.18, attack: 0.04, release: 0.32 });
   tone({ freq: 165, duration: 0.42, type: "triangle", volume: 0.18, attack: 0.04, release: 0.4, delay: 0.18 });
   tone({ freq: 110, duration: 0.6, type: "sine", volume: 0.22, attack: 0.06, release: 0.55, delay: 0.36 });
 }
 
 export function playUiClick() {
+  if (sampleBuffers.size > 0) {
+    playRandomSample("uiClick", 0.5);
+    return;
+  }
   tone({ freq: 880, duration: 0.04, type: "triangle", volume: 0.1, release: 0.06 });
 }
 
