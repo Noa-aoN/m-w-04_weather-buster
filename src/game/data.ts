@@ -225,8 +225,8 @@ export const items: Item[] = [
 export const characters: Character[] = [
   {
     id: "iris",
-    codename: "アヤメ",
-    callSign: "IRIS",
+    codename: "ノア",
+    callSign: "NOA",
     role: "バランス",
     passiveName: "晴天適応",
     passiveDescription: "命中時の与ダメージ +10%",
@@ -251,8 +251,8 @@ export const characters: Character[] = [
   },
   {
     id: "raika",
-    codename: "ライカ",
-    callSign: "RAIKA",
+    codename: "サカ",
+    callSign: "SAKA",
     role: "攻撃",
     passiveName: "気圧収束",
     passiveDescription: "気圧ゲージ +30% / 被ダメージ +10%",

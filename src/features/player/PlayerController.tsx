@@ -76,9 +76,30 @@ export function PlayerController({
     });
   }, []);
 
+  useEffect(() => {
+    let pausedAt: number | null = null;
+    return useBattleStore.subscribe((state, prev) => {
+      if (state.isPointerLocked === prev.isPointerLocked) {
+        return;
+      }
+      if (state.status !== "battle") {
+        pausedAt = null;
+        return;
+      }
+      if (!state.isPointerLocked) {
+        pausedAt = performance.now();
+      } else if (pausedAt !== null) {
+        const delta = performance.now() - pausedAt;
+        pausedAt = null;
+        useBattleStore.getState().shiftMarkerTimes(delta);
+        nextLightningAt.current += delta;
+      }
+    });
+  }, []);
+
   useFrame((_, delta) => {
     const state = useBattleStore.getState();
-    if (state.status !== "battle") {
+    if (state.status !== "battle" || !state.isPointerLocked) {
       return;
     }
     const stage = findStage(state.selectedStageId);
