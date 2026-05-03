@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { AnimationClip, Group } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import type { CharacterId } from "../game/types";
-import { fitObjectToHeight } from "./fitObject";
+import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
 
 export const CHARACTER_MODEL_URL: Record<CharacterId, string> = {
   iris: "/models/quaternius-characters/BlueSoldier_Male.fbx",
@@ -39,8 +39,9 @@ export function CharacterModel({
   const { fitted, animations } = useMemo(() => {
     const cloned = SkeletonUtils.clone(fbx) as Group;
     fitObjectToHeight(cloned, TARGET_HEIGHT);
+    tintCharacterMaterials(cloned, accent);
     return { fitted: cloned, animations: fbx.animations as AnimationClip[] };
-  }, [fbx]);
+  }, [fbx, accent]);
 
   const { actions, names } = useAnimations(animations, innerRef);
 
