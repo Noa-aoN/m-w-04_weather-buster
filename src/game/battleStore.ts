@@ -125,6 +125,7 @@ type BattleState = {
   useItem: (id: ItemId) => void;
   spawnLightning: (marker: LightningMarker) => void;
   removeLightning: (id: number) => void;
+  shiftMarkerTimes: (deltaMs: number) => void;
   setPointerLocked: (locked: boolean) => void;
 };
 
@@ -299,7 +300,7 @@ export const useBattleStore = create<BattleState>((set, get) => {
     },
     takeDamageTick: () => {
       const state = get();
-      if (state.status !== "battle") {
+      if (state.status !== "battle" || !state.isPointerLocked) {
         return;
       }
       const enemy = findEnemy(state.selectedEnemyId);
@@ -333,7 +334,7 @@ export const useBattleStore = create<BattleState>((set, get) => {
     },
     tick: () => {
       const state = get();
-      if (state.status !== "battle") {
+      if (state.status !== "battle" || !state.isPointerLocked) {
         return;
       }
       set({ elapsedSeconds: state.elapsedSeconds + 1 });
@@ -404,6 +405,16 @@ export const useBattleStore = create<BattleState>((set, get) => {
     removeLightning: (id) => {
       const state = get();
       set({ lightningMarkers: state.lightningMarkers.filter((m) => m.id !== id) });
+    },
+    shiftMarkerTimes: (deltaMs) => {
+      const state = get();
+      set({
+        lightningMarkers: state.lightningMarkers.map((marker) => ({
+          ...marker,
+          spawnAt: marker.spawnAt + deltaMs,
+          triggersAt: marker.triggersAt + deltaMs,
+        })),
+      });
     },
     setPointerLocked: (locked) => set({ isPointerLocked: locked }),
   };

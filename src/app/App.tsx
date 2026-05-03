@@ -45,7 +45,7 @@ export function App() {
   } else if (view === "battle") {
     scene = (
       <BattleScene
-        onBack={() => setView("home")}
+        onBack={returnToHome}
         onOpenEnemyGrid={() => setView("enemyGrid")}
         onShowResult={() => setView("result")}
       />

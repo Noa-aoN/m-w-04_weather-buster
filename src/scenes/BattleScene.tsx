@@ -351,6 +351,7 @@ function EnemyMotion({
 }) {
   const { camera } = useThree();
   const status = useBattleStore((state) => state.status);
+  const isPointerLocked = useBattleStore((state) => state.isPointerLocked);
   const phaseRef = useRef<{ mode: AiPhase; t: number; orbitDir: 1 | -1; angle: number }>({
     mode: "approach",
     t: 0,
@@ -368,6 +369,10 @@ function EnemyMotion({
     if (status !== "battle") {
       node.position.set(0, idleY, baseZ);
       node.rotation.y = Math.sin(state.clock.getElapsedTime() * 0.4) * 0.25;
+      enemyPositionRef.current.copy(node.position);
+      return;
+    }
+    if (!isPointerLocked) {
       enemyPositionRef.current.copy(node.position);
       return;
     }
