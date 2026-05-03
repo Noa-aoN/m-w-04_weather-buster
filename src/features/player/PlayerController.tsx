@@ -3,6 +3,12 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import { Object3D, Raycaster, Vector3 } from "three";
 import { useBattleStore } from "../../game/battleStore";
+import {
+  difficultyModifiers,
+  enemyAttackPatterns,
+  findStage,
+  weatherEnemies,
+} from "../../game/data";
 import { setLockTarget } from "./lockControls";
 import { useKeyboardInput } from "./useKeyboardInput";
 
@@ -10,19 +16,14 @@ const MOVE_SPEED = 5.4;
 const DASH_MULTIPLIER = 1.55;
 const JUMP_HEIGHT = 1.25;
 const JUMP_DURATION = 0.55;
-const ARENA_X = 11;
-const ARENA_Z_BACK = 9;
-const ARENA_Z_FRONT = -3;
 const GROUND_Y = 2.15;
-const LIGHTNING_INTERVAL_MS = 2200;
-const LIGHTNING_WARNING_MS = 1600;
-const LIGHTNING_DAMAGE = 95;
-const LIGHTNING_RADIUS = 1.6;
 
 export function PlayerController({
   enemyRef,
+  enemyPositionRef,
 }: {
   enemyRef: React.RefObject<Object3D | null>;
+  enemyPositionRef: React.RefObject<Vector3>;
 }) {
   const { camera, gl } = useThree();
   const sensitivity = useBattleStore((state) => state.mouseSensitivity);
@@ -80,6 +81,8 @@ export function PlayerController({
     if (state.status !== "battle") {
       return;
     }
+    const stage = findStage(state.selectedStageId);
+    const arena = stage.arena;
     const keys = heldKeys.current;
     const dash = keys.has("shift") ? DASH_MULTIPLIER : 1;
     const speed = MOVE_SPEED * dash * delta;
@@ -102,8 +105,8 @@ export function PlayerController({
       camera.position.x += move.current.x;
       camera.position.z += move.current.z;
     }
-    camera.position.x = Math.max(-ARENA_X, Math.min(ARENA_X, camera.position.x));
-    camera.position.z = Math.max(ARENA_Z_FRONT, Math.min(ARENA_Z_BACK, camera.position.z));
+    camera.position.x = Math.max(-arena.x, Math.min(arena.x, camera.position.x));
+    camera.position.z = Math.max(arena.zFront, Math.min(arena.zBack, camera.position.z));
 
     if (keys.has(" ") && jumpStartedAt.current === null) {
       jumpStartedAt.current = performance.now();
@@ -122,17 +125,39 @@ export function PlayerController({
     }
 
     const now = performance.now();
-    if (state.selectedEnemyId === "thunderstorm" && now >= nextLightningAt.current) {
+    const enemy = weatherEnemies.find((candidate) => candidate.id === state.selectedEnemyId);
+    const pattern = enemy ? enemyAttackPatterns[enemy.id] : null;
+    if (enemy && pattern && now >= nextLightningAt.current) {
+      const diffMod = difficultyModifiers[enemy.difficulty];
+      const interval = pattern.intervalMs * diffMod.attackInterval;
+      const damage = pattern.damage * diffMod.attackDamage;
+      const half = (arena.zBack - arena.zFront) / 2;
+      const center = (arena.zBack + arena.zFront) / 2;
+      const targetX = pattern.followsPlayer
+        ? camera.position.x + (Math.random() - 0.5) * pattern.spreadX * 0.5
+        : (Math.random() - 0.5) * Math.min(pattern.spreadX, arena.x * 1.4);
+      const targetZ = pattern.followsPlayer
+        ? camera.position.z + (Math.random() - 0.5) * pattern.spreadZ * 0.5
+        : center + (Math.random() - 0.5) * Math.min(pattern.spreadZ, half * 1.4);
+      const clampedX = Math.max(-arena.x, Math.min(arena.x, targetX));
+      const clampedZ = Math.max(arena.zFront, Math.min(arena.zBack, targetZ));
+      const origin = enemyPositionRef.current;
       const marker = {
         id: now + Math.random(),
-        x: (Math.random() - 0.5) * 16,
-        z: -2 + (Math.random() - 0.5) * 9,
-        triggersAt: now + LIGHTNING_WARNING_MS,
-        radius: LIGHTNING_RADIUS,
-        damage: LIGHTNING_DAMAGE,
+        x: clampedX,
+        z: clampedZ,
+        triggersAt: now + pattern.warningMs,
+        spawnAt: now,
+        fromX: origin.x,
+        fromY: origin.y + 0.6,
+        fromZ: origin.z,
+        radius: pattern.radius,
+        damage,
+        color: pattern.projectileColor,
+        trailGlow: pattern.trailGlow,
       };
       state.spawnLightning(marker);
-      nextLightningAt.current = now + LIGHTNING_INTERVAL_MS;
+      nextLightningAt.current = now + interval;
     }
 
     for (const marker of state.lightningMarkers) {
@@ -160,7 +185,21 @@ export function PlayerController({
       raycaster.current.set(camera.position, dir);
       const target = enemyRef.current;
       const hits = target ? raycaster.current.intersectObject(target, true) : [];
-      store.shoot(hits.length > 0);
+      const didHit = hits.length > 0;
+      const critical = didHit && hits.some((hit) => {
+        let node: Object3D | null = hit.object;
+        while (node) {
+          if (node.userData && node.userData.isCore === true) {
+            return true;
+          }
+          if (node.name === "enemyCore") {
+            return true;
+          }
+          node = node.parent;
+        }
+        return false;
+      });
+      store.shoot(didHit, critical);
     };
     window.addEventListener("mousedown", onMouseDown);
     return () => window.removeEventListener("mousedown", onMouseDown);

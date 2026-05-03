@@ -2,15 +2,16 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Sky, Stars } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Group, Mesh, PerspectiveCamera, PointLight } from "three";
-import { Color } from "three";
+import { Color, Vector3 } from "three";
 import { BulletTrails } from "../entities/BulletTrails";
 import { EnemyFigure } from "../entities/EnemyFigure";
 import { LightningWarnings } from "../entities/LightningWarnings";
+import { StageTerrain } from "../entities/StageTerrain";
 import { BattleHud } from "../features/hud/BattleHud";
 import { PlayerController } from "../features/player/PlayerController";
-import { findCharacter, stages, weatherEnemies } from "../game/data";
+import { difficultyModifiers, findCharacter, stages, weatherEnemies } from "../game/data";
 import { useBattleStore } from "../game/battleStore";
-import type { Stage, WeatherEnemyId } from "../game/types";
+import type { Stage, WeatherEnemy, WeatherEnemyId } from "../game/types";
 
 function PlayerWeapon() {
   const { camera } = useThree();
@@ -300,27 +301,46 @@ function SnowDrift({ color }: { color: string }) {
   );
 }
 
-function FloorGrid({ stage, isClear }: { stage: Stage; isClear: boolean }) {
-  return (
-    <>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
-        <planeGeometry args={[28, 28, 32, 32]} />
-        <meshStandardMaterial color={isClear ? "#d9f6ff" : stage.groundColor} metalness={0.32} roughness={0.5} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}>
-        <ringGeometry args={[3.2, 3.4, 96]} />
-        <meshBasicMaterial color={stage.ringColor} transparent opacity={0.6} toneMapped={false} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}>
-        <ringGeometry args={[6.4, 6.55, 96]} />
-        <meshBasicMaterial color={stage.ringColor} transparent opacity={0.4} toneMapped={false} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}>
-        <ringGeometry args={[9.5, 9.62, 96]} />
-        <meshBasicMaterial color={stage.ringColor} transparent opacity={0.28} toneMapped={false} />
-      </mesh>
-    </>
-  );
+function EnemyMotion({
+  enemy,
+  enemyRef,
+  enemyPositionRef,
+  baseZ,
+}: {
+  enemy: WeatherEnemy;
+  enemyRef: React.RefObject<Group | null>;
+  enemyPositionRef: React.RefObject<Vector3>;
+  baseZ: number;
+}) {
+  const status = useBattleStore((state) => state.status);
+  useFrame(({ clock }) => {
+    const node = enemyRef.current;
+    if (!node) {
+      return;
+    }
+    const baseY = 2.3;
+    if (status !== "battle") {
+      node.position.set(0, baseY, baseZ);
+      enemyPositionRef.current.copy(node.position);
+      return;
+    }
+    const aggression = difficultyModifiers[enemy.difficulty].movementAggression;
+    const t = clock.getElapsedTime();
+    const ax = enemy.id === "tornado" ? 4.4 : enemy.id === "typhoon" ? 5.6 : enemy.id === "blizzard" ? 5 : enemy.id === "cloudy" ? 1.4 : 3.2;
+    const az = enemy.id === "tornado" ? 1.6 : enemy.id === "typhoon" ? 2.8 : 1.2;
+    const speed = 0.55 + aggression * 0.55;
+    const x = Math.sin(t * speed) * ax + Math.sin(t * speed * 1.7) * 0.6;
+    const z = baseZ + Math.cos(t * speed * 0.78) * az;
+    const y = baseY + Math.sin(t * (1.1 + aggression * 0.4)) * 0.4;
+    node.position.set(x, y, z);
+    if (enemy.id === "tornado" || enemy.id === "typhoon") {
+      node.rotation.y = t * (1.4 + aggression * 0.6);
+    } else {
+      node.rotation.y = Math.sin(t * 0.4) * 0.3;
+    }
+    enemyPositionRef.current.copy(node.position);
+  });
+  return null;
 }
 
 function ExperimentField({
@@ -328,14 +348,18 @@ function ExperimentField({
   stage,
   isClear,
   enemyRef,
+  enemyPositionRef,
 }: {
   enemyId: WeatherEnemyId;
   stage: Stage;
   isClear: boolean;
   enemyRef: React.RefObject<Group | null>;
+  enemyPositionRef: React.RefObject<Vector3>;
 }) {
   const enemy = weatherEnemies.find((candidate) => candidate.id === enemyId) ?? weatherEnemies[0];
   const ambientColor = useMemo(() => new Color(stage.ambientColor).multiplyScalar(0.7), [stage.ambientColor]);
+  const fogFar = stage.id === "lab" ? 28 : stage.id === "ruins" ? 44 : 52;
+  const baseZ = stage.id === "lab" ? -5.2 : stage.id === "ruins" ? -8 : -10;
 
   return (
     <>
@@ -358,29 +382,14 @@ function ExperimentField({
         color={isClear ? "#ffffff" : stage.ringColor}
       />
       <pointLight position={[0, 1.4, -3]} intensity={3} color={enemy.coreColor} />
-      <fog attach="fog" args={[isClear ? "#c8ecff" : stage.fogColor, 8, 28]} />
+      <fog attach="fog" args={[isClear ? "#c8ecff" : stage.fogColor, 8, fogFar]} />
 
-      <FloorGrid stage={stage} isClear={isClear} />
+      <StageTerrain stage={stage} isClear={isClear} />
 
-      {[-9, -6, -2.5, 3, 6, 9].map((x, index) => (
-        <mesh
-          key={x}
-          position={[x, 0.6 + Math.abs(index - 2) * 0.2, -3 - Math.abs(index - 2) * 1.6]}
-        >
-          <boxGeometry args={[1.4, 1.1 + Math.abs(index - 2) * 0.4, 1.4]} />
-          <meshStandardMaterial
-            color={isClear ? "#a4c2cd" : stage.buildingColor}
-            emissive={stage.buildingEmissive}
-            emissiveIntensity={isClear ? 0.05 : 0.18}
-            metalness={0.4}
-            roughness={0.42}
-          />
-        </mesh>
-      ))}
-
-      <group ref={enemyRef} position={[0, 2.0, -5.2]} scale={1.55}>
+      <group ref={enemyRef} position={[0, 2.3, baseZ]} scale={1.55}>
         <EnemyFigure enemy={enemy} clear={isClear} />
       </group>
+      <EnemyMotion enemy={enemy} enemyRef={enemyRef} enemyPositionRef={enemyPositionRef} baseZ={baseZ} />
 
       {!isClear && enemy.id === "thunderstorm" ? <ThunderstormStrikes /> : null}
       {!isClear && (enemy.id === "heavyRain" || enemy.id === "rainySeason" || enemy.id === "typhoon")
@@ -408,6 +417,7 @@ export function BattleScene({
   onShowResult: () => void;
 }) {
   const enemyGroupRef = useRef<Group>(null);
+  const enemyPositionRef = useRef(new Vector3(0, 2.3, -5.2));
   const status = useBattleStore((state) => state.status);
   const selectedEnemyId = useBattleStore((state) => state.selectedEnemyId);
   const selectedStageId = useBattleStore((state) => state.selectedStageId);
@@ -424,8 +434,9 @@ export function BattleScene({
           stage={stage}
           isClear={isClear}
           enemyRef={enemyGroupRef}
+          enemyPositionRef={enemyPositionRef}
         />
-        <PlayerController enemyRef={enemyGroupRef} />
+        <PlayerController enemyRef={enemyGroupRef} enemyPositionRef={enemyPositionRef} />
       </Canvas>
 
       <BattleHud onBack={onBack} onOpenEnemyGrid={onOpenEnemyGrid} onShowResult={onShowResult} />

@@ -360,6 +360,18 @@ function ThunderFlicker() {
   );
 }
 
+function RotatingScenery({ children }: { children: React.ReactNode }) {
+  const groupRef = useRef<Group>(null);
+  useFrame((state) => {
+    const node = groupRef.current;
+    if (!node) {
+      return;
+    }
+    node.rotation.y = state.clock.getElapsedTime() * 0.045;
+  });
+  return <group ref={groupRef}>{children}</group>;
+}
+
 function HomeStage({
   accent,
   ringColor,
@@ -396,22 +408,23 @@ function HomeStage({
       <pointLight position={[-4, 2.4, 1]} intensity={1.2} color="#ff315b" distance={8} />
       <fog attach="fog" args={[fogColor, fogNear, fogFar]} />
 
-      <FloorGrid ringColor={ringColor} />
-      <SatelliteDish />
-      <HeroMech accent={accent} />
-      <WarningTower position={[-7, 0, -2.5]} />
-      <WarningTower position={[-3.6, 0, -4.6]} />
-      <WarningTower position={[3.4, 0, -5.2]} />
-
-      {[-9.2, -5.6, -1.4, 2.4, 5.4, 8.6].map((x, index) => (
-        <mesh
-          key={x}
-          position={[x, 0.7 + Math.abs(index - 2) * 0.18, -5.2 - Math.abs(index - 2.5) * 0.6]}
-        >
-          <boxGeometry args={[1.5, 1.4 + Math.abs(index - 2) * 0.34, 1.5]} />
-          <meshStandardMaterial color="#22343f" emissive="#0a8ec2" emissiveIntensity={0.12} metalness={0.5} roughness={0.4} />
-        </mesh>
-      ))}
+      <RotatingScenery>
+        <FloorGrid ringColor={ringColor} />
+        <SatelliteDish />
+        <HeroMech accent={accent} />
+        <WarningTower position={[-7, 0, -2.5]} />
+        <WarningTower position={[-3.6, 0, -4.6]} />
+        <WarningTower position={[3.4, 0, -5.2]} />
+        {[-9.2, -5.6, -1.4, 2.4, 5.4, 8.6].map((x, index) => (
+          <mesh
+            key={x}
+            position={[x, 0.7 + Math.abs(index - 2) * 0.18, -5.2 - Math.abs(index - 2.5) * 0.6]}
+          >
+            <boxGeometry args={[1.5, 1.4 + Math.abs(index - 2) * 0.34, 1.5]} />
+            <meshStandardMaterial color="#22343f" emissive="#0a8ec2" emissiveIntensity={0.12} metalness={0.5} roughness={0.4} />
+          </mesh>
+        ))}
+      </RotatingScenery>
 
       {isClear ? null : isSnow ? (
         <HomeSnowDrift />
@@ -545,6 +558,30 @@ export function HomeScene({
             <em>{selectedEnemy.trait}</em>
           </div>
           <button type="button" className="cyclerArrow" aria-label="次の敵" onClick={() => cycleEnemy(1)}>▶</button>
+        </div>
+
+        <span className="difficultyLabel">難易度</span>
+        <div
+          className={`difficultyLine difficulty--${selectedEnemy.difficulty}`}
+          role="img"
+          aria-label={`難易度 ${selectedEnemy.difficulty} / 5`}
+        >
+          {Array.from({ length: 5 }, (_, index) => (
+            <b key={index} className={index < selectedEnemy.difficulty ? "filled" : ""}>
+              {index < selectedEnemy.difficulty ? "■" : ""}
+            </b>
+          ))}
+          <em className="difficultyTag">
+            {selectedEnemy.difficulty <= 1
+              ? "EASY"
+              : selectedEnemy.difficulty === 2
+              ? "NORMAL"
+              : selectedEnemy.difficulty === 3
+              ? "TOUGH"
+              : selectedEnemy.difficulty === 4
+              ? "HARD"
+              : "EXTREME"}
+          </em>
         </div>
 
         <span className="threatLabel">脅威レベル</span>

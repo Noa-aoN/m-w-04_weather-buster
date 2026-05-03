@@ -335,12 +335,62 @@ canvas {
   line-height: 1.6;
 }
 
-.threatLabel {
+.threatLabel,
+.difficultyLabel {
   display: block;
   margin-top: 14px;
   color: #ffd84d !important;
   font-size: 12px;
   letter-spacing: 0.18em;
+}
+
+.difficultyLine {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.difficultyLine b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  border: 1px solid rgba(255, 218, 75, 0.45);
+  color: rgba(255, 218, 75, 0);
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.difficultyLine b.filled {
+  color: #1a1100;
+  background: #ffda4b;
+  box-shadow: 0 0 10px rgba(255, 218, 75, 0.55);
+}
+
+.difficultyLine .difficultyTag {
+  margin-left: 6px;
+  padding: 2px 8px;
+  color: #ffd84d;
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  border: 1px solid rgba(255, 218, 75, 0.45);
+  background: rgba(34, 28, 6, 0.55);
+}
+
+.difficulty--4 b.filled,
+.difficulty--5 b.filled {
+  background: #ff7b66;
+  box-shadow: 0 0 12px rgba(255, 100, 90, 0.6);
+}
+
+.difficulty--4 .difficultyTag,
+.difficulty--5 .difficultyTag {
+  color: #ff9aa6;
+  border-color: rgba(255, 110, 130, 0.5);
+  background: rgba(40, 8, 14, 0.6);
 }
 
 .threatLine {
@@ -757,6 +807,35 @@ canvas {
 
 .battleHud--engaged {
   cursor: none;
+}
+
+.escHint {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(40, 217, 255, 0.45);
+  background: rgba(3, 16, 24, 0.7);
+  color: #cfeaf3;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  pointer-events: none;
+  box-shadow: inset 0 0 12px rgba(40, 217, 255, 0.12);
+}
+
+.escHint kbd {
+  padding: 2px 8px;
+  border: 1px solid rgba(40, 217, 255, 0.65);
+  color: #28d9ff;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  background: rgba(4, 18, 28, 0.78);
 }
 
 .gridShell {

@@ -240,6 +240,13 @@ export function BattleHud({
       <ItemToast />
       <SkillFlash />
 
+      {status === "battle" ? (
+        <div className="escHint" aria-live="polite">
+          <kbd>ESC</kbd>
+          <span>マウス操作に戻す（ポーズ）</span>
+        </div>
+      ) : null}
+
       {status === "ready" ? (
         <div className="centerBanner">
           <p>{stage.name} / {character.codename}</p>

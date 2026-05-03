@@ -41,6 +41,7 @@ export type WeatherEnemy = {
   icon: string;
   trait: string;
   threat: number;
+  difficulty: 1 | 2 | 3 | 4 | 5;
   description: string;
   playableInMvp: boolean;
 };
@@ -95,6 +96,11 @@ export type Stage = {
   skyRayleigh: number;
   buildingColor: string;
   buildingEmissive: string;
+  arena: {
+    x: number;
+    zFront: number;
+    zBack: number;
+  };
 };
 
 export type BattleResult = {
