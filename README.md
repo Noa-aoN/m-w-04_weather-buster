@@ -119,6 +119,8 @@ pnpm dev
 pnpm build
 ```
 
+`pnpm dev` は `http://localhost:3040` で起動します（兄弟 miniapp とポートを衝突させないため `3040` を固定）。
+
 ## 初期ディレクトリ構成
 
 ```txt
