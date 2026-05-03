@@ -1,9 +1,16 @@
 import { useMemo } from "react";
+import { useGLTF } from "@react-three/drei";
 import type { Stage } from "../game/types";
 
 function pseudoRandom(seed: number) {
   const x = Math.sin(seed * 12.9898) * 43758.5453;
   return x - Math.floor(x);
+}
+
+function GLTFInstance({ url, ...props }: { url: string } & Record<string, unknown>) {
+  const { scene } = useGLTF(url);
+  const cloned = useMemo(() => scene.clone(true), [scene]);
+  return <primitive object={cloned} {...props} />;
 }
 
 function ArenaRings({ stage, scale }: { stage: Stage; scale: number }) {
@@ -30,6 +37,20 @@ function ArenaRings({ stage, scale }: { stage: Stage; scale: number }) {
 }
 
 function LabTerrain({ stage, isClear }: { stage: Stage; isClear: boolean }) {
+  const labProps = useMemo(
+    () => [
+      { url: "/models/space-kit/machine_generatorLarge.glb", x: -8, z: -5, scale: 1.3 },
+      { url: "/models/space-kit/machine_generator.glb", x: -3, z: -7, scale: 1.4 },
+      { url: "/models/space-kit/machine_barrelLarge.glb", x: 4, z: -6, scale: 1.4 },
+      { url: "/models/space-kit/machine_wireless.glb", x: 8, z: -4, scale: 1.4 },
+      { url: "/models/space-kit/machine_barrel.glb", x: 7, z: 2, scale: 1.5 },
+      { url: "/models/space-kit/structure.glb", x: -7, z: 4, scale: 1.5 },
+      { url: "/models/space-kit/structure_detailed.glb", x: 6, z: 6, scale: 1.5 },
+      { url: "/models/space-station-kit/computer-wide.glb", x: 0, z: -8.5, scale: 1.6 },
+    ],
+    [],
+  );
+
   return (
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
@@ -37,63 +58,70 @@ function LabTerrain({ stage, isClear }: { stage: Stage; isClear: boolean }) {
         <meshStandardMaterial color={isClear ? "#d9f6ff" : stage.groundColor} metalness={0.32} roughness={0.5} />
       </mesh>
       <ArenaRings stage={stage} scale={1} />
-      {[-9, -6, -2.5, 3, 6, 9].map((x, index) => (
-        <mesh
-          key={x}
-          position={[x, 0.6 + Math.abs(index - 2) * 0.2, -3 - Math.abs(index - 2) * 1.6]}
-        >
-          <boxGeometry args={[1.4, 1.1 + Math.abs(index - 2) * 0.4, 1.4]} />
-          <meshStandardMaterial
-            color={isClear ? "#a4c2cd" : stage.buildingColor}
-            emissive={stage.buildingEmissive}
-            emissiveIntensity={isClear ? 0.05 : 0.18}
-            metalness={0.4}
-            roughness={0.42}
-          />
-        </mesh>
+      {labProps.map((prop) => (
+        <group key={`${prop.url}-${prop.x}`} position={[prop.x, 0, prop.z]} scale={prop.scale}>
+          <GLTFInstance url={prop.url} />
+        </group>
       ))}
     </>
   );
 }
 
 function RuinsTerrain({ stage, isClear }: { stage: Stage; isClear: boolean }) {
+  const rubblePool = [
+    "/models/space-kit/rocks_smallA.glb",
+    "/models/space-kit/rocks_smallB.glb",
+    "/models/space-kit/rock.glb",
+  ];
+  const tankPool = [
+    "/models/space-kit/machine_barrelLarge.glb",
+    "/models/space-kit/machine_generator.glb",
+    "/models/space-kit/structure.glb",
+  ];
+  const ruinTowers = [
+    "/models/tower-defense-kit/tower-square-bottom-a.glb",
+    "/models/tower-defense-kit/tower-square-middle-b.glb",
+    "/models/tower-defense-kit/tower-square-roof-c.glb",
+  ];
+
   const rubble = useMemo(
     () =>
-      Array.from({ length: 28 }, (_, index) => {
-        const radius = 4 + pseudoRandom(index + 1) * 13;
+      Array.from({ length: 18 }, (_, index) => {
+        const radius = 5 + pseudoRandom(index + 1) * 12;
         const angle = pseudoRandom(index + 7) * Math.PI * 2;
         return {
           x: Math.cos(angle) * radius,
           z: Math.sin(angle) * radius,
-          height: 0.4 + pseudoRandom(index + 11) * 1.4,
-          width: 0.7 + pseudoRandom(index + 17) * 0.9,
-          tilt: (pseudoRandom(index + 23) - 0.5) * 0.4,
+          scale: 1.2 + pseudoRandom(index + 17) * 1.8,
           rotY: pseudoRandom(index + 29) * Math.PI,
+          url: rubblePool[index % rubblePool.length],
         };
       }),
     [],
   );
-  const towers = useMemo(
+  const broken = useMemo(
     () =>
-      Array.from({ length: 6 }, (_, index) => {
-        const angle = (index / 6) * Math.PI * 2 + 0.4;
+      Array.from({ length: 5 }, (_, index) => {
+        const angle = (index / 5) * Math.PI * 2 + 0.4;
         const radius = 13 + pseudoRandom(index + 41) * 3;
         return {
           x: Math.cos(angle) * radius,
           z: Math.sin(angle) * radius,
-          height: 4 + pseudoRandom(index + 53) * 3,
-          tilt: (pseudoRandom(index + 67) - 0.5) * 0.3,
+          rotY: pseudoRandom(index + 49) * Math.PI,
+          url: tankPool[index % tankPool.length],
+          scale: 1.4 + pseudoRandom(index + 67) * 0.6,
+          tilt: (pseudoRandom(index + 81) - 0.5) * 0.18,
         };
       }),
     [],
   );
-  const pillars = useMemo(
+  const ruins = useMemo(
     () => [
-      { x: -6, z: -2, height: 3.4 },
-      { x: 5, z: -1, height: 2.8 },
-      { x: 0, z: 6, height: 3.0 },
-      { x: -3, z: 9, height: 2.2 },
+      { x: -7, z: -3, url: ruinTowers[0], scale: 1.4, rotY: 0.4 },
+      { x: 6, z: -1, url: ruinTowers[1], scale: 1.5, rotY: -0.6 },
+      { x: -2, z: 8, url: ruinTowers[2], scale: 1.3, rotY: 1.2 },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
@@ -105,50 +133,41 @@ function RuinsTerrain({ stage, isClear }: { stage: Stage; isClear: boolean }) {
       </mesh>
       <ArenaRings stage={stage} scale={1} />
       {rubble.map((piece, index) => (
-        <mesh
-          key={index}
-          position={[piece.x, piece.height / 2, piece.z]}
-          rotation={[piece.tilt, piece.rotY, piece.tilt * 0.6]}
-        >
-          <boxGeometry args={[piece.width, piece.height, piece.width * 0.9]} />
-          <meshStandardMaterial
-            color={isClear ? "#a08a76" : stage.buildingColor}
-            emissive={stage.buildingEmissive}
-            emissiveIntensity={isClear ? 0.04 : 0.12}
-            roughness={0.84}
-            metalness={0.16}
-          />
-        </mesh>
-      ))}
-      {towers.map((tower, index) => (
-        <group key={index} position={[tower.x, 0, tower.z]} rotation={[0, 0, tower.tilt]}>
-          <mesh position={[0, tower.height / 2, 0]}>
-            <boxGeometry args={[1.4, tower.height, 1.4]} />
-            <meshStandardMaterial
-              color={isClear ? "#a8907a" : stage.buildingColor}
-              emissive={stage.buildingEmissive}
-              emissiveIntensity={isClear ? 0.04 : 0.18}
-              roughness={0.78}
-              metalness={0.22}
-            />
-          </mesh>
-          <mesh position={[0.6, tower.height + 0.2, 0]} rotation={[0, 0, -0.4]}>
-            <boxGeometry args={[0.9, 0.4, 1.5]} />
-            <meshStandardMaterial color={isClear ? "#988673" : stage.buildingColor} roughness={0.9} />
-          </mesh>
+        <group key={index} position={[piece.x, 0, piece.z]} rotation={[0, piece.rotY, 0]} scale={piece.scale}>
+          <GLTFInstance url={piece.url} />
         </group>
       ))}
-      {pillars.map((pillar, index) => (
-        <mesh key={index} position={[pillar.x, pillar.height / 2, pillar.z]}>
-          <cylinderGeometry args={[0.36, 0.42, pillar.height, 12]} />
-          <meshStandardMaterial color={isClear ? "#bda893" : "#3a2a26"} roughness={0.82} />
-        </mesh>
+      {broken.map((piece, index) => (
+        <group
+          key={`broken-${index}`}
+          position={[piece.x, 0, piece.z]}
+          rotation={[piece.tilt, piece.rotY, piece.tilt * 0.6]}
+          scale={piece.scale}
+        >
+          <GLTFInstance url={piece.url} />
+        </group>
+      ))}
+      {ruins.map((piece, index) => (
+        <group key={`ruin-${index}`} position={[piece.x, 0, piece.z]} rotation={[0, piece.rotY, 0]} scale={piece.scale}>
+          <GLTFInstance url={piece.url} />
+        </group>
       ))}
     </>
   );
 }
 
 function HighlandTerrain({ stage, isClear }: { stage: Stage; isClear: boolean }) {
+  const crystalPool = [
+    "/models/space-kit/rock_crystalsLargeA.glb",
+    "/models/space-kit/rock_crystalsLargeB.glb",
+    "/models/space-kit/rock_crystals.glb",
+  ];
+  const rockPool = [
+    "/models/space-kit/rock_largeA.glb",
+    "/models/space-kit/rock_largeB.glb",
+    "/models/space-kit/rocks_smallA.glb",
+  ];
+
   const peaks = useMemo(
     () =>
       Array.from({ length: 10 }, (_, index) => {
@@ -157,23 +176,28 @@ function HighlandTerrain({ stage, isClear }: { stage: Stage; isClear: boolean })
         return {
           x: Math.cos(angle) * radius,
           z: Math.sin(angle) * radius,
-          height: 5 + pseudoRandom(index + 9) * 4.5,
-          base: 3.4 + pseudoRandom(index + 13) * 1.4,
+          scale: 2.4 + pseudoRandom(index + 9) * 1.6,
+          rotY: pseudoRandom(index + 13) * Math.PI,
+          url: crystalPool[index % crystalPool.length],
         };
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
   const rocks = useMemo(
     () =>
-      Array.from({ length: 18 }, (_, index) => {
+      Array.from({ length: 16 }, (_, index) => {
         const radius = 3 + pseudoRandom(index + 31) * 12;
         const angle = pseudoRandom(index + 37) * Math.PI * 2;
         return {
           x: Math.cos(angle) * radius,
           z: Math.sin(angle) * radius,
-          size: 0.5 + pseudoRandom(index + 41) * 0.8,
+          scale: 0.7 + pseudoRandom(index + 41) * 1.0,
+          rotY: pseudoRandom(index + 47) * Math.PI,
+          url: rockPool[index % rockPool.length],
         };
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
   const platforms = useMemo(
@@ -205,36 +229,18 @@ function HighlandTerrain({ stage, isClear }: { stage: Stage; isClear: boolean })
         </group>
       ))}
       {rocks.map((rock, index) => (
-        <mesh key={index} position={[rock.x, rock.size / 2, rock.z]}>
-          <boxGeometry args={[rock.size * 1.4, rock.size, rock.size * 1.2]} />
-          <meshStandardMaterial color={isClear ? "#a7b8c4" : "#27384a"} roughness={0.88} />
-        </mesh>
-      ))}
-      {peaks.map((peak, index) => (
-        <group key={index} position={[peak.x, 0, peak.z]}>
-          <mesh position={[0, peak.height / 2, 0]}>
-            <coneGeometry args={[peak.base, peak.height, 8]} />
-            <meshStandardMaterial
-              color={isClear ? "#9bb1c2" : stage.buildingColor}
-              emissive={stage.buildingEmissive}
-              emissiveIntensity={isClear ? 0.03 : 0.1}
-              roughness={0.82}
-            />
-          </mesh>
-          <mesh position={[0, peak.height - 0.6, 0]}>
-            <coneGeometry args={[peak.base * 0.45, 1.4, 8]} />
-            <meshStandardMaterial color={isClear ? "#ffffff" : "#dff1ff"} emissive="#dff1ff" emissiveIntensity={0.18} roughness={0.5} />
-          </mesh>
+        <group key={index} position={[rock.x, 0, rock.z]} rotation={[0, rock.rotY, 0]} scale={rock.scale}>
+          <GLTFInstance url={rock.url} />
         </group>
       ))}
-      <mesh position={[0, 1.5, -16]}>
-        <cylinderGeometry args={[0.6, 0.9, 3, 12]} />
-        <meshStandardMaterial color={isClear ? "#c8d8e0" : stage.buildingColor} emissive={stage.buildingEmissive} emissiveIntensity={0.18} metalness={0.4} roughness={0.45} />
-      </mesh>
-      <mesh position={[0, 3.4, -16]}>
-        <sphereGeometry args={[1.1, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial color={isClear ? "#d8e8f2" : "#345168"} emissive={stage.buildingEmissive} emissiveIntensity={0.16} metalness={0.5} roughness={0.4} />
-      </mesh>
+      {peaks.map((peak, index) => (
+        <group key={index} position={[peak.x, 0, peak.z]} rotation={[0, peak.rotY, 0]} scale={peak.scale}>
+          <GLTFInstance url={peak.url} />
+        </group>
+      ))}
+      <group position={[0, 0, -16]} scale={2.4}>
+        <GLTFInstance url="/models/space-kit/hangar_roundGlass.glb" />
+      </group>
     </>
   );
 }

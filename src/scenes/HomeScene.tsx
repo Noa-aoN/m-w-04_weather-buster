@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Sky, Stars } from "@react-three/drei";
+import { Sky, Stars, useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef } from "react";
 import type { Group, Mesh } from "three";
 import { useBattleStore } from "../game/battleStore";
@@ -92,133 +92,79 @@ function GpsToggle() {
   );
 }
 
+const HERO_MODEL_URL = "/models/space-kit/craft_speederA.glb";
+
 function HeroMech({ accent }: { accent: string }) {
+  const { scene } = useGLTF(HERO_MODEL_URL);
+  const cloned = useMemo(() => scene.clone(true), [scene]);
   const groupRef = useRef<Group>(null);
+  const accentRingRef = useRef<Mesh>(null);
 
   useFrame(({ clock }) => {
     const node = groupRef.current;
     if (!node) {
       return;
     }
-    node.position.y = -0.05 + Math.sin(clock.getElapsedTime() * 0.6) * 0.06;
-    node.rotation.y = Math.sin(clock.getElapsedTime() * 0.25) * 0.04;
+    const t = clock.getElapsedTime();
+    node.position.y = 0.7 + Math.sin(t * 0.6) * 0.1;
+    node.rotation.y = Math.PI + Math.sin(t * 0.25) * 0.06;
+    if (accentRingRef.current) {
+      const mat = accentRingRef.current.material as { emissiveIntensity?: number };
+      if (mat.emissiveIntensity !== undefined) {
+        mat.emissiveIntensity = 0.8 + (Math.sin(t * 1.6) + 1) * 0.6;
+      }
+    }
   });
 
   return (
-    <group ref={groupRef} position={[0, 0, 0.4]} rotation={[0, Math.PI, 0]} scale={1.2}>
-      <mesh position={[0, 1.7, 0]}>
-        <boxGeometry args={[0.46, 0.34, 0.4]} />
-        <meshStandardMaterial color="#1c2a35" metalness={0.65} roughness={0.32} />
-      </mesh>
-      <mesh position={[0.06, 1.74, 0.16]}>
-        <boxGeometry args={[0.18, 0.06, 0.04]} />
-        <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.4} />
-      </mesh>
-      <mesh position={[0, 1.18, 0]}>
-        <boxGeometry args={[1.05, 0.85, 0.7]} />
-        <meshStandardMaterial color="#3a5563" metalness={0.55} roughness={0.36} />
-      </mesh>
-      <mesh position={[0, 1.18, 0.36]}>
-        <boxGeometry args={[0.8, 0.6, 0.05]} />
-        <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.32} />
-      </mesh>
-      <mesh position={[0, 1.2, -0.4]}>
-        <boxGeometry args={[0.68, 0.56, 0.16]} />
-        <meshStandardMaterial color="#122532" metalness={0.72} roughness={0.28} />
-      </mesh>
-      <mesh position={[-0.24, 1.14, -0.52]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.28, 14]} />
-        <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.9} toneMapped={false} />
-      </mesh>
-      <mesh position={[0.24, 1.14, -0.52]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.28, 14]} />
-        <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.9} toneMapped={false} />
-      </mesh>
-      <mesh position={[-0.62, 1.5, 0.04]}>
-        <boxGeometry args={[0.32, 0.5, 0.5]} />
-        <meshStandardMaterial color="#2c4350" metalness={0.6} roughness={0.32} />
-      </mesh>
-      <mesh position={[0.62, 1.5, 0.04]}>
-        <boxGeometry args={[0.32, 0.5, 0.5]} />
-        <meshStandardMaterial color="#2c4350" metalness={0.6} roughness={0.32} />
-      </mesh>
-      <mesh position={[-0.78, 1.05, 0.05]}>
-        <boxGeometry args={[0.22, 0.78, 0.22]} />
-        <meshStandardMaterial color="#1f3441" metalness={0.55} roughness={0.42} />
-      </mesh>
-      <mesh position={[0.78, 1.05, 0.05]}>
-        <boxGeometry args={[0.22, 0.78, 0.22]} />
-        <meshStandardMaterial color="#1f3441" metalness={0.55} roughness={0.42} />
-      </mesh>
-      <mesh position={[1.05, 0.95, 0.36]} rotation={[0, 0, 0.18]}>
-        <boxGeometry args={[0.15, 0.6, 0.15]} />
-        <meshStandardMaterial color="#0d1820" metalness={0.85} roughness={0.2} />
-      </mesh>
-      <mesh position={[1.18, 0.66, 0.42]} rotation={[Math.PI / 2, 0, 0.18]}>
-        <cylinderGeometry args={[0.045, 0.045, 0.6, 12]} />
-        <meshStandardMaterial color="#070d12" metalness={0.9} roughness={0.18} />
-      </mesh>
-      <mesh position={[-0.32, 0.42, 0]}>
-        <boxGeometry args={[0.36, 0.78, 0.4]} />
-        <meshStandardMaterial color="#243845" metalness={0.55} roughness={0.34} />
-      </mesh>
-      <mesh position={[0.32, 0.42, 0]}>
-        <boxGeometry args={[0.36, 0.78, 0.4]} />
-        <meshStandardMaterial color="#243845" metalness={0.55} roughness={0.34} />
-      </mesh>
-      <mesh position={[-0.32, 0.05, 0.06]}>
-        <boxGeometry args={[0.42, 0.12, 0.5]} />
-        <meshStandardMaterial color="#0c1820" metalness={0.55} roughness={0.4} />
-      </mesh>
-      <mesh position={[0.32, 0.05, 0.06]}>
-        <boxGeometry args={[0.42, 0.12, 0.5]} />
-        <meshStandardMaterial color="#0c1820" metalness={0.55} roughness={0.4} />
-      </mesh>
-      <mesh position={[0, 0.95, 0.42]}>
-        <boxGeometry args={[0.16, 0.16, 0.04]} />
-        <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.2} />
+    <group ref={groupRef} position={[0, 0, 0.4]} scale={2.6}>
+      <primitive object={cloned} />
+      <mesh ref={accentRingRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
+        <ringGeometry args={[0.55, 0.7, 48]} />
+        <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.0} toneMapped={false} />
       </mesh>
     </group>
   );
 }
 
+useGLTF.preload(HERO_MODEL_URL);
+
+const SATELLITE_DISH_URL = "/models/space-kit/satelliteDish_large.glb";
+
 function SatelliteDish() {
   const dishRef = useRef<Group>(null);
+  const { scene } = useGLTF(SATELLITE_DISH_URL);
+  const cloned = useMemo(() => scene.clone(true), [scene]);
 
   useFrame(({ clock }) => {
     const node = dishRef.current;
     if (!node) {
       return;
     }
-    node.rotation.y = Math.sin(clock.getElapsedTime() * 0.18) * 0.4 + 0.3;
+    node.rotation.y = Math.sin(clock.getElapsedTime() * 0.18) * 0.6 + 0.3;
   });
 
   return (
-    <group position={[6.6, 0, -3.2]}>
-      <mesh position={[0, 0.6, 0]}>
-        <boxGeometry args={[1.1, 1.2, 1.1]} />
-        <meshStandardMaterial color="#16242e" metalness={0.55} roughness={0.42} />
-      </mesh>
-      <mesh position={[0, 1.6, 0]}>
-        <cylinderGeometry args={[0.12, 0.12, 1.4, 12]} />
-        <meshStandardMaterial color="#1d2c38" metalness={0.6} roughness={0.32} />
-      </mesh>
-      <group ref={dishRef} position={[0, 2.55, 0]}>
-        <mesh rotation={[Math.PI / 2.4, 0, 0]}>
-          <sphereGeometry args={[1.4, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2.4]} />
-          <meshStandardMaterial color="#aee3ff" emissive="#28d9ff" emissiveIntensity={0.16} metalness={0.4} roughness={0.4} side={2} />
-        </mesh>
-        <mesh position={[0, 0.4, 0]} rotation={[Math.PI / 2.4, 0, 0]}>
-          <cylinderGeometry args={[0.06, 0.06, 0.7, 8]} />
-          <meshStandardMaterial color="#6cd6ff" emissive="#6cd6ff" emissiveIntensity={0.6} />
-        </mesh>
-      </group>
+    <group ref={dishRef} position={[6.6, 0, -3.2]} scale={1.6}>
+      <primitive object={cloned} />
     </group>
   );
 }
 
+useGLTF.preload(SATELLITE_DISH_URL);
+
+const TOWER_BASE_URL = "/models/tower-defense-kit/tower-round-base.glb";
+const TOWER_BODY_URL = "/models/tower-defense-kit/tower-round-build-c.glb";
+const TOWER_TOP_URL = "/models/tower-defense-kit/tower-round-top-a.glb";
+
 function WarningTower({ position }: { position: [number, number, number] }) {
   const lampRef = useRef<Mesh>(null);
+  const baseGltf = useGLTF(TOWER_BASE_URL);
+  const bodyGltf = useGLTF(TOWER_BODY_URL);
+  const topGltf = useGLTF(TOWER_TOP_URL);
+  const baseScene = useMemo(() => baseGltf.scene.clone(true), [baseGltf]);
+  const bodyScene = useMemo(() => bodyGltf.scene.clone(true), [bodyGltf]);
+  const topScene = useMemo(() => topGltf.scene.clone(true), [topGltf]);
 
   useFrame(({ clock }) => {
     if (!lampRef.current) {
@@ -230,18 +176,21 @@ function WarningTower({ position }: { position: [number, number, number] }) {
   });
 
   return (
-    <group position={position}>
-      <mesh position={[0, 1.4, 0]}>
-        <boxGeometry args={[0.42, 2.8, 0.42]} />
-        <meshStandardMaterial color="#1a2b36" metalness={0.55} roughness={0.4} />
-      </mesh>
-      <mesh ref={lampRef} position={[0, 2.96, 0]}>
-        <sphereGeometry args={[0.16, 16, 16]} />
+    <group position={position} scale={1.1}>
+      <primitive object={baseScene} />
+      <primitive object={bodyScene} position={[0, 0.55, 0]} />
+      <primitive object={topScene} position={[0, 1.35, 0]} />
+      <mesh ref={lampRef} position={[0, 2.0, 0]}>
+        <sphereGeometry args={[0.18, 16, 16]} />
         <meshStandardMaterial color="#ff315b" emissive="#ff315b" emissiveIntensity={1.4} toneMapped={false} />
       </mesh>
     </group>
   );
 }
+
+useGLTF.preload(TOWER_BASE_URL);
+useGLTF.preload(TOWER_BODY_URL);
+useGLTF.preload(TOWER_TOP_URL);
 
 function FloorGrid({ ringColor }: { ringColor: string }) {
   return (

@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Sky, Stars } from "@react-three/drei";
+import { Sky, Stars, useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Group, Mesh, PerspectiveCamera, PointLight } from "three";
 import { Color, Vector3 } from "three";
@@ -13,6 +13,8 @@ import { difficultyModifiers, findCharacter, stages, weatherEnemies } from "../g
 import { useBattleStore } from "../game/battleStore";
 import type { Stage, WeatherEnemy, WeatherEnemyId } from "../game/types";
 
+const PLAYER_WEAPON_URL = "/models/blaster-kit/blaster-h.glb";
+
 function PlayerWeapon() {
   const { camera } = useThree();
   const groupRef = useRef<Group>(null);
@@ -21,6 +23,8 @@ function PlayerWeapon() {
   const [flashVisible, setFlashVisible] = useState(false);
   const lastShotAt = useBattleStore((state) => state.lastShotAt);
   const cameraMode = useBattleStore((state) => state.cameraMode);
+  const { scene } = useGLTF(PLAYER_WEAPON_URL);
+  const cloned = useMemo(() => scene.clone(true), [scene]);
 
   useEffect(() => {
     if (lastShotAt === 0) {
@@ -49,26 +53,9 @@ function PlayerWeapon() {
 
   return (
     <group ref={groupRef}>
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[0.18, 0.14, 0.5]} />
-        <meshStandardMaterial color="#152330" metalness={0.65} roughness={0.32} />
-      </mesh>
-      <mesh position={[0, 0.06, -0.18]}>
-        <boxGeometry args={[0.12, 0.08, 0.16]} />
-        <meshStandardMaterial color="#0e1a25" metalness={0.7} roughness={0.32} />
-      </mesh>
-      <mesh position={[0, -0.07, -0.05]}>
-        <boxGeometry args={[0.1, 0.06, 0.2]} />
-        <meshStandardMaterial color="#1f2f3d" metalness={0.5} roughness={0.4} />
-      </mesh>
-      <mesh position={[0, 0, -0.34]}>
-        <cylinderGeometry args={[0.04, 0.04, 0.32, 16]} />
-        <meshStandardMaterial color="#0c151c" metalness={0.85} roughness={0.22} />
-      </mesh>
-      <mesh position={[0.06, 0.04, -0.05]}>
-        <boxGeometry args={[0.02, 0.02, 0.18]} />
-        <meshStandardMaterial color="#27d9ff" emissive="#27d9ff" emissiveIntensity={1.3} />
-      </mesh>
+      <group rotation={[0, Math.PI, 0]} scale={0.55}>
+        <primitive object={cloned} />
+      </group>
       {flashVisible ? (
         <>
           <mesh ref={flashRef} position={[0, 0, -0.55]}>
@@ -81,6 +68,8 @@ function PlayerWeapon() {
     </group>
   );
 }
+
+useGLTF.preload(PLAYER_WEAPON_URL);
 
 function PlayerBackAvatar() {
   const { camera } = useThree();
