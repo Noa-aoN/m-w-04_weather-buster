@@ -376,6 +376,21 @@ export function playUiClick() {
   tone({ freq: 880, duration: 0.04, type: "triangle", volume: 0.1, release: 0.06 });
 }
 
+export function playReload() {
+  // Multi-stage: clip out, clip in, charge.
+  noiseBurst({ duration: 0.05, volume: 0.18, filter: 4400 });
+  tone({ freq: 320, duration: 0.07, type: "square", volume: 0.16, release: 0.1 });
+  noiseBurst({ duration: 0.06, volume: 0.18, filter: 5200, delay: 0.18 });
+  tone({ freq: 540, duration: 0.05, type: "triangle", volume: 0.16, release: 0.08, delay: 0.18 });
+  tone({ freq: 880, duration: 0.05, type: "sine", volume: 0.18, release: 0.1, delay: 0.34 });
+  tone({ freq: 1320, duration: 0.07, type: "triangle", volume: 0.14, release: 0.12, delay: 0.42 });
+}
+
+export function playLowAmmoBeep() {
+  tone({ freq: 1320, duration: 0.05, type: "square", volume: 0.12, release: 0.06 });
+  tone({ freq: 1760, duration: 0.05, type: "sine", volume: 0.08, release: 0.06, delay: 0.06 });
+}
+
 export function playCountdownTick() {
   tone({ freq: 1320, duration: 0.06, type: "triangle", volume: 0.22, release: 0.12 });
   tone({ freq: 880, duration: 0.05, type: "sine", volume: 0.14, release: 0.1, delay: 0.005 });
