@@ -5,7 +5,9 @@ import type { Group, Mesh } from "three";
 import { useBattleStore } from "../game/battleStore";
 import { findCharacter, findStage, findWeapon, stages, weatherEnemies } from "../game/data";
 import { useGeolocationWeather, weatherCodeLabel } from "../features/weather/useGeolocationWeather";
-import type { LoadoutTab } from "../game/types";
+import type { CharacterId, LoadoutTab } from "../game/types";
+import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
+import { fitObjectToHeight } from "../entities/fitObject";
 
 function StartIcon() {
   return (
@@ -92,11 +94,17 @@ function GpsToggle() {
   );
 }
 
-const HERO_MODEL_URL = "/models/space-kit/craft_speederA.glb";
+const HERO_CRAFT_URL = "/models/space-kit/craft_speederA.glb";
 
-function HeroMech({ accent }: { accent: string }) {
-  const { scene } = useGLTF(HERO_MODEL_URL);
-  const cloned = useMemo(() => scene.clone(true), [scene]);
+function HeroMech({ accent, characterId }: { accent: string; characterId: CharacterId }) {
+  const { scene } = useGLTF(CHARACTER_MODEL_URL[characterId]);
+  const fitted = useMemo(() => {
+    const c = scene.clone(true);
+    fitObjectToHeight(c, 1.9);
+    return c;
+  }, [scene]);
+  const craftGltf = useGLTF(HERO_CRAFT_URL);
+  const craftCloned = useMemo(() => craftGltf.scene.clone(true), [craftGltf]);
   const groupRef = useRef<Group>(null);
   const accentRingRef = useRef<Mesh>(null);
 
@@ -106,8 +114,8 @@ function HeroMech({ accent }: { accent: string }) {
       return;
     }
     const t = clock.getElapsedTime();
-    node.position.y = 0.7 + Math.sin(t * 0.6) * 0.1;
-    node.rotation.y = Math.PI + Math.sin(t * 0.25) * 0.06;
+    node.position.y = Math.sin(t * 0.6) * 0.06;
+    node.rotation.y = Math.PI + Math.sin(t * 0.3) * 0.18;
     if (accentRingRef.current) {
       const mat = accentRingRef.current.material as { emissiveIntensity?: number };
       if (mat.emissiveIntensity !== undefined) {
@@ -117,17 +125,24 @@ function HeroMech({ accent }: { accent: string }) {
   });
 
   return (
-    <group ref={groupRef} position={[0, 0, 0.4]} scale={2.6}>
-      <primitive object={cloned} />
-      <mesh ref={accentRingRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
-        <ringGeometry args={[0.55, 0.7, 48]} />
+    <group ref={groupRef} position={[0, 0, 0.4]}>
+      <primitive object={fitted} />
+      <group position={[0, 0.05, -1.7]} scale={1.6}>
+        <primitive object={craftCloned} />
+      </group>
+      <mesh ref={accentRingRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+        <ringGeometry args={[0.7, 0.86, 48]} />
         <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.0} toneMapped={false} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+        <ringGeometry args={[1.0, 1.06, 64]} />
+        <meshBasicMaterial color={accent} transparent opacity={0.4} toneMapped={false} />
       </mesh>
     </group>
   );
 }
 
-useGLTF.preload(HERO_MODEL_URL);
+useGLTF.preload(HERO_CRAFT_URL);
 
 const SATELLITE_DISH_URL = "/models/space-kit/satelliteDish_large.glb";
 
@@ -385,10 +400,12 @@ function HomeStage({
   accent,
   ringColor,
   weatherCode,
+  characterId,
 }: {
   accent: string;
   ringColor: string;
   weatherCode: number | null;
+  characterId: CharacterId;
 }) {
   const isRain = weatherCode !== null && ((weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82));
   const isSnow = weatherCode !== null && ((weatherCode >= 71 && weatherCode <= 77) || (weatherCode >= 85 && weatherCode <= 86));
@@ -432,7 +449,7 @@ function HomeStage({
           </mesh>
         ))}
       </RotatingScenery>
-      <HeroMech accent={accent} />
+      <HeroMech accent={accent} characterId={characterId} />
 
       {isClear ? null : isSnow ? (
         <HomeSnowDrift />
@@ -538,6 +555,7 @@ export function HomeScene({
           accent={character.accentColor}
           ringColor={stage.ringColor}
           weatherCode={locationEnabled ? currentWeatherCode : null}
+          characterId={selectedCharacterId}
         />
       </Canvas>
 
