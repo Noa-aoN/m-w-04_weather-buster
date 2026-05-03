@@ -613,6 +613,52 @@ canvas {
   letter-spacing: 0.22em;
 }
 
+.seedRecent {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 3px;
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  letter-spacing: 0.16em;
+}
+
+.seedRecent li {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 220, 110, 0.18);
+  background: rgba(8, 18, 28, 0.55);
+  font-size: 11px;
+}
+
+.seedRecent .seedRank {
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 800;
+  text-shadow: 0 0 8px currentColor;
+}
+
+.seedRank--s { color: #fff7a8; }
+.seedRank--a { color: #fcd861; }
+.seedRank--b { color: #6cdcff; }
+.seedRank--c { color: #c4dce5; }
+.seedRank--d { color: #ff9aa6; }
+
+.seedRecent .seedEnemy {
+  color: #e8f4ff;
+  letter-spacing: 0.18em;
+}
+
+.seedRecent em {
+  color: #b6cad6;
+  font-style: normal;
+  font-size: 10px;
+}
+
 .weaponSpecialtyBadge {
   display: inline-block;
   margin-top: 4px;
