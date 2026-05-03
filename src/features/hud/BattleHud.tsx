@@ -377,6 +377,35 @@ function BossIntro({ enemyName, enemyTrait, threat }: { enemyName: string; enemy
   );
 }
 
+function EnemyChargeWarning() {
+  const enemyChargeStartedAt = useBattleStore((state) => state.enemyChargeStartedAt);
+  const enemyChargeFiresAt = useBattleStore((state) => state.enemyChargeFiresAt);
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    if (enemyChargeFiresAt === 0) {
+      setProgress(0);
+      return;
+    }
+    const id = window.setInterval(() => {
+      const total = Math.max(enemyChargeFiresAt - enemyChargeStartedAt, 1);
+      const elapsed = performance.now() - enemyChargeStartedAt;
+      const p = Math.min(1, Math.max(0, elapsed / total));
+      setProgress(p);
+      if (p >= 1) window.clearInterval(id);
+    }, 30);
+    return () => window.clearInterval(id);
+  }, [enemyChargeStartedAt, enemyChargeFiresAt]);
+  if (enemyChargeFiresAt === 0 || performance.now() >= enemyChargeFiresAt) {
+    return null;
+  }
+  return (
+    <div className="enemyChargeWarning" aria-hidden="true">
+      <span>SPECIAL INCOMING</span>
+      <div className="enemyChargeBar"><i style={{ width: `${progress * 100}%` }} /></div>
+    </div>
+  );
+}
+
 function ReloadIndicator() {
   const reloadingUntil = useBattleStore((state) => state.reloadingUntil);
   const reloadingStartedAt = useBattleStore((state) => state.reloadingStartedAt);
@@ -688,6 +717,7 @@ export function BattleHud({
       <BlockedIndicator />
       <BarrierWarning />
       <ReloadIndicator />
+      <EnemyChargeWarning />
       <ItemToast />
 
       {countdown !== null ? (

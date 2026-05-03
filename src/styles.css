@@ -2714,6 +2714,48 @@ canvas {
   100% { opacity: 1; transform: translate(-50%, 0); }
 }
 
+.enemyChargeWarning {
+  position: absolute;
+  top: 22%;
+  left: 50%;
+  z-index: 6;
+  display: grid;
+  gap: 6px;
+  padding: 8px 18px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 130, 70, 0.85);
+  background: rgba(60, 16, 16, 0.85);
+  color: #ffc678;
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  letter-spacing: 0.32em;
+  font-size: 14px;
+  pointer-events: none;
+  box-shadow: 0 0 24px rgba(255, 120, 60, 0.55);
+  animation: enemyChargePulse 0.5s ease-in-out infinite alternate;
+}
+
+.enemyChargeBar {
+  position: relative;
+  width: 220px;
+  height: 6px;
+  background: rgba(20, 8, 4, 0.95);
+  border: 1px solid rgba(255, 130, 70, 0.6);
+  overflow: hidden;
+}
+
+.enemyChargeBar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff8a3c, #ffd476, #ff6a40);
+  box-shadow: 0 0 12px #ffae5a;
+  transition: width 0.04s linear;
+}
+
+@keyframes enemyChargePulse {
+  0% { box-shadow: 0 0 8px rgba(255, 120, 60, 0.4); transform: translate(-50%, 0) scale(1); }
+  100% { box-shadow: 0 0 32px rgba(255, 120, 60, 0.95); transform: translate(-50%, 0) scale(1.04); }
+}
+
 .skillStatus--ready {
   border-color: rgba(255, 220, 110, 0.95);
   box-shadow: 0 0 24px rgba(255, 200, 70, 0.55), inset 0 0 18px rgba(255, 220, 110, 0.18);
