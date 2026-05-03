@@ -9,7 +9,7 @@ import { characters, findCharacter, findStage, findWeapon, stages, weapons, weat
 import { useGeolocationWeather, weatherCodeLabel } from "../features/weather/useGeolocationWeather";
 import type { CharacterId, DifficultyLevel, LoadoutTab } from "../game/types";
 import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
-import { fitObjectToHeight } from "../entities/fitObject";
+import { fitObjectToHeight, tintCharacterMaterials } from "../entities/fitObject";
 import { AudioToggle } from "../features/audio/AudioToggle";
 
 function StartIcon() {
@@ -102,8 +102,9 @@ function HeroMech({ accent, characterId }: { accent: string; characterId: Charac
   const { fitted, animations } = useMemo(() => {
     const cloned = SkeletonUtils.clone(fbx) as Group;
     fitObjectToHeight(cloned, 2.2);
+    tintCharacterMaterials(cloned, accent, 0.28);
     return { fitted: cloned, animations: fbx.animations as AnimationClip[] };
-  }, [fbx]);
+  }, [fbx, accent]);
   const groupRef = useRef<Group>(null);
   const innerRef = useRef<Group>(null);
   const accentRingRef = useRef<Mesh>(null);
@@ -186,6 +187,48 @@ function HeroMech({ accent, characterId }: { accent: string; characterId: Charac
         <ringGeometry args={[1.0, 1.06, 64]} />
         <meshBasicMaterial color={accent} transparent opacity={0.4} toneMapped={false} />
       </mesh>
+      <HeroSparkles accent={accent} />
+    </group>
+  );
+}
+
+function HeroSparkles({ accent }: { accent: string }) {
+  const groupRef = useRef<Group>(null);
+  const sparkles = useMemo(
+    () =>
+      Array.from({ length: 18 }, (_, i) => ({
+        baseAngle: (i / 18) * Math.PI * 2,
+        radius: 0.85 + Math.random() * 0.25,
+        height: 0.3 + Math.random() * 1.7,
+        speed: 0.4 + Math.random() * 0.4,
+        scale: 0.04 + Math.random() * 0.06,
+      })),
+    [],
+  );
+  useFrame(({ clock }) => {
+    const node = groupRef.current;
+    if (!node) return;
+    const t = clock.getElapsedTime();
+    node.children.forEach((child, i) => {
+      const data = sparkles[i];
+      const angle = data.baseAngle + t * data.speed;
+      child.position.x = Math.cos(angle) * data.radius;
+      child.position.z = Math.sin(angle) * data.radius;
+      child.position.y = data.height + Math.sin(t * 1.4 + i) * 0.18;
+      const mat = (child as { material?: { emissiveIntensity?: number; opacity?: number } }).material;
+      if (mat?.emissiveIntensity !== undefined) {
+        mat.emissiveIntensity = 1 + Math.sin(t * 3 + i) * 0.6;
+      }
+    });
+  });
+  return (
+    <group ref={groupRef}>
+      {sparkles.map((s, i) => (
+        <mesh key={i} position={[Math.cos(s.baseAngle) * s.radius, s.height, Math.sin(s.baseAngle) * s.radius]}>
+          <sphereGeometry args={[s.scale, 6, 6]} />
+          <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.4} toneMapped={false} transparent opacity={0.9} />
+        </mesh>
+      ))}
     </group>
   );
 }

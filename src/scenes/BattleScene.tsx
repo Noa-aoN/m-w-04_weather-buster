@@ -10,7 +10,7 @@ import { LightningWarnings } from "../entities/LightningWarnings";
 import { StageTerrain } from "../entities/StageTerrain";
 import { WeaponObject, weaponModelRotation } from "../entities/WeaponModel";
 import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
-import { fitObjectToHeight } from "../entities/fitObject";
+import { fitObjectToHeight, tintCharacterMaterials } from "../entities/fitObject";
 import { BattleHud } from "../features/hud/BattleHud";
 import { PlayerController } from "../features/player/PlayerController";
 import { difficultyModifiers, stages, weatherEnemies } from "../game/data";
@@ -132,12 +132,19 @@ function PlayerBackAvatar() {
   const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
   const charFbx = useFBX(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.iris);
+  const characterAccent = useBattleStore((state) => {
+    const id = state.selectedCharacterId;
+    if (id === "iris") return "#28d9ff";
+    if (id === "halo") return "#6cdcff";
+    return "#ffd84d";
+  });
 
   const { charFitted, animations } = useMemo(() => {
     const cloned = SkeletonUtils.clone(charFbx) as Group;
     fitObjectToHeight(cloned, 1.7);
+    tintCharacterMaterials(cloned, characterAccent, 0.22);
     return { charFitted: cloned, animations: charFbx.animations as AnimationClip[] };
-  }, [charFbx]);
+  }, [charFbx, characterAccent]);
 
   const { actions, names } = useAnimations(animations, charRef);
 
