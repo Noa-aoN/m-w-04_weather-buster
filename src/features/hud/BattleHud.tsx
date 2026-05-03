@@ -1,9 +1,24 @@
 import { useEffect, useRef, useState } from "react";
-import { findCharacter, findStage, findWeapon, weatherEnemies } from "../../game/data";
+import { findCharacter, findItem, findStage, findWeapon, weatherEnemies } from "../../game/data";
 import { useBattleStore } from "../../game/battleStore";
 import { calculateSunnyScore } from "../../game/score";
 import { requestPointerLock } from "../player/lockControls";
 import { playCountdownGo, playCountdownTick } from "../audio/audio";
+import type { ItemId } from "../../game/types";
+
+const ITEM_ICONS: Record<ItemId, string> = {
+  clearTonic: "☀",
+  lightningRod: "⚡",
+  decoyUmbrella: "☂",
+  pressureStabilizer: "◎",
+};
+
+const ITEM_ACCENT_COLOR: Record<ItemId, string> = {
+  clearTonic: "#ffd76a",
+  lightningRod: "#a3c8ff",
+  decoyUmbrella: "#9af0d8",
+  pressureStabilizer: "#ff9eb6",
+};
 
 const controlHints: Array<[string, string]> = [
   ["W A S D", "移動"],
@@ -52,21 +67,37 @@ function WeaponIcon() {
 
 function SkillFlash() {
   const lastSkillAt = useBattleStore((state) => state.lastSkillAt);
+  const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
   const [active, setActive] = useState(false);
+  const weapon = findWeapon(selectedWeaponId);
 
   useEffect(() => {
     if (lastSkillAt === 0) {
       return;
     }
     setActive(true);
-    const id = window.setTimeout(() => setActive(false), 600);
+    const id = window.setTimeout(() => setActive(false), 1200);
     return () => window.clearTimeout(id);
   }, [lastSkillAt]);
 
   if (!active) {
     return null;
   }
-  return <div className="skillFlash" key={lastSkillAt} aria-hidden="true" />;
+  return (
+    <>
+      <div className="skillFlash" key={`flash-${lastSkillAt}`} aria-hidden="true" />
+      <div className="skillBurst" key={`burst-${lastSkillAt}`} aria-hidden="true">
+        <span className="skillBurstRing" />
+        <span className="skillBurstRing skillBurstRing--two" />
+        <span className="skillBurstRing skillBurstRing--three" />
+      </div>
+      <div className="skillNameBanner" key={`name-${lastSkillAt}`} aria-hidden="true">
+        <span className="skillNameLabel">SKILL</span>
+        <strong>{weapon.skillName}</strong>
+        <span className="skillNameWeapon">{weapon.name}</span>
+      </div>
+    </>
+  );
 }
 
 function HitMarker({ color }: { color: string }) {
@@ -154,6 +185,105 @@ function ComboCounter() {
       <span className="comboHit">HIT</span>
     </div>
   );
+}
+
+function ScreenShake() {
+  const lastShotCritical = useBattleStore((state) => state.lastShotCritical);
+  const lastShotAt = useBattleStore((state) => state.lastShotAt);
+  const lastShieldBlockAt = useBattleStore((state) => state.lastShieldBlockAt);
+  const lastSkillAt = useBattleStore((state) => state.lastSkillAt);
+  const status = useBattleStore((state) => state.status);
+  const [shake, setShake] = useState<{ key: number; intensity: "light" | "heavy" } | null>(null);
+
+  useEffect(() => {
+    if (!lastShotCritical || lastShotAt === 0) return;
+    setShake({ key: lastShotAt, intensity: "light" });
+  }, [lastShotCritical, lastShotAt]);
+
+  useEffect(() => {
+    if (lastShieldBlockAt === 0) return;
+    setShake({ key: lastShieldBlockAt, intensity: "heavy" });
+  }, [lastShieldBlockAt]);
+
+  useEffect(() => {
+    if (lastSkillAt === 0) return;
+    setShake({ key: lastSkillAt, intensity: "heavy" });
+  }, [lastSkillAt]);
+
+  useEffect(() => {
+    if (status === "clear" || status === "defeat") {
+      setShake({ key: Date.now(), intensity: "heavy" });
+    }
+  }, [status]);
+
+  if (!shake) {
+    return null;
+  }
+  return <div className={`screenShake screenShake--${shake.intensity}`} key={shake.key} aria-hidden="true" />;
+}
+
+function LowHpVignette() {
+  const playerHp = useBattleStore((state) => state.playerHp);
+  const playerMaxHp = useBattleStore((state) => state.playerMaxHp);
+  const status = useBattleStore((state) => state.status);
+  const ratio = playerHp / Math.max(playerMaxHp, 1);
+  const active = status === "battle" && ratio < 0.32 && ratio > 0;
+  if (!active) {
+    return null;
+  }
+  const intensity = ratio < 0.18 ? "critical" : "warn";
+  return <div className={`lowHpVignette lowHpVignette--${intensity}`} aria-hidden="true" />;
+}
+
+function ItemToast() {
+  const lastItemAt = useBattleStore((state) => state.lastItemAt);
+  const lastItemId = useBattleStore((state) => state.lastItemId);
+  const [active, setActive] = useState(false);
+  useEffect(() => {
+    if (lastItemAt === 0 || !lastItemId) {
+      return;
+    }
+    setActive(true);
+    const id = window.setTimeout(() => setActive(false), 1800);
+    return () => window.clearTimeout(id);
+  }, [lastItemAt, lastItemId]);
+  if (!active || !lastItemId) {
+    return null;
+  }
+  const item = findItem(lastItemId);
+  if (!item) {
+    return null;
+  }
+  const accent = ITEM_ACCENT_COLOR[lastItemId];
+  const icon = ITEM_ICONS[lastItemId];
+  return (
+    <div
+      className="itemToast"
+      key={lastItemAt}
+      style={{ ["--toast-accent" as string]: accent }}
+      aria-hidden="true"
+    >
+      <span className="itemToastIcon">{icon}</span>
+      <div className="itemToastBody">
+        <strong>{item.name}</strong>
+        <span>{item.effect}</span>
+      </div>
+    </div>
+  );
+}
+
+function BattleStartFlash() {
+  const status = useBattleStore((state) => state.status);
+  const [flash, setFlash] = useState(0);
+  useEffect(() => {
+    if (status === "battle") {
+      setFlash(Date.now());
+    }
+  }, [status]);
+  if (flash === 0) {
+    return null;
+  }
+  return <div className="battleStartFlash" key={flash} aria-hidden="true" />;
 }
 
 export function BattleHud({
@@ -349,6 +479,10 @@ export function BattleHud({
       <SkillFlash />
       <DamagePopups />
       <ComboCounter />
+      <ScreenShake />
+      <LowHpVignette />
+      <BattleStartFlash />
+      <ItemToast />
 
       {countdown !== null ? (
         <div className={`countdownOverlay ${countdown === "GO" ? "go" : ""}`} aria-hidden="true">
