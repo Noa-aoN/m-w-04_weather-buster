@@ -119,6 +119,8 @@ type BattleState = {
   lastKnockbackAt: number;
   reloadingUntil: number;
   reloadingStartedAt: number;
+  enemyChargeStartedAt: number;
+  enemyChargeFiresAt: number;
   selectEnemy: (id: WeatherEnemyId) => void;
   selectWeapon: (id: WeaponId) => void;
   selectCharacter: (id: CharacterId) => void;
@@ -153,6 +155,7 @@ type BattleState = {
   raiseEnemyBarrier: (durationMs: number) => void;
   applyKnockback: (vx: number, vz: number) => void;
   consumeKnockback: () => { vx: number; vz: number };
+  beginEnemyCharge: (firesAt: number) => void;
 };
 
 const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
@@ -188,6 +191,8 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   lastKnockbackAt: 0,
   reloadingUntil: 0,
   reloadingStartedAt: 0,
+  enemyChargeStartedAt: 0,
+  enemyChargeFiresAt: 0,
 });
 
 const findEnemy = (id: WeatherEnemyId) =>
@@ -560,6 +565,13 @@ export const useBattleStore = create<BattleState>((set, get) => {
       // Decay 92% per call (caller is per-frame)
       set({ knockbackVx: state.knockbackVx * 0.86, knockbackVz: state.knockbackVz * 0.86 });
       return result;
+    },
+    beginEnemyCharge: (firesAt) => {
+      const state = get();
+      if (state.status !== "battle") {
+        return;
+      }
+      set({ enemyChargeStartedAt: performance.now(), enemyChargeFiresAt: firesAt });
     },
   };
 });

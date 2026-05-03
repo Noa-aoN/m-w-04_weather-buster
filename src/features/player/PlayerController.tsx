@@ -226,6 +226,14 @@ export function PlayerController({
       // Initialize on first frame after battle start (gives ~10s grace)
       nextSpecialAt.current = now + getSpecialDelay(enemy.id);
     }
+    // Pre-fire charge window (1.2s before special)
+    const CHARGE_LEAD_MS = 1200;
+    if (enemy && pattern && nextSpecialAt.current !== 0) {
+      const leadStart = nextSpecialAt.current - CHARGE_LEAD_MS;
+      if (now >= leadStart && state.enemyChargeFiresAt !== nextSpecialAt.current) {
+        state.beginEnemyCharge(nextSpecialAt.current);
+      }
+    }
     if (enemy && pattern && now >= nextSpecialAt.current && nextSpecialAt.current !== 0) {
       const diffMod = difficultyModifiers[state.selectedDifficulty];
       const burstCount = getSpecialBurstCount(enemy.id);

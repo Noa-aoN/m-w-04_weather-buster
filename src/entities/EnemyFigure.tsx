@@ -148,6 +148,53 @@ function HitCracks({ color }: { color: string }) {
   );
 }
 
+function EnemyChargeFx({ color }: { color: string }) {
+  const groupRef = useRef<Group>(null);
+  const enemyChargeStartedAt = useBattleStore((state) => state.enemyChargeStartedAt);
+  const enemyChargeFiresAt = useBattleStore((state) => state.enemyChargeFiresAt);
+  useFrame(({ clock }) => {
+    const node = groupRef.current;
+    if (!node) {
+      return;
+    }
+    const now = performance.now();
+    const active = enemyChargeFiresAt > 0 && now < enemyChargeFiresAt && now >= enemyChargeStartedAt;
+    node.visible = active;
+    if (!active) {
+      return;
+    }
+    const total = Math.max(enemyChargeFiresAt - enemyChargeStartedAt, 1);
+    const k = Math.min(1, (now - enemyChargeStartedAt) / total);
+    const flicker = (Math.sin(clock.getElapsedTime() * 24) + 1) * 0.5;
+    const expand = 1 + k * 0.6;
+    node.scale.setScalar(expand);
+    node.rotation.y = clock.getElapsedTime() * 2.2;
+    node.children.forEach((child, idx) => {
+      const mat = (child as { material?: { opacity?: number; emissiveIntensity?: number } }).material;
+      if (mat) {
+        if (mat.opacity !== undefined) mat.opacity = 0.18 + k * 0.4 + flicker * 0.18 * (idx + 1);
+        if (mat.emissiveIntensity !== undefined) mat.emissiveIntensity = 1.5 + k * 1.6 + flicker * 1.4;
+      }
+    });
+  });
+  return (
+    <group ref={groupRef} visible={false}>
+      <mesh>
+        <sphereGeometry args={[1.1, 22, 18]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.6} transparent opacity={0.32} toneMapped={false} />
+      </mesh>
+      <mesh rotation={[0, 0, Math.PI / 4]}>
+        <torusGeometry args={[1.45, 0.04, 12, 64]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2.2} transparent opacity={0.55} toneMapped={false} />
+      </mesh>
+      <mesh rotation={[Math.PI / 3, 0, 0]}>
+        <torusGeometry args={[1.65, 0.035, 12, 64]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2.0} transparent opacity={0.4} toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
+
 function EnemyBarrier({ color }: { color: string }) {
   const meshRef = useRef<Group>(null);
   const enemyBarrierUntil = useBattleStore((state) => state.enemyBarrierUntil);
@@ -253,6 +300,7 @@ export function EnemyFigure({ enemy, clear }: { enemy: WeatherEnemy; clear: bool
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
         <EnemyBarrier color={enemy.accentColor} />
+        <EnemyChargeFx color={enemy.accentColor} />
       </group>
       <DefeatBurst color={enemy.coreColor} />
     </>
