@@ -1752,6 +1752,26 @@ canvas {
   box-shadow: 0 0 32px rgba(255, 220, 110, 0.6) inset, 0 0 32px rgba(255, 220, 110, 0.6);
 }
 
+.resultPersonalBest {
+  position: relative;
+  z-index: 5;
+  margin-top: 10px;
+  padding: 4px 14px;
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  letter-spacing: 0.32em;
+  font-size: 13px;
+  color: #fff8e2;
+  background: linear-gradient(90deg, rgba(255, 138, 36, 0.92), rgba(255, 80, 110, 0.86));
+  text-shadow: 0 0 10px rgba(255, 200, 70, 0.7);
+  box-shadow: 0 0 20px rgba(255, 130, 60, 0.55);
+  animation: personalBestPulse 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes personalBestPulse {
+  0% { box-shadow: 0 0 12px rgba(255, 130, 60, 0.32); transform: scale(1); }
+  100% { box-shadow: 0 0 28px rgba(255, 130, 60, 0.95); transform: scale(1.06); }
+}
+
 @keyframes rankRingExpand {
   0% { width: 80px; height: 80px; opacity: 0; }
   20% { opacity: 1; }
