@@ -2840,45 +2840,59 @@ canvas {
 
 .reloadIndicator {
   position: absolute;
-  bottom: 92px;
+  top: 56%;
   left: 50%;
   z-index: 6;
   display: grid;
   grid-template-columns: auto;
-  gap: 6px;
-  padding: 8px 18px;
-  transform: translateX(-50%);
-  border: 1px solid rgba(255, 220, 110, 0.85);
-  background: rgba(40, 28, 8, 0.78);
+  justify-items: center;
+  gap: 10px;
+  padding: 16px 36px;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 220, 110, 0.95);
+  background: linear-gradient(135deg, rgba(60, 40, 8, 0.92), rgba(20, 14, 4, 0.95));
   color: #ffe88e;
   font-family: "Bebas Neue", "Oswald", sans-serif;
-  letter-spacing: 0.32em;
-  font-size: 14px;
+  letter-spacing: 0.36em;
+  font-size: 22px;
   pointer-events: none;
-  box-shadow: 0 0 24px rgba(255, 200, 70, 0.45);
-  animation: reloadAnim 0.2s ease-out;
+  box-shadow: 0 0 42px rgba(255, 200, 70, 0.65), inset 0 0 22px rgba(255, 220, 110, 0.18);
+  animation: reloadAnim 0.18s ease-out, reloadPulse 0.7s ease-in-out infinite alternate;
+  text-shadow: 0 0 10px rgba(255, 220, 110, 0.95), 0 2px 0 #2a1605;
 }
 
 .reloadBar {
   position: relative;
-  width: 200px;
-  height: 6px;
+  width: 280px;
+  height: 10px;
   background: rgba(40, 28, 8, 0.95);
-  border: 1px solid rgba(255, 220, 110, 0.6);
+  border: 1px solid rgba(255, 220, 110, 0.7);
   overflow: hidden;
 }
 
 .reloadBar i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #ffe88e, #fff5b8);
-  box-shadow: 0 0 12px #ffe88e;
+  background: linear-gradient(90deg, #ffe88e, #fff5b8, #ffe88e);
+  background-size: 200% 100%;
+  box-shadow: 0 0 18px #ffe88e;
   transition: width 0.04s linear;
+  animation: reloadBarShine 1s linear infinite;
 }
 
 @keyframes reloadAnim {
-  0% { opacity: 0; transform: translate(-50%, 6px); }
-  100% { opacity: 1; transform: translate(-50%, 0); }
+  0% { opacity: 0; transform: translate(-50%, calc(-50% + 12px)) scale(0.9); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes reloadPulse {
+  0% { box-shadow: 0 0 24px rgba(255, 200, 70, 0.45), inset 0 0 14px rgba(255, 220, 110, 0.12); }
+  100% { box-shadow: 0 0 56px rgba(255, 200, 70, 0.85), inset 0 0 26px rgba(255, 220, 110, 0.32); }
+}
+
+@keyframes reloadBarShine {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
 }
 
 .enemyChargeWarning {

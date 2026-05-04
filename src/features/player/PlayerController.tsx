@@ -7,6 +7,7 @@ import {
   difficultyModifiers,
   enemyAttackPatterns,
   findStage,
+  findWeapon,
   weatherEnemies,
 } from "../../game/data";
 import { setLockTarget } from "./lockControls";
@@ -333,6 +334,8 @@ export function PlayerController({
     }
   });
 
+  const lastTriggerAtRef = useRef(0);
+
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
       if (document.pointerLockElement !== gl.domElement) return;
@@ -343,7 +346,18 @@ export function PlayerController({
         store.setShieldActive(true);
         return;
       }
-      if (event.button !== 0 || store.ammo <= 0) return;
+      if (event.button !== 0) return;
+      // Block while reloading or empty so a click during reload doesn't feel
+      // randomly broken — combined with the brighter HUD indicator the player
+      // should always know why a shot didn't go off.
+      const now = performance.now();
+      if (now < store.reloadingUntil || store.ammo <= 0) return;
+      // Per-weapon fire rate enforcement. Without this, fast clicking either
+      // spammed shots (no cooldown) or felt inconsistent. With it, the gun
+      // has a predictable rhythm.
+      const weapon = findWeapon(store.selectedWeaponId);
+      if (now - lastTriggerAtRef.current < weapon.fireRateMs) return;
+      lastTriggerAtRef.current = now;
 
       const dir = forward.current;
       camera.getWorldDirection(dir);
