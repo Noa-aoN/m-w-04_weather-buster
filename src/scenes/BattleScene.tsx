@@ -46,8 +46,15 @@ function PlayerWeapon() {
     node.translateX(0.34);
     node.translateY(-0.3);
     node.translateZ(-0.55);
-    const recoil = Math.max(0, 1 - (performance.now() - lastShotAt) / 90);
-    node.translateZ(recoil * 0.08);
+    // Recoil: punch back along camera axis (~ +Z) and tip the muzzle up briefly.
+    const sinceShot = performance.now() - lastShotAt;
+    const recoilK = lastShotAt > 0 ? Math.max(0, 1 - sinceShot / 130) : 0;
+    if (recoilK > 0) {
+      const eased = recoilK * recoilK; // sharper attack, smoother decay
+      node.translateZ(eased * 0.12);
+      node.translateY(eased * 0.04);
+      node.rotateX(eased * 0.18);
+    }
   });
 
   if (cameraMode === "tps") {
