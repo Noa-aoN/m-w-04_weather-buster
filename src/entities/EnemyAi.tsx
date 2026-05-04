@@ -3,6 +3,7 @@ import { useRef } from "react";
 import type { Group, Vector3 } from "three";
 import { useBattleStore } from "../game/battleStore";
 import { difficultyModifiers } from "../game/data";
+import { isDebugEnabled, writeDebug } from "../features/debug/debugBus";
 import type { DifficultyLevel, WeatherEnemy } from "../game/types";
 
 // Per-enemy AI motion. When evolving, see AGENTS.md "敵 AI を触るとき" — the
@@ -282,6 +283,19 @@ export function EnemyMotion({
     }
 
     enemyPositionRef.current.copy(node.position);
+
+    if (isDebugEnabled()) {
+      const dxDebug = node.position.x - playerX;
+      const dzDebug = node.position.z - playerZ;
+      const distDebug = Math.sqrt(dxDebug * dxDebug + dzDebug * dzDebug);
+      writeDebug({
+        aiPhase: phase.mode,
+        aiPhaseT: phase.t,
+        enemyDistance: distDebug,
+        enemyPosY: node.position.y,
+        hitFlinch,
+      });
+    }
   });
   return null;
 }
