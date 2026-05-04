@@ -9,6 +9,14 @@ import {
   weapons,
   weatherEnemies,
 } from "./data";
+import {
+  COMBAT_CONSTANTS,
+  applyShot,
+  computeIncomingDamage,
+  computeReloadMs,
+  enemyMaxHpFor,
+  shieldAfterBlock,
+} from "./combatRules";
 import type {
   BattleStatus,
   BattleCameraMode,
@@ -18,23 +26,17 @@ import type {
   StageId,
   Weapon,
   WeaponId,
-  WeatherEnemy,
   WeatherEnemyId,
 } from "./types";
 
-const PLAYER_MAX_HP = 1000;
-const ENEMY_TICK_DAMAGE_BASE = 4;
-const HIT_GAUGE_GAIN = 8;
-const CRITICAL_GAUGE_GAIN = 14;
-const MISS_GAUGE_GAIN = 2;
-const HEAL_AMOUNT = 350;
-const STABILIZER_GAUGE_GAIN = 60;
-const DECOY_DURATION_MS = 5000;
-const DECOY_DAMAGE_RATIO = 0.4;
-const CORE_DAMAGE_MULTIPLIER = 2.4;
-const SHIELD_DAMAGE_RATIO = 0.28;
-const SHIELD_DRAIN_PER_BLOCK = 18;
-const SHIELD_REGEN_PER_SECOND = 9;
+const {
+  PLAYER_MAX_HP,
+  HEAL_AMOUNT,
+  STABILIZER_GAUGE_GAIN,
+  DECOY_DURATION_MS,
+  ENEMY_TICK_DAMAGE_BASE,
+  SHIELD_REGEN_PER_SECOND,
+} = COMBAT_CONSTANTS;
 const DEFAULT_ENEMY_INDEX = 2;
 const DEFAULT_WEAPON_INDEX = 1;
 const DEFAULT_CHARACTER_ID: CharacterId = "halo";
@@ -46,9 +48,6 @@ const initialStocks = (multiplier: number): Record<ItemId, number> => {
   }
   return stocks;
 };
-
-const enemyMaxHpFor = (enemy: WeatherEnemy, difficulty: DifficultyLevel) =>
-  Math.round(enemy.maxHp * difficultyModifiers[difficulty].hp);
 
 type AttackKind = "arc" | "linear" | "falling";
 
@@ -213,42 +212,6 @@ const findEnemy = (id: WeatherEnemyId) =>
   weatherEnemies.find((enemy) => enemy.id === id) ??
   weatherEnemies[DEFAULT_ENEMY_INDEX];
 
-const computeIncomingDamage = (
-  amount: number,
-  decoyUntil: number,
-  characterMul: number,
-  shieldActive: boolean,
-  shieldEnergy: number,
-) => {
-  const reduced = Date.now() < decoyUntil ? amount * DECOY_DAMAGE_RATIO : amount;
-  const guarded = shieldActive && shieldEnergy > 0 ? reduced * SHIELD_DAMAGE_RATIO : reduced;
-  return guarded * characterMul;
-};
-
-const shieldAfterBlock = (shieldActive: boolean, shieldEnergy: number) =>
-  shieldActive && shieldEnergy > 0
-    ? Math.max(0, shieldEnergy - SHIELD_DRAIN_PER_BLOCK)
-    : shieldEnergy;
-
-const computeOutgoingDamage = (
-  weapon: Weapon,
-  enemyId: WeatherEnemyId,
-  characterMul: number,
-) => {
-  const specialty = weapon.specialtyAgainst.includes(enemyId)
-    ? weapon.specialtyMultiplier
-    : 1;
-  return weapon.damage * specialty * characterMul;
-};
-
-const computeReloadMs = (weapon: Weapon) => {
-  // Heavier weapons take longer to reload, capped to a reasonable range
-  if (weapon.maxAmmo <= 8) return 1700;
-  if (weapon.maxAmmo <= 14) return 1300;
-  if (weapon.maxAmmo <= 22) return 1100;
-  return 950;
-};
-
 const SEED_STORAGE_KEY = "weatherbuster-seeds-v1";
 
 type SeedSnapshot = {
@@ -394,43 +357,41 @@ export const useBattleStore = create<BattleState>((set, get) => {
       }
       const weapon = findWeapon(state.selectedWeaponId);
       const character = findCharacter(state.selectedCharacterId);
-      const nowMs = now;
-      const blocked = didHit && nowMs < state.enemyBarrierUntil;
-      const baseDamage = didHit
-        ? computeOutgoingDamage(weapon, state.selectedEnemyId, character.damageMultiplier)
-        : 0;
-      const blockMul = blocked ? 0.18 : 1;
-      const damage = (critical ? baseDamage * CORE_DAMAGE_MULTIPLIER : baseDamage) * blockMul;
-      const nextHp = Math.max(state.enemyHp - damage, 0);
-      const baseGauge = didHit ? (critical ? CRITICAL_GAUGE_GAIN : HIT_GAUGE_GAIN) : MISS_GAUGE_GAIN;
-      const gaugeMul = blocked ? 0.4 : 1;
-      const gauge = Math.min(
-        state.pressureGauge + baseGauge * character.gaugeGainMultiplier * gaugeMul,
-        100,
-      );
-      const becomesClear = nextHp === 0 && state.enemyHp > 0;
-      const comboReset = nowMs - state.lastComboAt > 2400;
-      const nextCombo = didHit && !blocked ? (comboReset ? 1 : state.combo + 1) : (blocked ? state.combo : 0);
-      const nextComboBest = Math.max(state.comboBest, nextCombo);
+      const patch = applyShot({
+        didHit,
+        critical,
+        weapon,
+        character,
+        enemyId: state.selectedEnemyId,
+        state: {
+          enemyHp: state.enemyHp,
+          pressureGauge: state.pressureGauge,
+          enemyBarrierUntil: state.enemyBarrierUntil,
+          combo: state.combo,
+          comboBest: state.comboBest,
+          lastComboAt: state.lastComboAt,
+        },
+        now,
+      });
       set({
         ammo: state.ammo - 1,
         shotsFired: state.shotsFired + 1,
         shotsHit: state.shotsHit + (didHit ? 1 : 0),
-        enemyHp: nextHp,
-        pressureGauge: gauge,
-        status: nextHp === 0 ? "clear" : state.status,
-        lastShotAt: nowMs,
+        enemyHp: patch.enemyHp,
+        pressureGauge: patch.pressureGauge,
+        status: patch.enemyHp === 0 ? "clear" : state.status,
+        lastShotAt: now,
         lastShotHit: didHit,
-        lastShotCritical: didHit && critical && !blocked,
-        lastShotDamage: damage,
-        lastBlockedAt: blocked ? nowMs : state.lastBlockedAt,
-        lastDefeatAt: becomesClear ? Date.now() : state.lastDefeatAt,
-        combo: nextCombo,
-        comboBest: nextComboBest,
-        lastComboAt: didHit && !blocked ? nowMs : state.lastComboAt,
+        lastShotCritical: patch.effectiveCritical,
+        lastShotDamage: patch.damage,
+        lastBlockedAt: patch.blocked ? now : state.lastBlockedAt,
+        lastDefeatAt: patch.becomesClear ? Date.now() : state.lastDefeatAt,
+        combo: patch.combo,
+        comboBest: patch.comboBest,
+        lastComboAt: patch.lastComboAt,
       });
-      // Auto-reload when the magazine empties (battle continues)
-      if (state.ammo - 1 === 0 && nextHp > 0) {
+      // Auto-reload when the magazine empties and battle continues
+      if (state.ammo - 1 === 0 && patch.shouldAutoReload) {
         useBattleStore.getState().reload();
       }
     },
