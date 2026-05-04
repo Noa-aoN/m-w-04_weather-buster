@@ -31,10 +31,11 @@ export function fitObjectToSize(object: Object3D, targetSize: number) {
 }
 
 // Clone materials so the tint stays unique to this instance (preventing accent
-// bleed between simultaneous renders) and apply a subtle accent emissive to
-// give the otherwise grey Quaternius soldier models a colorful, character-
-// specific glow.
-export function tintCharacterMaterials(object: Object3D, accent: string, intensity = 0.22) {
+// bleed between simultaneous renders) and apply a very subtle accent emissive
+// rim to nudge the colour toward the pilot's accent, without overriding the
+// original Quaternius palette. Earlier versions overwrote metalness/roughness
+// which made the soldier look plasticky and wrong.
+export function tintCharacterMaterials(object: Object3D, accent: string, intensity = 0.05) {
   object.traverse((child) => {
     const mesh = child as Mesh;
     if (!mesh.isMesh || !mesh.material) return;
@@ -46,8 +47,6 @@ export function tintCharacterMaterials(object: Object3D, accent: string, intensi
         tinted.emissive.set(accent);
         tinted.emissiveIntensity = intensity;
       }
-      tinted.metalness = Math.max(tinted.metalness ?? 0, 0.16);
-      tinted.roughness = Math.min(tinted.roughness ?? 0.8, 0.62);
       return tinted;
     };
     if (Array.isArray(mesh.material)) {
