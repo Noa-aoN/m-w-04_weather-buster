@@ -2895,6 +2895,48 @@ canvas {
   100% { background-position: 200% 50%; }
 }
 
+.reloadPrompt {
+  position: absolute;
+  top: 44%;
+  left: 50%;
+  z-index: 6;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 14px 32px;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 110, 130, 0.95);
+  background: linear-gradient(135deg, rgba(70, 12, 22, 0.92), rgba(20, 4, 10, 0.95));
+  color: #ffb6c2;
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  pointer-events: none;
+  box-shadow: 0 0 36px rgba(255, 90, 110, 0.65), inset 0 0 22px rgba(255, 90, 110, 0.18);
+  animation: reloadPromptPulse 0.55s ease-in-out infinite alternate, reloadPromptEnter 0.18s ease-out;
+}
+
+.reloadPromptKick {
+  font-size: 28px;
+  letter-spacing: 0.32em;
+  color: #fff7c2;
+  text-shadow: 0 0 14px rgba(255, 110, 130, 0.95), 0 2px 0 #2a040a;
+}
+
+.reloadPromptHint {
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  color: #ffd6dc;
+}
+
+@keyframes reloadPromptPulse {
+  0% { box-shadow: 0 0 16px rgba(255, 90, 110, 0.4), inset 0 0 14px rgba(255, 90, 110, 0.1); }
+  100% { box-shadow: 0 0 56px rgba(255, 110, 130, 1), inset 0 0 28px rgba(255, 90, 110, 0.34); }
+}
+
+@keyframes reloadPromptEnter {
+  0% { opacity: 0; transform: translate(-50%, calc(-50% + 8px)) scale(0.92); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
 .enemyChargeWarning {
   position: absolute;
   top: 22%;

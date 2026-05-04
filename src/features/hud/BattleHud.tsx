@@ -23,8 +23,9 @@ const ITEM_ACCENT_COLOR: Record<ItemId, string> = {
 const controlHints: Array<[string, string]> = [
   ["W A S D", "移動"],
   ["MOUSE", "視点"],
-  ["CLICK", "射撃"],
-  ["RIGHT", "シールド"],
+  ["L-CLICK", "射撃"],
+  ["R-CLICK", "リロード"],
+  ["B", "気象シールド"],
   ["SPACE", "ジャンプ"],
   ["SHIFT", "ダッシュ"],
   ["R", "リロード"],
@@ -438,6 +439,30 @@ function EnemyChargeWarning() {
   );
 }
 
+function ReloadPromptOverlay() {
+  // Shows "RELOAD!" when the player has 0 ammo OR when they tried to fire
+  // empty (lastEmptyClickAt) within the last 1.4s. Manual reload (R / right
+  // click) clears it implicitly when ammo refills.
+  const ammo = useBattleStore((s) => s.ammo);
+  const status = useBattleStore((s) => s.status);
+  const reloadingUntil = useBattleStore((s) => s.reloadingUntil);
+  const lastEmptyClickAt = useBattleStore((s) => s.lastEmptyClickAt);
+  const [pulse, setPulse] = useState(0);
+  useEffect(() => {
+    if (lastEmptyClickAt === 0) return;
+    setPulse(lastEmptyClickAt);
+  }, [lastEmptyClickAt]);
+  if (status !== "battle") return null;
+  if (ammo > 0) return null;
+  if (performance.now() < reloadingUntil) return null;
+  return (
+    <div className="reloadPrompt" key={pulse} aria-hidden="true">
+      <span className="reloadPromptKick">RELOAD!</span>
+      <span className="reloadPromptHint">右クリック / R で装填</span>
+    </div>
+  );
+}
+
 function ReloadIndicator() {
   const reloadingUntil = useBattleStore((state) => state.reloadingUntil);
   const reloadingStartedAt = useBattleStore((state) => state.reloadingStartedAt);
@@ -775,6 +800,7 @@ export function BattleHud({
       <BlockedIndicator />
       <BarrierWarning />
       <ReloadIndicator />
+      <ReloadPromptOverlay />
       <EnemyChargeWarning />
       <SlowIndicator />
       <DashOverlay />

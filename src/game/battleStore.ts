@@ -118,6 +118,7 @@ type BattleState = {
   lastKnockbackAt: number;
   reloadingUntil: number;
   reloadingStartedAt: number;
+  lastEmptyClickAt: number;
   enemyChargeStartedAt: number;
   enemyChargeFiresAt: number;
   lastSpecialFiredAt: number;
@@ -196,6 +197,7 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   lastKnockbackAt: 0,
   reloadingUntil: 0,
   reloadingStartedAt: 0,
+  lastEmptyClickAt: 0,
   enemyChargeStartedAt: 0,
   enemyChargeFiresAt: 0,
   lastSpecialFiredAt: 0,
@@ -390,10 +392,9 @@ export const useBattleStore = create<BattleState>((set, get) => {
         comboBest: patch.comboBest,
         lastComboAt: patch.lastComboAt,
       });
-      // Auto-reload when the magazine empties and battle continues
-      if (state.ammo - 1 === 0 && patch.shouldAutoReload) {
-        useBattleStore.getState().reload();
-      }
+      // Reload is now mandatory — the player must explicitly press R or
+      // right-click. Empty mag → bumps lastEmptyClickAt elsewhere to fire
+      // the warning HUD instead.
     },
     reload: () => {
       const state = get();
