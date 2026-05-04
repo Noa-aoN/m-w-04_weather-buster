@@ -1,0 +1,22 @@
+PBR Field Textures
+==================
+
+These ground / floor PBR texture sets come from AmbientCG (formerly
+"CC0 Textures"). Each set originally shipped at 2K JPG with Color /
+NormalGL / Roughness / AmbientOcclusion / Displacement / NormalDX maps.
+
+For this project we use only Color / NormalGL / Roughness / AO and have
+downsampled to 1024 px JPG quality 80 to keep web load times reasonable.
+
+License
+-------
+CC0 1.0 Universal (Public Domain Dedication)
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Source: https://ambientcg.com/
+
+Sets used
+---------
+- lab/      → Tiles107 2K JPG  (industrial tiled floor)
+- ruins/    → Ground103 2K JPG (concrete / dirt ground)
+- highland/ → Rock063 2K JPG   (rocky surface)
