@@ -405,19 +405,19 @@ function CoreOrb({ enemy, clear, compact = false }: { enemy: WeatherEnemy; clear
   return (
     <>
       <mesh ref={ref} name="enemyCore" position={[0, 0.05, 0.15]} userData={{ isCore: true }}>
-        <sphereGeometry args={[0.42, 40, 40]} />
+        <sphereGeometry args={[0.22, 28, 28]} />
         <meshStandardMaterial
           color={clear ? "#fff9bf" : enemy.coreColor}
           emissive={clear ? "#fff3a0" : enemy.coreColor}
-          emissiveIntensity={clear ? 1.15 : 1.05}
-          roughness={0.2}
+          emissiveIntensity={clear ? 1.6 : 1.5}
+          roughness={0.18}
           toneMapped={false}
         />
       </mesh>
       {!compact && !clear ? (
         <mesh position={[0, 0.05, 0.15]}>
-          <sphereGeometry args={[0.62, 24, 24]} />
-          <meshBasicMaterial color={enemy.coreColor} transparent opacity={0.18} toneMapped={false} />
+          <sphereGeometry args={[0.32, 20, 20]} />
+          <meshBasicMaterial color={enemy.coreColor} transparent opacity={0.24} toneMapped={false} />
         </mesh>
       ) : null}
     </>

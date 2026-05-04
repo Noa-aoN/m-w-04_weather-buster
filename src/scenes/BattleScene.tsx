@@ -486,7 +486,7 @@ function SnowDrift({ color }: { color: string }) {
   );
 }
 
-type AiPhase = "approach" | "circle" | "telegraph" | "retreat" | "idle";
+type AiPhase = "approach" | "circle" | "telegraph" | "retreat" | "idle" | "dodge" | "zigzag" | "evade";
 
 const STANDOFF_DISTANCE = 7.5;
 const MIN_DISTANCE = 5.5;
@@ -512,11 +512,13 @@ function EnemyMotion({
   const isPointerLocked = useBattleStore((state) => state.isPointerLocked);
   const lastShotAt = useBattleStore((state) => state.lastShotAt);
   const lastShotHit = useBattleStore((state) => state.lastShotHit);
-  const phaseRef = useRef<{ mode: AiPhase; t: number; orbitDir: 1 | -1; angle: number }>({
+  const phaseRef = useRef<{ mode: AiPhase; t: number; orbitDir: 1 | -1; angle: number; dodgeDir: 1 | -1; zigPhase: number }>({
     mode: "approach",
     t: 0,
     orbitDir: 1,
     angle: 0,
+    dodgeDir: 1,
+    zigPhase: 0,
   });
   const revealRef = useRef<{ startedAt: number | null; lastStatus: typeof status }>({ startedAt: null, lastStatus: status });
 
@@ -572,31 +574,51 @@ function EnemyMotion({
     const playerZ = camera.position.z;
 
     const phaseDurations: Record<AiPhase, number> = {
-      approach: 1.6 - aggression * 0.4,
-      circle: 2.6 + aggression * 0.6,
+      approach: 1.4 - aggression * 0.4,
+      circle: 2.2 + aggression * 0.5,
       telegraph: 0.55,
-      retreat: 1.1 - aggression * 0.2,
-      idle: 1.2 + Math.random() * 0.8,
+      retreat: 1.4 - aggression * 0.2,
+      idle: 1.0 + Math.random() * 0.6,
+      dodge: 0.45,
+      zigzag: 1.5 + Math.random() * 0.6,
+      evade: 1.6 - aggression * 0.2,
     };
+
+    // React to recent shots: if the player just shot, prefer evasive phases.
+    const justShotAt = lastShotAt > 0 ? performance.now() - lastShotAt : Infinity;
+    const justShot = justShotAt < 220;
 
     if (phase.t > phaseDurations[phase.mode]) {
       phase.t = 0;
-      const sluggishChance = enemy.id === "cloudy" ? 0.32 : enemy.id === "rainySeason" ? 0.26 : 0.18;
+      const sluggishChance = enemy.id === "cloudy" ? 0.22 : enemy.id === "rainySeason" ? 0.18 : 0.1;
       const willIdle = phase.mode !== "idle" && Math.random() < sluggishChance;
       if (willIdle) {
         phase.mode = "idle";
+      } else if (justShot && Math.random() < 0.55) {
+        // Hit & run: snap to a fast lateral dodge after being shot at
+        phase.mode = "dodge";
       } else {
+        const r = Math.random();
         const next: Record<AiPhase, AiPhase> = {
-          approach: "circle",
-          circle: Math.random() < 0.5 ? "telegraph" : "retreat",
-          telegraph: Math.random() < 0.4 ? "retreat" : "circle",
-          retreat: "approach",
-          idle: "approach",
+          approach: r < 0.55 ? "circle" : r < 0.78 ? "zigzag" : "evade",
+          circle: r < 0.32 ? "telegraph" : r < 0.6 ? "retreat" : r < 0.82 ? "zigzag" : "evade",
+          telegraph: r < 0.32 ? "retreat" : r < 0.66 ? "circle" : "evade",
+          retreat: r < 0.55 ? "approach" : r < 0.82 ? "zigzag" : "circle",
+          idle: r < 0.65 ? "approach" : "circle",
+          dodge: r < 0.55 ? "circle" : r < 0.85 ? "retreat" : "zigzag",
+          zigzag: r < 0.5 ? "circle" : r < 0.78 ? "retreat" : "evade",
+          evade: r < 0.5 ? "circle" : r < 0.78 ? "approach" : "retreat",
         };
         phase.mode = next[phase.mode];
       }
       if (phase.mode === "circle") {
         phase.orbitDir = Math.random() < 0.5 ? 1 : -1;
+      }
+      if (phase.mode === "dodge") {
+        phase.dodgeDir = Math.random() < 0.5 ? 1 : -1;
+      }
+      if (phase.mode === "zigzag") {
+        phase.zigPhase = Math.random() * Math.PI * 2;
       }
     }
 
@@ -631,6 +653,43 @@ function EnemyMotion({
     } else if (phase.mode === "idle") {
       targetX = node.position.x + Math.sin(state.clock.getElapsedTime() * 0.8) * 0.18;
       targetZ = node.position.z + Math.cos(state.clock.getElapsedTime() * 0.65) * 0.14;
+    } else if (phase.mode === "dodge") {
+      // Quick lateral burst perpendicular to player line-of-sight
+      const dxFromPlayer = node.position.x - playerX;
+      const dzFromPlayer = node.position.z - playerZ;
+      const dist = Math.max(Math.sqrt(dxFromPlayer * dxFromPlayer + dzFromPlayer * dzFromPlayer), 0.001);
+      // Perpendicular = rotate the (dx,dz) vector by 90 degrees
+      const perpX = -dzFromPlayer / dist;
+      const perpZ = dxFromPlayer / dist;
+      const burst = (3.4 + aggression * 1.2) * phase.dodgeDir;
+      targetX = node.position.x + perpX * burst;
+      targetZ = node.position.z + perpZ * burst;
+    } else if (phase.mode === "zigzag") {
+      // Orbit + rapid sin perpendicular wiggle = harder-to-track lateral path
+      phase.angle += delta * (1.0 + aggression * 0.7) * phase.orbitDir;
+      const baseX = playerX + Math.cos(phase.angle) * orbitRadius;
+      const baseTargetZ = playerZ + Math.sin(phase.angle) * orbitRadius;
+      const wiggle = Math.sin(state.clock.getElapsedTime() * 6.5 + phase.zigPhase) * (1.3 + aggression * 0.5);
+      const dxFromPlayer = baseX - playerX;
+      const dzFromPlayer = baseTargetZ - playerZ;
+      const dist = Math.max(Math.sqrt(dxFromPlayer * dxFromPlayer + dzFromPlayer * dzFromPlayer), 0.001);
+      const perpX = -dzFromPlayer / dist;
+      const perpZ = dxFromPlayer / dist;
+      targetX = baseX + perpX * wiggle;
+      targetZ = baseTargetZ + perpZ * wiggle;
+    } else if (phase.mode === "evade") {
+      // Pull back to a far standoff while strafing — full hit-and-run profile
+      const k = Math.min(1, phase.t / phaseDurations.evade);
+      const dxFromPlayer = node.position.x - playerX;
+      const dzFromPlayer = node.position.z - playerZ;
+      const dist = Math.max(Math.sqrt(dxFromPlayer * dxFromPlayer + dzFromPlayer * dzFromPlayer), 0.001);
+      const farRadius = orbitRadius + 4.2;
+      const desiredX = playerX + (dxFromPlayer / dist) * farRadius;
+      const desiredZ = playerZ + (dzFromPlayer / dist) * farRadius;
+      // Add slow strafe so the enemy slides while pulling back
+      const strafeAngle = state.clock.getElapsedTime() * 1.6 + phase.zigPhase;
+      targetX = desiredX * k + node.position.x * (1 - k) + Math.sin(strafeAngle) * 1.4;
+      targetZ = desiredZ * k + node.position.z * (1 - k) + Math.cos(strafeAngle) * 0.9;
     } else {
       const k = Math.min(1, phase.t / phaseDurations.retreat);
       const dxFromPlayer = node.position.x - playerX;
@@ -654,7 +713,11 @@ function EnemyMotion({
     targetX = Math.max(-arenaX + 1, Math.min(arenaX - 1, targetX));
     targetZ = Math.max(baseZ * 1.8, Math.min(baseZ * 0.1 + 5, targetZ));
 
-    const lerpRate = phase.mode === "idle" ? 0.4 : (0.9 + aggression * 0.7);
+    const lerpRate = phase.mode === "idle" ? 0.4
+      : phase.mode === "dodge" ? 4.2 + aggression * 1.4
+      : phase.mode === "zigzag" ? 1.6 + aggression * 0.9
+      : phase.mode === "evade" ? 1.5 + aggression * 0.8
+      : (0.9 + aggression * 0.7);
     const factor = 1 - Math.exp(-lerpRate * delta);
     node.position.x += (targetX - node.position.x) * factor;
     node.position.z += (targetZ - node.position.z) * factor;
@@ -707,7 +770,9 @@ function ExperimentField({
   const selectedDifficulty = useBattleStore((state) => state.selectedDifficulty);
   const ambientColor = useMemo(() => new Color(stage.ambientColor).multiplyScalar(0.7), [stage.ambientColor]);
   const fogFar = stage.id === "lab" ? 28 : stage.id === "ruins" ? 44 : 52;
-  const baseZ = stage.id === "lab" ? -5.2 : stage.id === "ruins" ? -8 : -10;
+  // Initial spawn pushed further back (-9 / -13 / -16) so the boss intro reads
+  // as a distant threat that closes in, not something already in your face.
+  const baseZ = stage.id === "lab" ? -9 : stage.id === "ruins" ? -13 : -16;
 
   return (
     <>
