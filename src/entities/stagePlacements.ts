@@ -100,6 +100,14 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/tower-defense-kit/tower-square-roof-c.glb", x: -2, z: 8, scale: 1.3, rotY: 1.2 },
       { url: "/models/space-kit/hangar_largeB.glb", x: 0, z: 14, scale: 1.4, rotY: 0.6, tilt: 0.05 },
       { url: "/models/space-kit/craft_cargoB.glb", x: -9, z: 12, scale: 1.6, rotY: -0.3 },
+      // Stylized dead / twisted trees: silhouette anchors for the ruined city
+      { url: "/models/stylized-nature/DeadTree_1.gltf", x: 12, z: 4, scale: 0.45, rotY: 0.6 },
+      { url: "/models/stylized-nature/DeadTree_3.gltf", x: -13, z: 6, scale: 0.4, rotY: -0.4 },
+      { url: "/models/stylized-nature/TwistedTree_1.gltf", x: 9, z: -7, scale: 0.32, rotY: 1.1 },
+      { url: "/models/stylized-nature/DeadTree_1.gltf", x: -10, z: -8, scale: 0.5, rotY: -0.9 },
+      // Boulders flanking the cargo wreck
+      { url: "/models/stylized-nature/Rock_Medium_1.gltf", x: -6, z: 11, scale: 0.6, rotY: 0.2 },
+      { url: "/models/stylized-nature/Rock_Medium_3.gltf", x: 5, z: 10, scale: 0.55, rotY: -0.3 },
     ],
     scattered: [
       // Small rubble scattered across the field
@@ -135,6 +143,14 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-kit/hangar_roundGlass.glb", x: 0, z: -16, scale: 2.4, rotY: 0 },
       { url: "/models/space-kit/satelliteDish_large.glb", x: 6, z: -14, scale: 1.6, rotY: 0.4 },
       { url: "/models/space-kit/satelliteDish.glb", x: -6, z: -14, scale: 1.6, rotY: -0.6 },
+      // Mid-altitude evergreens around the observatory
+      { url: "/models/stylized-nature/CommonTree_4.gltf", x: 14, z: 6, scale: 0.5, rotY: 0.3 },
+      { url: "/models/stylized-nature/CommonTree_4.gltf", x: -16, z: 4, scale: 0.6, rotY: -0.6 },
+      { url: "/models/stylized-nature/CommonTree_4.gltf", x: 11, z: 16, scale: 0.45, rotY: 1.2 },
+      // Outcrops between the snow rocks
+      { url: "/models/stylized-nature/Rock_Medium_1.gltf", x: -12, z: 8, scale: 0.6, rotY: 0.4 },
+      { url: "/models/stylized-nature/Rock_Medium_2.gltf", x: 13, z: -2, scale: 0.7, rotY: -0.5 },
+      { url: "/models/stylized-nature/Rock_Medium_3.gltf", x: -3, z: 14, scale: 0.65, rotY: 0.9 },
     ],
     scattered: [
       // Outer crystal peaks

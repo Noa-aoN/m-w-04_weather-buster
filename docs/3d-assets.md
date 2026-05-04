@@ -15,6 +15,7 @@
 | 同上 | 同上 | 同上 | `Ninja_Female.fbx` | SAKA (RAIKA / 攻撃) |
 | `public/models/sci-fi-guns/` | Modular Sci Fi Guns (Nov 2021) | https://quaternius.com/packs/modularscifiguns.html | `AR_2.gltf / AR_4.gltf / AR_6.gltf / SMG_2.gltf / Sniper_2.gltf` | 5 武器スロット（weatherGun / clearSkyGun / frostlance / rainySeasonKiller / stormwallRifle） |
 | `public/models/scifi-megakit/Props/` | Modular SciFi MegaKit (Standard) | https://quaternius.com/packs/modularscifimegakit.html | `Prop_Computer / AccessPoint / Barrel_Large / Crate3 / Crate4 / Fan_Small / Chest / Clamp / Cable_1 / ItemHolder / Light_Floor / Light_Wide` | 実験場ステージの装飾（コンソール・バレル・ライト・ファン・コンテナ） |
+| `public/models/stylized-nature/` | Stylized Nature MegaKit (Standard) | https://quaternius.com/packs/stylizednaturemegakit.html | `DeadTree_1 / DeadTree_3 / TwistedTree_1 / Rock_Medium_1〜3 / CommonTree_4` + bark/leaf textures (downsampled to 512px) | 都市跡(ruins) と 高地(highland) の植生装飾。CommonTree_4 は high mid-mountain、DeadTree / TwistedTree は ruins のシルエット要素。バーク/葉テクスチャは 2K → 512 にリサイズ済み |
 
 旧 `public/models/quaternius-guns/` の FBX 8 個は削除（barrel が +X 軸で、glTF 版に置換することで axis 確認スクリプトを再実装する必要がなくなった）。glTF 版も barrel は +X 軸のままだが、glTF は base64 埋め込み済みの自己完結形式で `.bin` の管理が不要・ロードも軽い。
 
