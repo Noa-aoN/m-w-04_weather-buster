@@ -1,6 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { Sky, Stars } from "@react-three/drei";
-import { useMemo, useRef } from "react";
+import { Suspense, useMemo, useRef } from "react";
 import type { Group } from "three";
 import { Color, Vector3 } from "three";
 import { BulletTrails } from "../entities/BulletTrails";
@@ -61,7 +61,14 @@ function ExperimentField({
       <pointLight position={[0, 1.4, -3]} intensity={3.2} color={enemy.coreColor} />
       <fog attach="fog" args={[isClear ? "#c8ecff" : stage.fogColor, 8, fogFar]} />
 
-      <StageTerrain stage={stage} isClear={isClear} />
+      {/* Suspense isolation: while a stage GLTF / texture / character FBX is
+          loading, only this subtree renders null. The Canvas-level default
+          Suspense would otherwise unmount the entire tree (including
+          PointerLockControls), which is what caused "switch to Hal/Saka →
+          guns can't fire" and "countdown → instant pause". */}
+      <Suspense fallback={null}>
+        <StageTerrain stage={stage} isClear={isClear} />
+      </Suspense>
 
       <group ref={enemyRef} position={[0, 2.6, baseZ]} scale={ENEMY_SCALE}>
         <EnemyFigure enemy={enemy} clear={isClear} />
@@ -86,8 +93,12 @@ function ExperimentField({
       <LightningWarnings />
       <BulletTrails />
       <PlayerShield />
-      <PlayerWeapon />
-      <PlayerBackAvatar />
+      <Suspense fallback={null}>
+        <PlayerWeapon />
+      </Suspense>
+      <Suspense fallback={null}>
+        <PlayerBackAvatar />
+      </Suspense>
     </>
   );
 }

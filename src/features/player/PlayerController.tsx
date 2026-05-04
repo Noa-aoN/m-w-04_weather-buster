@@ -131,12 +131,20 @@ export function PlayerController({
     const state = useBattleStore.getState();
     if (state.status !== "battle" || !state.isPointerLocked) {
       battleStartedAtRef.current = null;
+      // While paused / not locked, drop any held shield so the deflect doesn't
+      // stay on across the pause break.
+      if (state.shieldActive) useBattleStore.getState().setShieldActive(false);
       return;
     }
     if (battleStartedAtRef.current === null) {
       battleStartedAtRef.current = performance.now();
       nextLightningAt.current = 0;
       nextSpecialAt.current = 0;
+    }
+    // B key (held) raises the shield while held. Release → drop shield.
+    const wantShield = heldKeys.current.has("b");
+    if (wantShield !== state.shieldActive) {
+      useBattleStore.getState().setShieldActive(wantShield);
     }
     const stage = findStage(state.selectedStageId);
     const arena = stage.arena;
@@ -341,20 +349,22 @@ export function PlayerController({
       if (document.pointerLockElement !== gl.domElement) return;
       const store = useBattleStore.getState();
       if (store.status !== "battle") return;
+      // Right click → reload (was shield). Reload is now mandatory; the
+      // player must explicitly press right click or R to reload.
       if (event.button === 2) {
         event.preventDefault();
-        store.setShieldActive(true);
+        store.reload();
         return;
       }
       if (event.button !== 0) return;
-      // Block while reloading or empty so a click during reload doesn't feel
-      // randomly broken — combined with the brighter HUD indicator the player
-      // should always know why a shot didn't go off.
       const now = performance.now();
-      if (now < store.reloadingUntil || store.ammo <= 0) return;
-      // Per-weapon fire rate enforcement. Without this, fast clicking either
-      // spammed shots (no cooldown) or felt inconsistent. With it, the gun
-      // has a predictable rhythm.
+      // Empty mag → bump the "reload!" warning, but don't shoot. No more
+      // auto-reload — the player has to ask for it.
+      if (store.ammo <= 0) {
+        useBattleStore.setState({ lastEmptyClickAt: now });
+        return;
+      }
+      if (now < store.reloadingUntil) return;
       const weapon = findWeapon(store.selectedWeaponId);
       if (now - lastTriggerAtRef.current < weapon.fireRateMs) return;
       lastTriggerAtRef.current = now;
@@ -380,10 +390,8 @@ export function PlayerController({
       });
       store.shoot(didHit, critical);
     };
-    const onMouseUp = (event: MouseEvent) => {
-      if (event.button === 2) {
-        useBattleStore.getState().setShieldActive(false);
-      }
+    const onMouseUp = (_event: MouseEvent) => {
+      // Shield no longer lives on right click; nothing to release here.
     };
     const onContextMenu = (event: MouseEvent) => {
       if (document.pointerLockElement === gl.domElement) {
