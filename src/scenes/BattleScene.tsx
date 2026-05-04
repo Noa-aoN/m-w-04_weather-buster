@@ -72,7 +72,17 @@ function PlayerWeapon() {
             <sphereGeometry args={[0.14, 12, 12]} />
             <meshBasicMaterial color="#fff7a0" transparent opacity={0.95} toneMapped={false} />
           </mesh>
-          <pointLight ref={flashLightRef} position={[0, 0, -0.5]} intensity={6} color="#fff7a0" distance={4} />
+          {[0, Math.PI / 4, Math.PI / 2, (Math.PI * 3) / 4].map((rot) => (
+            <mesh key={rot} position={[0, 0, -0.55]} rotation={[0, 0, rot]}>
+              <planeGeometry args={[0.55, 0.07]} />
+              <meshBasicMaterial color="#ffe9a8" transparent opacity={0.85} toneMapped={false} depthWrite={false} />
+            </mesh>
+          ))}
+          <mesh position={[0, 0, -0.66]}>
+            <sphereGeometry args={[0.06, 8, 8]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.95} toneMapped={false} />
+          </mesh>
+          <pointLight ref={flashLightRef} position={[0, 0, -0.5]} intensity={8} color="#fff7a0" distance={5.5} />
         </>
       ) : null}
     </group>
