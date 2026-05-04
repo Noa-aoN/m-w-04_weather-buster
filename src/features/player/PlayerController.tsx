@@ -76,6 +76,7 @@ export function PlayerController({
   const nextLightningAt = useRef(0);
   const nextSpecialAt = useRef(0);
   const battleStartedAtRef = useRef<number | null>(null);
+  const bobPhaseRef = useRef(0);
 
   useEffect(() => {
     setLockTarget(gl.domElement);
@@ -168,6 +169,15 @@ export function PlayerController({
     if (keys.has(" ") && jumpStartedAt.current === null) {
       jumpStartedAt.current = performance.now();
     }
+    const isMoving = move.current.lengthSq() > 0;
+    if (isMoving) {
+      bobPhaseRef.current += delta * (dash > 1 ? 14 : 9);
+    } else {
+      // Decay bob phase smoothly toward zero so head settles when stopping
+      bobPhaseRef.current *= Math.max(0, 1 - delta * 6);
+    }
+    const bobAmplitude = isMoving ? (dash > 1 ? 0.045 : 0.028) : 0;
+    const verticalBob = Math.sin(bobPhaseRef.current) * bobAmplitude;
     if (jumpStartedAt.current !== null) {
       const elapsed = (performance.now() - jumpStartedAt.current) / 1000;
       const t = elapsed / JUMP_DURATION;
@@ -178,7 +188,7 @@ export function PlayerController({
         camera.position.y = GROUND_Y + Math.sin(t * Math.PI) * JUMP_HEIGHT;
       }
     } else {
-      camera.position.y = GROUND_Y;
+      camera.position.y = GROUND_Y + verticalBob;
     }
 
     const now = performance.now();

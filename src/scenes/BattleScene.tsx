@@ -271,6 +271,9 @@ useFBX.preload(CHARACTER_MODEL_URL.raika);
 function FovController() {
   const { camera } = useThree();
   const fov = useBattleStore((state) => state.fov);
+  const lastShotAt = useBattleStore((state) => state.lastShotAt);
+  const lastShotCritical = useBattleStore((state) => state.lastShotCritical);
+  const lastSkillAt = useBattleStore((state) => state.lastSkillAt);
   useEffect(() => {
     const perspective = camera as PerspectiveCamera;
     if (perspective.isPerspectiveCamera) {
@@ -278,6 +281,19 @@ function FovController() {
       perspective.updateProjectionMatrix();
     }
   }, [camera, fov]);
+  useFrame(() => {
+    const perspective = camera as PerspectiveCamera;
+    if (!perspective.isPerspectiveCamera) {
+      return;
+    }
+    const now = performance.now();
+    const shotPunch = lastShotAt > 0
+      ? Math.max(0, 1 - (now - lastShotAt) / (lastShotCritical ? 220 : 120)) * (lastShotCritical ? 1.4 : 0.6)
+      : 0;
+    const skillPunch = lastSkillAt > 0 ? Math.max(0, 1 - (now - lastSkillAt) / 360) * 3.5 : 0;
+    perspective.fov = fov + shotPunch + skillPunch;
+    perspective.updateProjectionMatrix();
+  });
   return null;
 }
 
