@@ -704,7 +704,7 @@ export function BattleHud({
         <p>敵性質: {enemy.trait}</p>
       </div>
 
-      <div className="weaponStatus tacticalPanel">
+      <div className={`weaponStatus tacticalPanel ${ammo === 0 ? "weaponStatus--empty" : ammo <= 5 ? "weaponStatus--low" : ""}`}>
         <WeaponIcon />
         <span>{weapon.name}</span>
         <strong>{ammo} / {weapon.maxAmmo}</strong>
