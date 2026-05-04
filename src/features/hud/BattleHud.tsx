@@ -162,6 +162,14 @@ function DamagePopups() {
   );
 }
 
+function comboTier(combo: number): { label: string; tier: string } {
+  if (combo >= 30) return { label: "INSANE", tier: "insane" };
+  if (combo >= 20) return { label: "PERFECT", tier: "perfect" };
+  if (combo >= 12) return { label: "AMAZING", tier: "amazing" };
+  if (combo >= 6) return { label: "GREAT", tier: "great" };
+  return { label: "GOOD", tier: "good" };
+}
+
 function ComboCounter() {
   const combo = useBattleStore((state) => state.combo);
   const lastComboAt = useBattleStore((state) => state.lastComboAt);
@@ -178,9 +186,10 @@ function ComboCounter() {
   if (!show || combo < 2) {
     return null;
   }
+  const tier = comboTier(combo);
   return (
-    <div className="comboCounter" key={lastComboAt} aria-hidden="true">
-      <span className="comboLabel">COMBO</span>
+    <div className={`comboCounter comboCounter--${tier.tier}`} key={lastComboAt} aria-hidden="true">
+      <span className="comboLabel">{tier.label}</span>
       <strong>{combo}</strong>
       <span className="comboHit">HIT</span>
     </div>
