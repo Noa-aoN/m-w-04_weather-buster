@@ -549,8 +549,10 @@ function EnemyMotion({
       enemyPositionRef.current.copy(node.position);
       return;
     }
+    // Subtle "breathing" pulse so the enemy feels alive even when stationary.
+    const breath = 1 + Math.sin(state.clock.getElapsedTime() * 1.4 + difficulty * 0.5) * 0.025;
     if (!isPointerLocked) {
-      node.scale.setScalar(ENEMY_SCALE * revealScale);
+      node.scale.setScalar(ENEMY_SCALE * revealScale * breath);
       enemyPositionRef.current.copy(node.position);
       return;
     }
@@ -561,7 +563,7 @@ function EnemyMotion({
       enemyPositionRef.current.copy(node.position);
       return;
     }
-    node.scale.setScalar(ENEMY_SCALE * revealScale);
+    node.scale.setScalar(ENEMY_SCALE * revealScale * breath);
 
     const aggression = difficultyModifiers[difficulty].movementAggression;
     const phase = phaseRef.current;
