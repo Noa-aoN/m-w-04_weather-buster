@@ -2579,6 +2579,17 @@ canvas {
   100% { transform: scale(1); opacity: 1; }
 }
 
+.comboCounter--good { background: linear-gradient(135deg, rgba(120, 200, 255, 0.32), rgba(40, 120, 200, 0.22)); border-color: rgba(120, 200, 255, 0.7); }
+.comboCounter--great { background: linear-gradient(135deg, rgba(140, 240, 200, 0.32), rgba(40, 200, 130, 0.22)); border-color: rgba(140, 240, 200, 0.85); }
+.comboCounter--amazing { background: linear-gradient(135deg, rgba(255, 220, 110, 0.36), rgba(255, 140, 60, 0.26)); border-color: rgba(255, 220, 110, 0.95); box-shadow: 0 0 26px rgba(255, 200, 90, 0.55); }
+.comboCounter--perfect { background: linear-gradient(135deg, rgba(255, 138, 36, 0.4), rgba(255, 70, 130, 0.3)); border-color: rgba(255, 200, 100, 1); box-shadow: 0 0 32px rgba(255, 130, 80, 0.7); }
+.comboCounter--insane { background: linear-gradient(135deg, rgba(220, 80, 220, 0.45), rgba(255, 70, 130, 0.35)); border-color: rgba(255, 200, 255, 1); box-shadow: 0 0 38px rgba(220, 100, 220, 0.85); animation: comboInsanePulse 0.7s ease-in-out infinite alternate, comboPop 0.4s cubic-bezier(0.18, 0.9, 0.3, 1); }
+
+@keyframes comboInsanePulse {
+  0% { box-shadow: 0 0 22px rgba(220, 100, 220, 0.5); transform: scale(1); }
+  100% { box-shadow: 0 0 48px rgba(255, 130, 220, 1); transform: scale(1.06); }
+}
+
 .screenShake {
   position: absolute;
   inset: 0;
