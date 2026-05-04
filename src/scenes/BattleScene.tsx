@@ -711,13 +711,14 @@ function ExperimentField({
         />
       )}
       <Stars radius={80} depth={35} count={1000} factor={4} saturation={0} fade />
-      <ambientLight intensity={isClear ? 1.25 : 0.42} color={ambientColor} />
+      <ambientLight intensity={isClear ? 1.45 : 0.65} color={ambientColor} />
       <directionalLight
         position={[4, 8, 3]}
-        intensity={isClear ? 3.2 : 1.6}
+        intensity={isClear ? 3.4 : 1.85}
         color={isClear ? "#ffffff" : stage.ringColor}
       />
-      <pointLight position={[0, 1.4, -3]} intensity={3} color={enemy.coreColor} />
+      <hemisphereLight args={[isClear ? "#fff5d8" : "#bdeeff", isClear ? "#a8c8e8" : "#1c2a36", 0.55]} />
+      <pointLight position={[0, 1.4, -3]} intensity={3.2} color={enemy.coreColor} />
       <fog attach="fog" args={[isClear ? "#c8ecff" : stage.fogColor, 8, fogFar]} />
 
       <StageTerrain stage={stage} isClear={isClear} />
