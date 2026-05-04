@@ -7,17 +7,16 @@ import { fitObjectToSize } from "./fitObject";
 
 type WeaponModelType = "fbx" | "gltf";
 
-// Quaternius FBX guns are modeled with their barrel along +X (verified by
-// FBXLoader bounding-box inspection: longest axis is X for every gun in this
-// pack). Rotating 90 degrees around Y maps +X to -Z, which is the camera-
-// forward direction in Three.js. The earlier value [0, PI, 0] only flipped
-// +X to -X and left the barrel pointing sideways across the screen.
+// Quaternius "Modular Sci Fi Guns - Nov 2021" (CC0) glTF set replaces the
+// older FBX guns. Bounding box inspection (see scripts in tmp_inspect / docs)
+// confirms barrel still runs along +X for AR / SMG / Sniper / Pistol, so the
+// same [0, PI/2, 0] rotation maps +X to -Z (camera forward).
 export const WEAPON_MODEL: Record<WeaponId, { url: string; type: WeaponModelType; rotation: [number, number, number] }> = {
-  weatherGun: { url: "/models/quaternius-guns/AssaultRifle_2.fbx", type: "fbx", rotation: [0, Math.PI / 2, 0] },
-  clearSkyGun: { url: "/models/quaternius-guns/Bullpup_2.fbx", type: "fbx", rotation: [0, Math.PI / 2, 0] },
-  rainySeasonKiller: { url: "/models/quaternius-guns/Shotgun_2.fbx", type: "fbx", rotation: [0, Math.PI / 2, 0] },
-  stormwallRifle: { url: "/models/quaternius-guns/SniperRifle_3.fbx", type: "fbx", rotation: [0, Math.PI / 2, 0] },
-  frostlance: { url: "/models/quaternius-guns/AssaultRifle2_3.fbx", type: "fbx", rotation: [0, Math.PI / 2, 0] },
+  weatherGun: { url: "/models/sci-fi-guns/AR_2.gltf", type: "gltf", rotation: [0, Math.PI / 2, 0] },
+  clearSkyGun: { url: "/models/sci-fi-guns/AR_4.gltf", type: "gltf", rotation: [0, Math.PI / 2, 0] },
+  rainySeasonKiller: { url: "/models/sci-fi-guns/SMG_2.gltf", type: "gltf", rotation: [0, Math.PI / 2, 0] },
+  stormwallRifle: { url: "/models/sci-fi-guns/Sniper_2.gltf", type: "gltf", rotation: [0, Math.PI / 2, 0] },
+  frostlance: { url: "/models/sci-fi-guns/AR_6.gltf", type: "gltf", rotation: [0, Math.PI / 2, 0] },
   windBlade: { url: "/models/prototype-kit/weapon-sword.glb", type: "gltf", rotation: [0, Math.PI / 2, -Math.PI / 7] },
 };
 
