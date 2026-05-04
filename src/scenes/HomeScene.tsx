@@ -102,7 +102,7 @@ function HeroMech({ accent, characterId }: { accent: string; characterId: Charac
   const { fitted, animations } = useMemo(() => {
     const cloned = SkeletonUtils.clone(fbx) as Group;
     fitObjectToHeight(cloned, 2.2);
-    tintCharacterMaterials(cloned, accent, 0.28);
+    tintCharacterMaterials(cloned, accent, 0.08);
     return { fitted: cloned, animations: fbx.animations as AnimationClip[] };
   }, [fbx, accent]);
   const groupRef = useRef<Group>(null);

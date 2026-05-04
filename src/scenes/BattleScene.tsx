@@ -142,7 +142,7 @@ function PlayerBackAvatar() {
   const { charFitted, animations } = useMemo(() => {
     const cloned = SkeletonUtils.clone(charFbx) as Group;
     fitObjectToHeight(cloned, 1.7);
-    tintCharacterMaterials(cloned, characterAccent, 0.22);
+    tintCharacterMaterials(cloned, characterAccent, 0.05);
     return { charFitted: cloned, animations: charFbx.animations as AnimationClip[] };
   }, [charFbx, characterAccent]);
 

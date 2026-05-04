@@ -7,12 +7,17 @@ import { fitObjectToSize } from "./fitObject";
 
 type WeaponModelType = "fbx" | "gltf";
 
+// Quaternius FBX guns are modeled with their barrel along +X (verified by
+// FBXLoader bounding-box inspection: longest axis is X for every gun in this
+// pack). Rotating 90 degrees around Y maps +X to -Z, which is the camera-
+// forward direction in Three.js. The earlier value [0, PI, 0] only flipped
+// +X to -X and left the barrel pointing sideways across the screen.
 export const WEAPON_MODEL: Record<WeaponId, { url: string; type: WeaponModelType; rotation: [number, number, number] }> = {
-  weatherGun: { url: "/models/quaternius-guns/AssaultRifle_2.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
-  clearSkyGun: { url: "/models/quaternius-guns/Bullpup_2.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
-  rainySeasonKiller: { url: "/models/quaternius-guns/Shotgun_2.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
-  stormwallRifle: { url: "/models/quaternius-guns/SniperRifle_3.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
-  frostlance: { url: "/models/quaternius-guns/AssaultRifle2_3.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
+  weatherGun: { url: "/models/quaternius-guns/AssaultRifle_2.fbx", type: "fbx", rotation: [0, Math.PI / 2, 0] },
+  clearSkyGun: { url: "/models/quaternius-guns/Bullpup_2.fbx", type: "fbx", rotation: [0, Math.PI / 2, 0] },
+  rainySeasonKiller: { url: "/models/quaternius-guns/Shotgun_2.fbx", type: "fbx", rotation: [0, Math.PI / 2, 0] },
+  stormwallRifle: { url: "/models/quaternius-guns/SniperRifle_3.fbx", type: "fbx", rotation: [0, Math.PI / 2, 0] },
+  frostlance: { url: "/models/quaternius-guns/AssaultRifle2_3.fbx", type: "fbx", rotation: [0, Math.PI / 2, 0] },
   windBlade: { url: "/models/prototype-kit/weapon-sword.glb", type: "gltf", rotation: [0, Math.PI / 2, -Math.PI / 7] },
 };
 
