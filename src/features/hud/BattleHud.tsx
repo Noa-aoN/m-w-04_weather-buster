@@ -632,6 +632,32 @@ export function BattleHud({
     requestPointerLock();
   }
 
+  // Self-heal: while a battle is in-progress but the pointer is unlocked
+  // (typical cause: a Suspense unmount during character/weapon FBX loading,
+  // or the post-Esc cooldown swallowing the lock request that the countdown
+  // fired), retry the lock on the next click anywhere. A real "click again
+  // to play" is far less confusing than a silent stuck pause.
+  useEffect(() => {
+    if (status !== "battle" || isPointerLocked) {
+      return;
+    }
+    const onClick = (event: MouseEvent) => {
+      // Don't steal clicks from existing UI buttons (Resume / Quit etc.)
+      if (event.target instanceof HTMLElement && event.target.closest("button, a")) {
+        return;
+      }
+      requestPointerLock();
+    };
+    // small delay so we don't race the click that opened the pause state
+    const timer = window.setTimeout(() => {
+      window.addEventListener("click", onClick);
+    }, 200);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("click", onClick);
+    };
+  }, [status, isPointerLocked]);
+
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.target instanceof HTMLElement && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")) {
