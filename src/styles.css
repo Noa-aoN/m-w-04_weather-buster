@@ -2928,6 +2928,24 @@ canvas {
   100% { opacity: 1; }
 }
 
+.dashOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 38%, rgba(120, 220, 255, 0.18) 92%),
+    repeating-linear-gradient(115deg, transparent 0 24px, rgba(120, 220, 255, 0.12) 24px 26px),
+    repeating-linear-gradient(-115deg, transparent 0 30px, rgba(180, 240, 255, 0.08) 30px 32px);
+  animation: dashLines 0.32s linear infinite;
+  mix-blend-mode: screen;
+}
+
+@keyframes dashLines {
+  0% { background-position: 0 0, 0 0, 0 0; }
+  100% { background-position: 0 0, -120px 0, 120px 0; }
+}
+
 .skillStatus--ready {
   border-color: rgba(255, 220, 110, 0.95);
   box-shadow: 0 0 24px rgba(255, 200, 70, 0.55), inset 0 0 18px rgba(255, 220, 110, 0.18);

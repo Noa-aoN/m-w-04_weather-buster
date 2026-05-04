@@ -123,6 +123,7 @@ type BattleState = {
   enemyChargeFiresAt: number;
   lastSpecialFiredAt: number;
   slowUntil: number;
+  isDashing: boolean;
   seedCount: number;
   seedHistory: Array<{ enemyId: WeatherEnemyId; difficulty: DifficultyLevel; rank: string; at: number }>;
   selectEnemy: (id: WeatherEnemyId) => void;
@@ -200,6 +201,7 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   enemyChargeFiresAt: 0,
   lastSpecialFiredAt: 0,
   slowUntil: 0,
+  isDashing: false,
 });
 
 const seedFields = (snapshot: SeedSnapshot) => ({
