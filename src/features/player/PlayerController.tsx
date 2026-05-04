@@ -170,6 +170,10 @@ export function PlayerController({
       jumpStartedAt.current = performance.now();
     }
     const isMoving = move.current.lengthSq() > 0;
+    const dashing = dash > 1 && isMoving;
+    if (state.isDashing !== dashing) {
+      useBattleStore.setState({ isDashing: dashing });
+    }
     if (isMoving) {
       bobPhaseRef.current += delta * (dash > 1 ? 14 : 9);
     } else {

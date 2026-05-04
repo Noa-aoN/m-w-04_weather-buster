@@ -377,6 +377,12 @@ function BossIntro({ enemyName, enemyTrait, threat }: { enemyName: string; enemy
   );
 }
 
+function DashOverlay() {
+  const isDashing = useBattleStore((state) => state.isDashing);
+  if (!isDashing) return null;
+  return <div className="dashOverlay" aria-hidden="true" />;
+}
+
 function SlowIndicator() {
   const slowUntil = useBattleStore((state) => state.slowUntil);
   const [active, setActive] = useState(false);
@@ -736,6 +742,7 @@ export function BattleHud({
       <ReloadIndicator />
       <EnemyChargeWarning />
       <SlowIndicator />
+      <DashOverlay />
       <ItemToast />
 
       {countdown !== null ? (
