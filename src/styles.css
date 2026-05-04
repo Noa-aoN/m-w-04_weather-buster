@@ -3264,3 +3264,54 @@ canvas {
     height: auto;
   }
 }
+
+.debugOverlay {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 999;
+  min-width: 200px;
+  padding: 10px 12px;
+  background: rgba(2, 12, 20, 0.85);
+  border: 1px solid rgba(40, 217, 255, 0.55);
+  color: #cfeaf3;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  box-shadow: 0 0 14px rgba(40, 217, 255, 0.18);
+}
+
+.debugOverlay header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(40, 217, 255, 0.32);
+  color: #28d9ff;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.debugOverlay .debugLabel {
+  color: #ffd84d;
+}
+
+.debugOverlay table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.debugOverlay th {
+  text-align: left;
+  font-weight: 500;
+  color: #6cdcff;
+  padding: 1px 8px 1px 0;
+}
+
+.debugOverlay td {
+  text-align: right;
+  color: #f3f8fb;
+  padding: 1px 0 1px 8px;
+  font-variant-numeric: tabular-nums;
+}
