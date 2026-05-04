@@ -14,8 +14,11 @@
 | 同上 | 同上 | 同上 | `BlueSoldier_Male.fbx` | HALO (重装) |
 | 同上 | 同上 | 同上 | `Ninja_Female.fbx` | SAKA (RAIKA / 攻撃) |
 | `public/models/sci-fi-guns/` | Modular Sci Fi Guns (Nov 2021) | https://quaternius.com/packs/modularscifiguns.html | `AR_2.gltf / AR_4.gltf / AR_6.gltf / SMG_2.gltf / Sniper_2.gltf` | 5 武器スロット（weatherGun / clearSkyGun / frostlance / rainySeasonKiller / stormwallRifle） |
+| `public/models/scifi-megakit/Props/` | Modular SciFi MegaKit (Standard) | https://quaternius.com/packs/modularscifimegakit.html | `Prop_Computer / AccessPoint / Barrel_Large / Crate3 / Crate4 / Fan_Small / Chest / Clamp / Cable_1 / ItemHolder / Light_Floor / Light_Wide` | 実験場ステージの装飾（コンソール・バレル・ライト・ファン・コンテナ） |
 
 旧 `public/models/quaternius-guns/` の FBX 8 個は削除（barrel が +X 軸で、glTF 版に置換することで axis 確認スクリプトを再実装する必要がなくなった）。glTF 版も barrel は +X 軸のままだが、glTF は base64 埋め込み済みの自己完結形式で `.bin` の管理が不要・ロードも軽い。
+
+MegaKit Props は `.gltf` + `.bin` のペア構成で同梱。配置は `src/entities/stagePlacements.ts` の lab ステージ `fixed` 配列に集約。`License.txt` をパック直下 `public/models/scifi-megakit/License.txt` に同梱。
 
 ライセンスは CC0 1.0 Universal（パック内 `License.txt` 同梱）。Patreon サポート任意。
 

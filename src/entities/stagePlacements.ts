@@ -61,24 +61,30 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // Heavy machinery clustered in back
       { url: "/models/space-kit/machine_generatorLarge.glb", x: -8, z: -5, scale: 1.3, rotY: 0.2 },
       { url: "/models/space-kit/machine_generator.glb", x: -3, z: -7, scale: 1.4, rotY: -0.3 },
-      { url: "/models/space-kit/machine_barrelLarge.glb", x: 4, z: -6, scale: 1.4, rotY: 0 },
+      { url: "/models/scifi-megakit/Props/Prop_Barrel_Large.gltf", x: 4, z: -6, scale: 1.6, rotY: 0 },
       { url: "/models/space-kit/machine_wireless.glb", x: 8, z: -4, scale: 1.4, rotY: -0.5 },
       // Side structures
-      { url: "/models/space-kit/machine_barrel.glb", x: 9, z: 2, scale: 1.5, rotY: 0.4 },
-      { url: "/models/space-kit/machine_barrel.glb", x: 8.5, z: 5, scale: 1.4, rotY: -0.2 },
+      { url: "/models/scifi-megakit/Props/Prop_Barrel_Large.gltf", x: 9, z: 2, scale: 1.5, rotY: 0.4 },
+      { url: "/models/scifi-megakit/Props/Prop_Barrel_Large.gltf", x: 8.5, z: 5, scale: 1.4, rotY: -0.2 },
       { url: "/models/space-kit/structure.glb", x: -8.5, z: 3, scale: 1.5, rotY: 0.3 },
       { url: "/models/space-kit/structure_detailed.glb", x: -8, z: 6, scale: 1.4, rotY: -0.4 },
-      // Center backdrop
-      { url: "/models/space-station-kit/computer-wide.glb", x: 0, z: -8.5, scale: 1.6, rotY: 0 },
-      { url: "/models/space-station-kit/computer-system.glb", x: -3, z: -8.6, scale: 1.4, rotY: 0.3 },
-      { url: "/models/space-station-kit/computer.glb", x: 3, z: -8.6, scale: 1.4, rotY: -0.3 },
+      // Center backdrop: detailed sci-fi computer console
+      { url: "/models/scifi-megakit/Props/Prop_Computer.gltf", x: 0, z: -8.5, scale: 1.4, rotY: 0 },
+      { url: "/models/scifi-megakit/Props/Prop_AccessPoint.gltf", x: -3, z: -8.6, scale: 1.5, rotY: 0.3 },
+      { url: "/models/scifi-megakit/Props/Prop_AccessPoint.gltf", x: 3, z: -8.6, scale: 1.5, rotY: -0.3 },
       // Side props
       { url: "/models/factory-kit/cog-a.glb", x: -10, z: 0, scale: 1.4, rotY: 0 },
       { url: "/models/factory-kit/cog-b.glb", x: 10, z: -1, scale: 1.4, rotY: 0.5 },
-      // Containers
-      { url: "/models/space-station-kit/container.glb", x: -5, z: 7, scale: 1.0, rotY: 0.6 },
-      { url: "/models/space-station-kit/container-tall.glb", x: -3.5, z: 7.4, scale: 1.0, rotY: -0.2 },
-      { url: "/models/space-station-kit/container-wide.glb", x: 4.6, z: 7.6, scale: 1.0, rotY: 0.4 },
+      // Containers / crates
+      { url: "/models/scifi-megakit/Props/Prop_Crate4.gltf", x: -5, z: 7, scale: 1.2, rotY: 0.6 },
+      { url: "/models/scifi-megakit/Props/Prop_Chest.gltf", x: -3.5, z: 7.4, scale: 1.2, rotY: -0.2 },
+      { url: "/models/scifi-megakit/Props/Prop_Crate3.gltf", x: 4.6, z: 7.6, scale: 1.3, rotY: 0.4 },
+      // Detail props on the lab floor for ローポリ感
+      { url: "/models/scifi-megakit/Props/Prop_Light_Wide.gltf", x: -2.4, z: 4.5, scale: 1.0, rotY: 0 },
+      { url: "/models/scifi-megakit/Props/Prop_Light_Wide.gltf", x: 2.4, z: 4.5, scale: 1.0, rotY: 0 },
+      { url: "/models/scifi-megakit/Props/Prop_Fan_Small.gltf", x: 0, z: 6.0, scale: 0.9, rotY: 0 },
+      { url: "/models/scifi-megakit/Props/Prop_ItemHolder.gltf", x: 6.5, z: 4.5, scale: 1.1, rotY: -0.4 },
+      { url: "/models/scifi-megakit/Props/Prop_Cable_1.gltf", x: -7, z: -1.5, scale: 1.0, rotY: 0.2 },
     ],
     scattered: [],
   },
