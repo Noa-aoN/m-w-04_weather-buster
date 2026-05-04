@@ -7,13 +7,30 @@ import { PilotScene, StageScene, WeaponScene } from "../scenes/LoadoutScene";
 import { ResultScene } from "../scenes/ResultScene";
 import { SettingsScene } from "../scenes/SettingsScene";
 import { StoryScene } from "../scenes/StoryScene";
+import { WeaponPreviewScene } from "../scenes/WeaponPreviewScene";
 import { AudioBridge } from "../features/audio/AudioBridge";
 import { DebugOverlay } from "../features/debug/DebugOverlay";
 import { useBattleStore } from "../game/battleStore";
 import type { AppView, LoadoutTab, WeatherEnemyId } from "../game/types";
 
+function readPreviewFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  return params.get("preview");
+}
+
 export function App() {
   const [view, setView] = useState<AppView>("home");
+  const previewMode = readPreviewFromUrl();
+  if (previewMode === "weapon") {
+    return (
+      <>
+        <WeaponPreviewScene />
+        <AudioBridge />
+        <DebugOverlay />
+      </>
+    );
+  }
 
   function selectEnemyAndBattle(enemyId: WeatherEnemyId) {
     useBattleStore.getState().selectEnemy(enemyId);

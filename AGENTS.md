@@ -23,10 +23,27 @@
 ```
 pnpm typecheck
 pnpm build
-pnpm test            # vitest 導入後
+pnpm test
+pnpm test:watch    # 反復編集中のみ
 ```
 
 dev サーバの確認は `pnpm dev`（port 3040 / strictPort）。`3040` が他で埋まっていたら **自分側を 3041 等に逃がす**。CLAUDE.md にある通り。
+
+## 開発専用 URL クエリ
+
+- `?debug=motion` (or `?debug=1`): 右上に AI フェーズ・敵距離・barrier / reload 残時間・combo / ammo / HP を表示するオーバーレイが出る。`isDebugEnabled()` は判定を 1 度キャッシュするので本番ではオーバーヘッドゼロ
+- `?preview=weapon`: 武器単体プレビュー画面に切替。OrbitControls + 銃口位置の赤い目印 + ボタンで武器切替。「銃の向き」「サイズ」「シルエット」を実機で確認したい時に使う
+
+## 戦闘ルールを変えるとき
+
+純粋関数は `src/game/combatRules.ts` に集約。ここを変えたら **必ず `pnpm test` を通す**（25 ケース以上のリグレッションテストが守る）。
+
+新しい計算ロジックは:
+1. `combatRules.ts` に純粋関数を足す
+2. `combatRules.test.ts` にテストを足す
+3. `battleStore.ts` から呼ぶ
+
+の順で進める。store にロジックを直書きしない。
 
 ## 戦闘ストア (`src/game/battleStore.ts`) を触るとき
 
