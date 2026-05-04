@@ -45,6 +45,10 @@ export type StagePlacement = {
     metalness: number;
     roughness: number;
     clearColor: string;
+    /** Optional PBR texture set (4 maps) under public/textures/field/<key>/. */
+    texture?: string;
+    /** How many tile repeats across the floor span. */
+    textureRepeat?: number;
   };
   // Hand-placed GLTF props
   fixed: GltfPlacement[];
@@ -56,7 +60,7 @@ export type StagePlacement = {
 
 export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
   lab: {
-    floor: { size: 30, metalness: 0.32, roughness: 0.5, clearColor: "#d9f6ff" },
+    floor: { size: 30, metalness: 0.32, roughness: 0.5, clearColor: "#d9f6ff", texture: "lab", textureRepeat: 6 },
     fixed: [
       // Heavy machinery clustered in back
       { url: "/models/space-kit/machine_generatorLarge.glb", x: -8, z: -5, scale: 1.3, rotY: 0.2 },
@@ -89,7 +93,7 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
     scattered: [],
   },
   ruins: {
-    floor: { size: 52, metalness: 0.18, roughness: 0.78, clearColor: "#dccdb8" },
+    floor: { size: 52, metalness: 0.18, roughness: 0.78, clearColor: "#dccdb8", texture: "ruins", textureRepeat: 9 },
     fixed: [
       { url: "/models/tower-defense-kit/tower-square-bottom-a.glb", x: -7, z: -3, scale: 1.4, rotY: 0.4 },
       { url: "/models/tower-defense-kit/tower-square-middle-b.glb", x: 6, z: -1, scale: 1.5, rotY: -0.6 },
@@ -126,7 +130,7 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
     ],
   },
   highland: {
-    floor: { size: 58, metalness: 0.24, roughness: 0.62, clearColor: "#e6f4ff" },
+    floor: { size: 58, metalness: 0.24, roughness: 0.62, clearColor: "#e6f4ff", texture: "highland", textureRepeat: 10 },
     fixed: [
       { url: "/models/space-kit/hangar_roundGlass.glb", x: 0, z: -16, scale: 2.4, rotY: 0 },
       { url: "/models/space-kit/satelliteDish_large.glb", x: 6, z: -14, scale: 1.6, rotY: 0.4 },

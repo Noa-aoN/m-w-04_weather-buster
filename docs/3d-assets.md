@@ -20,6 +20,20 @@
 
 MegaKit Props は `.gltf` + `.bin` のペア構成で同梱。配置は `src/entities/stagePlacements.ts` の lab ステージ `fixed` 配列に集約。`License.txt` をパック直下 `public/models/scifi-megakit/License.txt` に同梱。
 
+## ステージ床テクスチャ (AmbientCG / CC0)
+
+3 ステージの床に PBR テクスチャを敷くため、AmbientCG (https://ambientcg.com) から CC0 のセットを 3 種取り込み。各ステージで Color / NormalGL / Roughness / AmbientOcclusion の 4 マップを利用（Displacement / NormalDX は除外）。1024 px JPG quality 80 にリサイズして web 配信用にトリム（合計 3.4 MB）。
+
+| 配置パス | 元セット | ステージ | 用途 |
+| --- | --- | --- | --- |
+| `public/textures/field/lab/` | Tiles107 2K JPG | lab | 整備された金属タイル床 |
+| `public/textures/field/ruins/` | Ground103 2K JPG | ruins | 崩れたコンクリ / 土床 |
+| `public/textures/field/highland/` | Rock063 2K JPG | highland | 岩肌の地表 |
+
+`src/entities/StageTerrain.tsx` の `<PbrFloor>` が `useTexture` で 4 マップを読み込み、`RepeatWrapping` + `repeat = textureRepeat`（lab 6 / ruins 9 / highland 10）でタイリング。Color マップだけ sRGB、normal/roughness/AO は linear。`StagePlacement.floor.texture` が未定義のステージは従来通りの単色 `<PlainFloor>` にフォールバック。
+
+ライセンス記録は `public/textures/field/NOTICE.txt` に集約。CC0 1.0 Universal、出典 AmbientCG。
+
 ライセンスは CC0 1.0 Universal（パック内 `License.txt` 同梱）。Patreon サポート任意。
 
 ## Kenney (kenney.nl)
