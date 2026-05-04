@@ -542,7 +542,10 @@ function EnemyMotion({
     const revealOvershoot = revealK < 0.6 ? 1 + Math.sin(revealK * Math.PI / 0.6) * 0.18 : 1;
     const revealScale = revealStart === null ? 1 : revealEase * revealOvershoot;
 
-    const hitStun = lastShotHit ? Math.max(0, 1 - (performance.now() - lastShotAt) / 180) : 0;
+    // Hit reaction: very brief flinch (80ms) just for the visual punch — no
+    // longer locks the enemy in place, so they can immediately roll into a
+    // dodge / zigzag / evade phase if the AI decides to.
+    const hitFlinch = lastShotHit ? Math.max(0, 1 - (performance.now() - lastShotAt) / 80) : 0;
     const baseY = 2.6;
     const idleY = baseY + Math.sin(state.clock.getElapsedTime() * 1.1) * 0.18;
     if (status !== "battle") {
@@ -558,14 +561,7 @@ function EnemyMotion({
       enemyPositionRef.current.copy(node.position);
       return;
     }
-    if (hitStun > 0) {
-      node.position.x += (Math.random() - 0.5) * hitStun * 0.08;
-      node.position.y = baseY + hitStun * 0.22;
-      node.scale.setScalar(ENEMY_SCALE * revealScale * (1 + hitStun * 0.08));
-      enemyPositionRef.current.copy(node.position);
-      return;
-    }
-    node.scale.setScalar(ENEMY_SCALE * revealScale * breath);
+    node.scale.setScalar(ENEMY_SCALE * revealScale * breath * (1 + hitFlinch * 0.07));
 
     const aggression = difficultyModifiers[difficulty].movementAggression;
     const phase = phaseRef.current;
@@ -731,6 +727,12 @@ function EnemyMotion({
     const verticalFreq = phase.mode === "idle" ? 0.7 : (1.2 + aggression * 0.4);
     const verticalBase = baseY + (phase.mode === "telegraph" ? -0.6 : 0);
     node.position.y = verticalBase + Math.sin(t * verticalFreq) * verticalAmp + Math.sin(t * verticalFreq * 1.9) * 0.18;
+
+    // Apply flinch as a small position jitter on top of the AI's intent.
+    if (hitFlinch > 0) {
+      node.position.x += (Math.random() - 0.5) * hitFlinch * 0.08;
+      node.position.y += hitFlinch * 0.15;
+    }
 
     const dxFace = playerX - node.position.x;
     const dzFace = playerZ - node.position.z;
