@@ -1,6 +1,6 @@
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
-import type { Group } from "three";
+import type { Group, Mesh } from "three";
 import { Vector3 } from "three";
 import { useBattleStore } from "../game/battleStore";
 import type { WeatherEnemy } from "../game/types";
@@ -94,6 +94,32 @@ function DefeatBurst({ color }: { color: string }) {
         </mesh>
       ))}
     </group>
+  );
+}
+
+function HitFlashShell() {
+  const meshRef = useRef<Mesh>(null);
+  const lastShotAt = useBattleStore((state) => state.lastShotAt);
+  const lastShotHit = useBattleStore((state) => state.lastShotHit);
+  const lastShotCritical = useBattleStore((state) => state.lastShotCritical);
+  useFrame(() => {
+    const node = meshRef.current;
+    if (!node) return;
+    const elapsed = performance.now() - lastShotAt;
+    const visible = lastShotHit && elapsed < 130;
+    node.visible = visible;
+    if (!visible) return;
+    const ratio = Math.max(0, 1 - elapsed / 130);
+    const peak = lastShotCritical ? 0.55 : 0.32;
+    const mat = node.material as { opacity?: number };
+    if (mat.opacity !== undefined) mat.opacity = ratio * peak;
+    node.scale.setScalar(1.05 + (1 - ratio) * 0.18);
+  });
+  return (
+    <mesh ref={meshRef} visible={false}>
+      <sphereGeometry args={[1.05, 18, 14]} />
+      <meshBasicMaterial color="#ffffff" transparent opacity={0} toneMapped={false} depthWrite={false} />
+    </mesh>
   );
 }
 
@@ -294,6 +320,7 @@ export function EnemyFigure({ enemy, clear }: { enemy: WeatherEnemy; clear: bool
     <>
       <group ref={groupRef}>
         <WeatherEnemyModel enemy={enemy} clear={clear} />
+        <HitFlashShell />
         <HitCracks color={enemy.coreColor} />
         <mesh visible>
           <sphereGeometry args={[1.45, 16, 16]} />
