@@ -1,15 +1,19 @@
 import { useFrame } from "@react-three/fiber";
-import { useFBX, useAnimations } from "@react-three/drei";
+import { useGLTF, useAnimations } from "@react-three/drei";
 import { useEffect, useMemo, useRef } from "react";
 import type { AnimationClip, Group } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import type { CharacterId } from "../game/types";
 import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
 
+// Quaternius "Ultimate Modular Men - Feb 2022" (CC0). Each character is a
+// self-contained .gltf with embedded buffer + 24 named animations
+// (Idle / Idle_Gun / Idle_Gun_Pointing / Walk / Run / Run_Shoot / Gun_Shoot /
+// Punch_Left/Right / Sword_Slash / Death / HitRecieve / Roll / Wave / ...).
 export const CHARACTER_MODEL_URL: Record<CharacterId, string> = {
-  iris: "/models/quaternius-characters/BlueSoldier_Male.fbx",
-  halo: "/models/quaternius-characters/BlueSoldier_Female.fbx",
-  raika: "/models/quaternius-characters/Ninja_Female.fbx",
+  iris: "/models/modular-men/Adventurer.gltf",   // NOA: bearded outdoorsman, fits the weather observer
+  halo: "/models/modular-men/Spacesuit.gltf",    // HALO: literal pressure suit
+  raika: "/models/modular-men/Punk.gltf",        // SAKA: red mohawk attacker
 };
 
 const TARGET_HEIGHT = 1.6;
@@ -35,13 +39,13 @@ export function CharacterModel({
 }) {
   const groupRef = useRef<Group>(null);
   const innerRef = useRef<Group>(null);
-  const fbx = useFBX(CHARACTER_MODEL_URL[id]);
+  const gltf = useGLTF(CHARACTER_MODEL_URL[id]);
   const { fitted, animations } = useMemo(() => {
-    const cloned = SkeletonUtils.clone(fbx) as Group;
+    const cloned = SkeletonUtils.clone(gltf.scene) as Group;
     fitObjectToHeight(cloned, TARGET_HEIGHT);
     tintCharacterMaterials(cloned, accent);
-    return { fitted: cloned, animations: fbx.animations as AnimationClip[] };
-  }, [fbx, accent]);
+    return { fitted: cloned, animations: gltf.animations as AnimationClip[] };
+  }, [gltf, accent]);
 
   const { actions, names } = useAnimations(animations, innerRef);
 
@@ -50,11 +54,11 @@ export function CharacterModel({
       return;
     }
     const preferenceMap: Record<string, string[]> = {
-      idle: ["idle", "stand"],
+      idle: ["idle_gun_pointing", "idle_gun", "idle"],
       walk: ["walk"],
       run: ["run"],
-      punch: ["punch", "attack"],
-      jump: ["jump"],
+      punch: ["punch", "gun_shoot", "attack"],
+      jump: ["jump", "roll"],
     };
     const preferred = preferenceMap[preferredAction] ?? ["idle"];
     const matched = pickActionName(names, preferred);
@@ -98,6 +102,6 @@ export function CharacterModel({
   );
 }
 
-useFBX.preload(CHARACTER_MODEL_URL.iris);
-useFBX.preload(CHARACTER_MODEL_URL.halo);
-useFBX.preload(CHARACTER_MODEL_URL.raika);
+useGLTF.preload(CHARACTER_MODEL_URL.iris);
+useGLTF.preload(CHARACTER_MODEL_URL.halo);
+useGLTF.preload(CHARACTER_MODEL_URL.raika);

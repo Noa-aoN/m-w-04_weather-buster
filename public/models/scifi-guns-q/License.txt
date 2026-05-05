@@ -1,0 +1,13 @@
+Sci-fi Gun Pack by Quaternius
+
+Source: https://quaternius.com (originally distributed via Patreon)
+Author credit: Quaternius (https://www.patreon.com/quaternius)
+Sniper rifle design inspired by Brent Liu (https://remotecrab131.deviantart.com)
+
+License
+-------
+CC0 1.0 Universal (Public Domain Dedication)
+https://creativecommons.org/publicdomain/zero/1.0/
+
+You can use this in personal and commercial projects without attribution.
+The credit lines above are kept here for traceability per docs/3d-assets.md.

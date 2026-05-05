@@ -7,16 +7,15 @@ import { fitObjectToSize } from "./fitObject";
 
 type WeaponModelType = "fbx" | "gltf";
 
-// Quaternius "Modular Sci Fi Guns - Nov 2021" (CC0) glTF set replaces the
-// older FBX guns. Bounding box inspection (see scripts in tmp_inspect / docs)
-// confirms barrel still runs along +X for AR / SMG / Sniper / Pistol, so the
-// same [0, PI/2, 0] rotation maps +X to -Z (camera forward).
+// Quaternius "Sci-Fi Gun Pack" (CC0) FBX. Bounding box inspection shows
+// barrel along +Z (longest axis ~ Z, with the muzzle on +Z by Quaternius
+// authoring convention). [0, PI, 0] flips +Z to -Z = camera forward.
 export const WEAPON_MODEL: Record<WeaponId, { url: string; type: WeaponModelType; rotation: [number, number, number] }> = {
-  weatherGun: { url: "/models/sci-fi-guns/AR_2.gltf", type: "gltf", rotation: [0, Math.PI / 2, 0] },
-  clearSkyGun: { url: "/models/sci-fi-guns/AR_4.gltf", type: "gltf", rotation: [0, Math.PI / 2, 0] },
-  rainySeasonKiller: { url: "/models/sci-fi-guns/SMG_2.gltf", type: "gltf", rotation: [0, Math.PI / 2, 0] },
-  stormwallRifle: { url: "/models/sci-fi-guns/Sniper_2.gltf", type: "gltf", rotation: [0, Math.PI / 2, 0] },
-  frostlance: { url: "/models/sci-fi-guns/AR_6.gltf", type: "gltf", rotation: [0, Math.PI / 2, 0] },
+  weatherGun: { url: "/models/scifi-guns-q/Rifle.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
+  clearSkyGun: { url: "/models/scifi-guns-q/LongPistol.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
+  rainySeasonKiller: { url: "/models/scifi-guns-q/Lightning Gun.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
+  stormwallRifle: { url: "/models/scifi-guns-q/Sniper rifle.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
+  frostlance: { url: "/models/scifi-guns-q/Ray Gun.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
   windBlade: { url: "/models/prototype-kit/weapon-sword.glb", type: "gltf", rotation: [0, Math.PI / 2, -Math.PI / 7] },
 };
 

@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Sky, Stars, useFBX, useAnimations, useGLTF } from "@react-three/drei";
+import { Sky, Stars, useAnimations, useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh } from "three";
 import { LoopOnce } from "three";
@@ -98,13 +98,13 @@ function GpsToggle() {
 }
 
 function HeroMech({ accent, characterId }: { accent: string; characterId: CharacterId }) {
-  const fbx = useFBX(CHARACTER_MODEL_URL[characterId]);
+  const gltf = useGLTF(CHARACTER_MODEL_URL[characterId]);
   const { fitted, animations } = useMemo(() => {
-    const cloned = SkeletonUtils.clone(fbx) as Group;
+    const cloned = SkeletonUtils.clone(gltf.scene) as Group;
     fitObjectToHeight(cloned, 2.2);
     tintCharacterMaterials(cloned, accent, 0.08);
-    return { fitted: cloned, animations: fbx.animations as AnimationClip[] };
-  }, [fbx, accent]);
+    return { fitted: cloned, animations: gltf.animations as AnimationClip[] };
+  }, [gltf, accent]);
   const groupRef = useRef<Group>(null);
   const innerRef = useRef<Group>(null);
   const accentRingRef = useRef<Mesh>(null);
