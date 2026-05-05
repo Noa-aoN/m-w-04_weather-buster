@@ -1,5 +1,5 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useAnimations, useFBX } from "@react-three/drei";
+import { useAnimations, useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh, PerspectiveCamera, PointLight } from "three";
 import { Vector3 } from "three";
@@ -142,7 +142,7 @@ export function PlayerBackAvatar() {
   const cameraMode = useBattleStore((state) => state.cameraMode);
   const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
-  const charFbx = useFBX(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.iris);
+  const charGltf = useGLTF(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.iris);
   const characterAccent = useBattleStore((state) => {
     const id = state.selectedCharacterId;
     if (id === "iris") return "#28d9ff";
@@ -151,11 +151,11 @@ export function PlayerBackAvatar() {
   });
 
   const { charFitted, animations } = useMemo(() => {
-    const cloned = SkeletonUtils.clone(charFbx) as Group;
+    const cloned = SkeletonUtils.clone(charGltf.scene) as Group;
     fitObjectToHeight(cloned, 1.7);
     tintCharacterMaterials(cloned, characterAccent, 0.05);
-    return { charFitted: cloned, animations: charFbx.animations as AnimationClip[] };
-  }, [charFbx, characterAccent]);
+    return { charFitted: cloned, animations: charGltf.animations as AnimationClip[] };
+  }, [charGltf, characterAccent]);
 
   const { actions, names } = useAnimations(animations, charRef);
 
@@ -273,9 +273,9 @@ export function PlayerBackAvatar() {
   );
 }
 
-useFBX.preload(CHARACTER_MODEL_URL.iris);
-useFBX.preload(CHARACTER_MODEL_URL.halo);
-useFBX.preload(CHARACTER_MODEL_URL.raika);
+useGLTF.preload(CHARACTER_MODEL_URL.iris);
+useGLTF.preload(CHARACTER_MODEL_URL.halo);
+useGLTF.preload(CHARACTER_MODEL_URL.raika);
 
 // Sets camera FOV from the store and adds a brief "punch" on each shot / skill.
 export function FovController() {

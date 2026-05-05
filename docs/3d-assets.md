@@ -10,14 +10,16 @@
 
 | ディレクトリ | 出典パック | 出典 URL | ファイル | 用途 |
 | --- | --- | --- | --- | --- |
-| `public/models/quaternius-characters/` | Ultimate Animated Character Pack (Nov 2019) | https://opengameart.org/content/animated-characters-pack | `BlueSoldier_Female.fbx` | NOA (IRIS / バランス) |
-| 同上 | 同上 | 同上 | `BlueSoldier_Male.fbx` | HALO (重装) |
-| 同上 | 同上 | 同上 | `Ninja_Female.fbx` | SAKA (RAIKA / 攻撃) |
-| `public/models/sci-fi-guns/` | Modular Sci Fi Guns (Nov 2021) | https://quaternius.com/packs/modularscifiguns.html | `AR_2.gltf / AR_4.gltf / AR_6.gltf / SMG_2.gltf / Sniper_2.gltf` | 5 武器スロット（weatherGun / clearSkyGun / frostlance / rainySeasonKiller / stormwallRifle） |
+| `public/models/modular-men/` | Ultimate Modular Men (Feb 2022) | https://quaternius.com/packs/ultimatemodularmen.html | `Adventurer.gltf` | NOA (IRIS / バランス) — 顎髭の野外観測員 |
+| 同上 | 同上 | 同上 | `Spacesuit.gltf` | HALO (重装) — 文字どおり耐圧スーツ |
+| 同上 | 同上 | 同上 | `Punk.gltf` | SAKA (RAIKA / 攻撃) — 赤モヒカン |
+| `public/models/scifi-guns-q/` | Sci-Fi Gun Pack by Quaternius | https://quaternius.com (Patreon 配布) | `Rifle.fbx / LongPistol.fbx / Lightning Gun.fbx / Sniper rifle.fbx / Ray Gun.fbx` | 5 武器スロット（weatherGun / clearSkyGun / rainySeasonKiller / stormwallRifle / frostlance） |
 | `public/models/scifi-megakit/Props/` | Modular SciFi MegaKit (Standard) | https://quaternius.com/packs/modularscifimegakit.html | `Prop_Computer / AccessPoint / Barrel_Large / Crate3 / Crate4 / Fan_Small / Chest / Clamp / Cable_1 / ItemHolder / Light_Floor / Light_Wide` | 実験場ステージの装飾（コンソール・バレル・ライト・ファン・コンテナ） |
 | `public/models/stylized-nature/` | Stylized Nature MegaKit (Standard) | https://quaternius.com/packs/stylizednaturemegakit.html | `DeadTree_1 / DeadTree_3 / TwistedTree_1 / Rock_Medium_1〜3 / CommonTree_4` + bark/leaf textures (downsampled to 512px) | 都市跡(ruins) と 高地(highland) の植生装飾。CommonTree_4 は high mid-mountain、DeadTree / TwistedTree は ruins のシルエット要素。バーク/葉テクスチャは 2K → 512 にリサイズ済み |
 
-旧 `public/models/quaternius-guns/` の FBX 8 個は削除（barrel が +X 軸で、glTF 版に置換することで axis 確認スクリプトを再実装する必要がなくなった）。glTF 版も barrel は +X 軸のままだが、glTF は base64 埋め込み済みの自己完結形式で `.bin` の管理が不要・ロードも軽い。
+**変遷メモ**: もともと FBX (`quaternius-guns/`) → 旧 glTF (`sci-fi-guns/`) → 現在の **`scifi-guns-q/` (Sci-Fi Gun Pack by Quaternius / FBX)** と段階的に置換。最後の Pack は色味のあるローポリ・ポップな造形で、Lightning Gun や Ray Gun 等の SF テイストが既存の Quaternius 兵士キャラと統一感がある。barrel は **+Z 軸** なので rotation `[0, Math.PI, 0]` で -Z（カメラ前方）にマップ。
+
+**キャラ変遷**: Soldier / Ninja の Quaternius Animated Character (FBX) から **Ultimate Modular Men (glTF)** に切替。各キャラに **24 種のアニメ**（Idle / Idle_Gun / Idle_Gun_Pointing / Walk / Run / Run_Shoot / Gun_Shoot / Punch_Left/Right / Sword_Slash / Death / HitRecieve / Roll / Wave 等）が同梱。`useFBX` → `useGLTF` に統一し、`PlayerView.tsx` / `HomeScene.tsx` / `CharacterModel.tsx` の 3 箇所で同じ glTF パイプラインを使う。
 
 MegaKit Props は `.gltf` + `.bin` のペア構成で同梱。配置は `src/entities/stagePlacements.ts` の lab ステージ `fixed` 配列に集約。`License.txt` をパック直下 `public/models/scifi-megakit/License.txt` に同梱。
 
