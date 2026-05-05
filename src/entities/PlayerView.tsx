@@ -37,9 +37,12 @@ export function PlayerWeapon() {
     }
     node.position.copy(camera.position);
     node.quaternion.copy(camera.quaternion);
-    node.translateX(0.34);
-    node.translateY(-0.3);
-    node.translateZ(-0.55);
+    // FPS gun position: positioned for the new Sci-Fi Gun Pack which is
+    // beefier than the old AR set. Keep it lower-right so the muzzle does
+    // not block the central reticle.
+    node.translateX(0.42);
+    node.translateY(-0.36);
+    node.translateZ(-0.62);
     // Recoil: punch back along camera axis and tip the muzzle up briefly.
     const sinceShot = performance.now() - lastShotAt;
     const recoilK = lastShotAt > 0 ? Math.max(0, 1 - sinceShot / 130) : 0;
@@ -58,25 +61,25 @@ export function PlayerWeapon() {
   return (
     <group ref={groupRef}>
       <group rotation={weaponModelRotation(selectedWeaponId)}>
-        <WeaponObject id={selectedWeaponId} targetSize={0.55} />
+        <WeaponObject id={selectedWeaponId} targetSize={0.6} />
       </group>
       {flashVisible ? (
         <>
-          <mesh ref={flashRef} position={[0, 0, -0.55]}>
-            <sphereGeometry args={[0.14, 12, 12]} />
+          <mesh ref={flashRef} position={[0, 0, -0.62]}>
+            <sphereGeometry args={[0.16, 12, 12]} />
             <meshBasicMaterial color="#fff7a0" transparent opacity={0.95} toneMapped={false} />
           </mesh>
           {[0, Math.PI / 4, Math.PI / 2, (Math.PI * 3) / 4].map((rot) => (
-            <mesh key={rot} position={[0, 0, -0.55]} rotation={[0, 0, rot]}>
-              <planeGeometry args={[0.55, 0.07]} />
+            <mesh key={rot} position={[0, 0, -0.62]} rotation={[0, 0, rot]}>
+              <planeGeometry args={[0.6, 0.08]} />
               <meshBasicMaterial color="#ffe9a8" transparent opacity={0.85} toneMapped={false} depthWrite={false} />
             </mesh>
           ))}
-          <mesh position={[0, 0, -0.66]}>
-            <sphereGeometry args={[0.06, 8, 8]} />
+          <mesh position={[0, 0, -0.74]}>
+            <sphereGeometry args={[0.07, 8, 8]} />
             <meshBasicMaterial color="#ffffff" transparent opacity={0.95} toneMapped={false} />
           </mesh>
-          <pointLight ref={flashLightRef} position={[0, 0, -0.5]} intensity={8} color="#fff7a0" distance={5.5} />
+          <pointLight ref={flashLightRef} position={[0, 0, -0.55]} intensity={8} color="#fff7a0" distance={5.5} />
         </>
       ) : null}
     </group>
@@ -234,13 +237,16 @@ export function PlayerBackAvatar() {
 
     // Weapon follows camera orientation fully (yaw + pitch) so the barrel always
     // points where the camera looks, even when aiming up/down at flying enemies.
+    // The avatar group lives ~1.8m in front of the camera; placing the weapon
+    // ~2.0m ahead with a slight right-shoulder offset puts it visually in the
+    // character's right hand (the new Modular Men idle_gun_pointing pose).
     const weapon = weaponGroupRef.current;
     if (weapon) {
       weapon.position.copy(camera.position);
       weapon.quaternion.copy(camera.quaternion);
-      weapon.translateX(0.4);
-      weapon.translateY(-0.05);
-      weapon.translateZ(-1.4);
+      weapon.translateX(0.55);
+      weapon.translateY(0.1);
+      weapon.translateZ(-2.0);
     }
   });
 
@@ -257,15 +263,15 @@ export function PlayerBackAvatar() {
       </group>
       <group ref={weaponGroupRef}>
         <group rotation={weaponModelRotation(selectedWeaponId)}>
-          <WeaponObject id={selectedWeaponId} targetSize={0.6} />
+          <WeaponObject id={selectedWeaponId} targetSize={0.7} />
         </group>
         {flashVisible ? (
           <>
-            <mesh ref={flashRef} position={[0, 0, -0.35]}>
-              <sphereGeometry args={[0.14, 12, 12]} />
+            <mesh ref={flashRef} position={[0, 0, -0.4]}>
+              <sphereGeometry args={[0.16, 12, 12]} />
               <meshBasicMaterial color="#fff7a0" transparent opacity={0.95} toneMapped={false} />
             </mesh>
-            <pointLight position={[0, 0, -0.35]} intensity={6} color="#fff7a0" distance={4} />
+            <pointLight position={[0, 0, -0.4]} intensity={6} color="#fff7a0" distance={4} />
           </>
         ) : null}
       </group>

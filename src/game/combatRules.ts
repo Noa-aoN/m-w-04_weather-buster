@@ -68,10 +68,11 @@ export function shieldAfterBlock(shieldActive: boolean, shieldEnergy: number) {
 
 export function computeReloadMs(weapon: Weapon) {
   // Heavier weapons take longer to reload, capped to a reasonable range.
-  if (weapon.maxAmmo <= 8) return 1700;
-  if (weapon.maxAmmo <= 14) return 1300;
-  if (weapon.maxAmmo <= 22) return 1100;
-  return 950;
+  // Tightened ~25% so the manual right-click reload doesn't drag combat tempo.
+  if (weapon.maxAmmo <= 8) return 1300;
+  if (weapon.maxAmmo <= 14) return 1000;
+  if (weapon.maxAmmo <= 22) return 850;
+  return 700;
 }
 
 // One-shot pure resolution of a player gunshot. Returns the *diff* that the
