@@ -26,10 +26,10 @@ describe("enemyMaxHpFor", () => {
 
 describe("computeReloadMs", () => {
   it("scales reload time inversely to magazine size", () => {
-    expect(computeReloadMs({ ...weatherGun, maxAmmo: 6 })).toBe(1700);
-    expect(computeReloadMs({ ...weatherGun, maxAmmo: 14 })).toBe(1300);
-    expect(computeReloadMs({ ...weatherGun, maxAmmo: 22 })).toBe(1100);
-    expect(computeReloadMs({ ...weatherGun, maxAmmo: 32 })).toBe(950);
+    expect(computeReloadMs({ ...weatherGun, maxAmmo: 6 })).toBe(1300);
+    expect(computeReloadMs({ ...weatherGun, maxAmmo: 14 })).toBe(1000);
+    expect(computeReloadMs({ ...weatherGun, maxAmmo: 22 })).toBe(850);
+    expect(computeReloadMs({ ...weatherGun, maxAmmo: 32 })).toBe(700);
   });
 });
 
