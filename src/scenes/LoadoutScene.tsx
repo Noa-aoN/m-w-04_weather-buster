@@ -7,6 +7,7 @@ import { WeaponModel } from "../entities/WeaponModel";
 import { characters, stages, weapons } from "../game/data";
 import { useBattleStore } from "../game/battleStore";
 import type { CharacterId, StageId, WeaponId } from "../game/types";
+import { assetUrl } from "../shared/assets";
 
 function useBackKey(onBack: () => void) {
   useEffect(() => {
@@ -95,7 +96,7 @@ const STAGE_DECOR: Record<StageId, Array<{ url: string; x: number; z: number; sc
 };
 
 function StageDecorItem({ url, x, z, scale, rotY = 0 }: { url: string; x: number; z: number; scale: number; rotY?: number }) {
-  const { scene } = useGLTF(url);
+  const { scene } = useGLTF(assetUrl(url));
   const cloned = useMemo(() => scene.clone(true), [scene]);
   return (
     <group position={[x, -0.4, z]} rotation={[0, rotY, 0]} scale={scale}>

@@ -3,6 +3,7 @@ import { useFBX, useGLTF } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import type { Group } from "three";
 import type { WeaponId } from "../game/types";
+import { assetUrl } from "../shared/assets";
 import { fitObjectToSize } from "./fitObject";
 
 type WeaponModelType = "fbx" | "gltf";
@@ -11,12 +12,12 @@ type WeaponModelType = "fbx" | "gltf";
 // barrel along +Z (longest axis ~ Z, with the muzzle on +Z by Quaternius
 // authoring convention). [0, PI, 0] flips +Z to -Z = camera forward.
 export const WEAPON_MODEL: Record<WeaponId, { url: string; type: WeaponModelType; rotation: [number, number, number] }> = {
-  weatherGun: { url: "/models/scifi-guns-q/Rifle.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
-  clearSkyGun: { url: "/models/scifi-guns-q/LongPistol.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
-  rainySeasonKiller: { url: "/models/scifi-guns-q/Lightning Gun.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
-  stormwallRifle: { url: "/models/scifi-guns-q/Sniper rifle.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
-  frostlance: { url: "/models/scifi-guns-q/Ray Gun.fbx", type: "fbx", rotation: [0, Math.PI, 0] },
-  windBlade: { url: "/models/prototype-kit/weapon-sword.glb", type: "gltf", rotation: [0, Math.PI / 2, -Math.PI / 7] },
+  weatherGun: { url: assetUrl("/models/scifi-guns-q/Rifle.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
+  clearSkyGun: { url: assetUrl("/models/scifi-guns-q/LongPistol.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
+  rainySeasonKiller: { url: assetUrl("/models/scifi-guns-q/Lightning Gun.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
+  stormwallRifle: { url: assetUrl("/models/scifi-guns-q/Sniper rifle.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
+  frostlance: { url: assetUrl("/models/scifi-guns-q/Ray Gun.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
+  windBlade: { url: assetUrl("/models/prototype-kit/weapon-sword.glb"), type: "gltf", rotation: [0, Math.PI / 2, -Math.PI / 7] },
 };
 
 export const WEAPON_MODEL_URL = Object.fromEntries(

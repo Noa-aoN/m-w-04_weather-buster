@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { AnimationClip, Group } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import type { CharacterId } from "../game/types";
+import { assetUrl } from "../shared/assets";
 import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
 
 // Each pilot is a static Meshy AI mesh — no skeleton, no animations. The
@@ -12,8 +13,8 @@ import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
 // have no `accent`-named slot); each character is visually distinct by
 // virtue of being a different mesh.
 export const CHARACTER_MODEL_URL: Record<CharacterId, string> = {
-  noa: "/models/custom-characters/noa.glb",
-  saka: "/models/custom-characters/saka.glb",
+  noa: assetUrl("/models/custom-characters/noa.glb"),
+  saka: assetUrl("/models/custom-characters/saka.glb"),
 };
 
 const TARGET_HEIGHT = 1.6;

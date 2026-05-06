@@ -11,6 +11,7 @@ import type { CharacterId, DifficultyLevel, LoadoutTab } from "../game/types";
 import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
 import { fitObjectToHeight, tintCharacterMaterials } from "../entities/fitObject";
 import { AudioToggle } from "../features/audio/AudioToggle";
+import { assetUrl } from "../shared/assets";
 
 function StartIcon() {
   return (
@@ -233,7 +234,7 @@ function HeroSparkles({ accent }: { accent: string }) {
   );
 }
 
-const SATELLITE_DISH_URL = "/models/space-kit/satelliteDish_large.glb";
+const SATELLITE_DISH_URL = assetUrl("/models/space-kit/satelliteDish_large.glb");
 
 function SatelliteDish() {
   const dishRef = useRef<Group>(null);
@@ -257,9 +258,9 @@ function SatelliteDish() {
 
 useGLTF.preload(SATELLITE_DISH_URL);
 
-const TOWER_BASE_URL = "/models/tower-defense-kit/tower-round-base.glb";
-const TOWER_BODY_URL = "/models/tower-defense-kit/tower-round-build-c.glb";
-const TOWER_TOP_URL = "/models/tower-defense-kit/tower-round-top-a.glb";
+const TOWER_BASE_URL = assetUrl("/models/tower-defense-kit/tower-round-base.glb");
+const TOWER_BODY_URL = assetUrl("/models/tower-defense-kit/tower-round-build-c.glb");
+const TOWER_TOP_URL = assetUrl("/models/tower-defense-kit/tower-round-top-a.glb");
 
 function WarningTower({ position }: { position: [number, number, number] }) {
   const lampRef = useRef<Mesh>(null);
@@ -432,12 +433,12 @@ function ThunderFlicker() {
 }
 
 const BACKDROP_URLS = [
-  "/models/space-kit/hangar_smallA.glb",
-  "/models/space-kit/hangar_smallB.glb",
-  "/models/space-kit/hangar_roundA.glb",
-  "/models/space-kit/hangar_roundB.glb",
-  "/models/space-kit/structure.glb",
-  "/models/space-kit/structure_detailed.glb",
+  assetUrl("/models/space-kit/hangar_smallA.glb"),
+  assetUrl("/models/space-kit/hangar_smallB.glb"),
+  assetUrl("/models/space-kit/hangar_roundA.glb"),
+  assetUrl("/models/space-kit/hangar_roundB.glb"),
+  assetUrl("/models/space-kit/structure.glb"),
+  assetUrl("/models/space-kit/structure_detailed.glb"),
 ];
 
 // 中央付近のハンガーは「コンテナのような塊」に見えるので除外。両端のみに配置

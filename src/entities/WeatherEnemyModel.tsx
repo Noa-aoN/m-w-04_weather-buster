@@ -3,15 +3,16 @@ import { useGLTF } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import type { Group, Mesh } from "three";
 import type { WeatherEnemy } from "../game/types";
+import { assetUrl } from "../shared/assets";
 import { fitObjectToHeight } from "./fitObject";
 
 const REX_BODY_URL: Partial<Record<WeatherEnemy["id"], string>> = {
-  cloudy: "/models/custom-enemies/tiny-rex.glb",
-  heavyRain: "/models/custom-enemies/heavy-rain.glb",
-  thunderstorm: "/models/custom-enemies/thunderstorm.glb",
-  rainySeason: "/models/custom-enemies/rainy-season.glb",
-  tornado: "/models/custom-enemies/tornado.glb",
-  blizzard: "/models/custom-enemies/blizzard.glb",
+  cloudy: assetUrl("/models/custom-enemies/tiny-rex.glb"),
+  heavyRain: assetUrl("/models/custom-enemies/heavy-rain.glb"),
+  thunderstorm: assetUrl("/models/custom-enemies/thunderstorm.glb"),
+  rainySeason: assetUrl("/models/custom-enemies/rainy-season.glb"),
+  tornado: assetUrl("/models/custom-enemies/tornado.glb"),
+  blizzard: assetUrl("/models/custom-enemies/blizzard.glb"),
 };
 
 function RexBody({ url, accent }: { url: string; accent: string }) {

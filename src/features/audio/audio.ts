@@ -1,3 +1,5 @@
+import { assetUrl } from "../../shared/assets";
+
 type Tone = {
   freq: number;
   duration: number;
@@ -76,7 +78,7 @@ async function loadOneSample(url: string) {
     return;
   }
   try {
-    const response = await fetch(url);
+    const response = await fetch(assetUrl(url));
     const arrayBuffer = await response.arrayBuffer();
     const buffer = await ctx.decodeAudioData(arrayBuffer);
     sampleBuffers.set(url, buffer);
