@@ -1447,7 +1447,7 @@ canvas {
 }
 
 .characterGrid {
-  grid-auto-rows: 460px;
+  grid-auto-rows: clamp(320px, 60vh, 480px);
 }
 
 .characterGrid .enemyCard {
@@ -1455,7 +1455,7 @@ canvas {
 }
 
 .characterGrid .enemyPreview {
-  min-height: 292px;
+  min-height: clamp(180px, 36vh, 300px);
 }
 
 .characterKeyHint {
@@ -1512,8 +1512,8 @@ canvas {
   position: relative;
   z-index: 4;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  grid-auto-rows: 320px;
+  grid-template-columns: repeat(auto-fit, minmax(clamp(180px, 18vw, 240px), 1fr));
+  grid-auto-rows: clamp(220px, 36vh, 340px);
   gap: 10px;
   height: calc(100vh - 128px);
   min-height: 0;
@@ -1618,7 +1618,10 @@ canvas {
   position: relative;
   z-index: 4;
   display: grid;
-  grid-template-columns: 1fr 380px;
+  /* Detail column shrinks on narrower viewports (laptops / small windows)
+     so the list never gets squeezed out, and grows on widescreens to make
+     the 3D preview legible. */
+  grid-template-columns: 1fr clamp(280px, 26vw + 6vh, 420px);
   gap: 18px;
   height: calc(100vh - 116px);
   min-height: 0;
@@ -1690,7 +1693,9 @@ canvas {
 
 .weaponDetail {
   display: grid;
-  grid-template-rows: 220px auto auto auto auto;
+  /* Preview row shrinks on short viewports so all the stat / skill rows
+     remain visible without forcing the panel itself to scroll. */
+  grid-template-rows: clamp(140px, 22vh, 240px) auto auto auto auto;
   gap: 12px;
   padding: 18px;
   min-height: 0;
