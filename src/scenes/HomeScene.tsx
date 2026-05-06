@@ -1,15 +1,16 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Sky, Stars, useAnimations, useGLTF } from "@react-three/drei";
+import { Sky, Stars, useAnimations, useGLTF, useTexture } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh } from "three";
-import { LoopOnce } from "three";
+import { LoopOnce, RepeatWrapping, SRGBColorSpace } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
 import { characters, findCharacter, findStage, findWeapon, stages, weapons, weatherEnemies } from "../game/data";
 import { useGeolocationWeather, weatherCodeLabel } from "../features/weather/useGeolocationWeather";
-import type { CharacterId, DifficultyLevel, LoadoutTab } from "../game/types";
+import type { CharacterId, DifficultyLevel, LoadoutTab, Stage } from "../game/types";
 import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
 import { fitObjectToHeight, tintCharacterMaterials } from "../entities/fitObject";
+import { STAGE_PLACEMENTS } from "../entities/stagePlacements";
 import { AudioToggle } from "../features/audio/AudioToggle";
 import { assetUrl } from "../shared/assets";
 
@@ -297,12 +298,39 @@ useGLTF.preload(TOWER_BASE_URL);
 useGLTF.preload(TOWER_BODY_URL);
 useGLTF.preload(TOWER_TOP_URL);
 
-function FloorGrid({ ringColor }: { ringColor: string }) {
+function FloorGrid({ stage, ringColor }: { stage: Stage; ringColor: string }) {
+  const placement = STAGE_PLACEMENTS[stage.id];
+  const floor = placement.floor;
+  const textureKey = floor.texture ?? "lab";
+  const repeat = floor.textureRepeat ?? 6;
+  const [colorMap, normalMap, roughMap, aoMap] = useTexture([
+    assetUrl(`/textures/field/${textureKey}/color.jpg`),
+    assetUrl(`/textures/field/${textureKey}/normal.jpg`),
+    assetUrl(`/textures/field/${textureKey}/roughness.jpg`),
+    assetUrl(`/textures/field/${textureKey}/ao.jpg`),
+  ]);
+  useEffect(() => {
+    [colorMap, normalMap, roughMap, aoMap].forEach((map) => {
+      map.wrapS = map.wrapT = RepeatWrapping;
+      map.repeat.set(repeat, repeat);
+      map.needsUpdate = true;
+    });
+    colorMap.colorSpace = SRGBColorSpace;
+  }, [colorMap, normalMap, roughMap, aoMap, repeat]);
+
   return (
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
         <planeGeometry args={[36, 36]} />
-        <meshStandardMaterial color="#0a141c" metalness={0.32} roughness={0.5} />
+        <meshStandardMaterial
+          color="#ffffff"
+          map={colorMap}
+          normalMap={normalMap}
+          roughnessMap={roughMap}
+          aoMap={aoMap}
+          metalness={floor.metalness}
+          roughness={floor.roughness}
+        />
       </mesh>
       {[2.6, 5.6, 9.4].map((radius, index) => (
         <mesh
@@ -499,11 +527,13 @@ function HomeOrbit({ children, speed = 0.06 }: { children: React.ReactNode; spee
 
 function HomeStage({
   accent,
+  stage,
   ringColor,
   weatherCode,
   characterId,
 }: {
   accent: string;
+  stage: Stage;
   ringColor: string;
   weatherCode: number | null;
   characterId: CharacterId;
@@ -536,7 +566,7 @@ function HomeStage({
       <fog attach="fog" args={[fogColor, fogNear, fogFar]} />
 
       <HomeOrbit speed={0.06}>
-        <FloorGrid ringColor={ringColor} />
+        <FloorGrid stage={stage} ringColor={ringColor} />
         <SatelliteDish />
         <WarningTower position={[-7, 0, -3.5]} />
         <WarningTower position={[-3.6, 0, -5.6]} />
@@ -707,6 +737,7 @@ export function HomeScene({
       >
         <HomeStage
           accent={character.accentColor}
+          stage={stage}
           ringColor={stage.ringColor}
           weatherCode={locationEnabled ? currentWeatherCode : null}
           characterId={selectedCharacterId}
@@ -747,7 +778,7 @@ export function HomeScene({
         </button>
         <button className="menuItem" type="button" onClick={onOpenCharacterGrid}>
           <span className="menuIcon"><CharacterIcon /></span>
-          <span className="menuLabel">キャラ図鑑</span>
+          <span className="menuLabel">バスター図鑑</span>
           <span className="menuKey">C</span>
         </button>
         <button className="menuItem" type="button" onClick={() => onOpenLoadout("weapon")}>
@@ -777,13 +808,13 @@ export function HomeScene({
         </div>
         <div className="missionPreviewBody">
         <div className="missionCycler">
-          <button type="button" className="cyclerArrow" aria-label="前のパイロット" onClick={() => cycleCharacter(-1)}>◀</button>
+          <button type="button" className="cyclerArrow" aria-label="前のバスター" onClick={() => cycleCharacter(-1)}>◀</button>
           <button type="button" className="cyclerLabel cyclerDetailButton" onClick={() => onOpenLoadout("character")}>
-            <small>PILOT</small>
+            <small>BUSTER</small>
             <strong>{character.codename}</strong>
             <em>{character.callSign}</em>
           </button>
-          <button type="button" className="cyclerArrow" aria-label="次のパイロット" onClick={() => cycleCharacter(1)}>▶</button>
+          <button type="button" className="cyclerArrow" aria-label="次のバスター" onClick={() => cycleCharacter(1)}>▶</button>
         </div>
 
         <div className="missionCycler">
@@ -860,7 +891,7 @@ export function HomeScene({
 
       <blockquote className="pilotLog">
         <span className="pilotLogCallSign" style={{ color: character.accentColor }}>{character.callSign} / {character.codename}</span>
-        <em>{character.flavor}</em>
+        <em>「{character.flavor}」</em>
       </blockquote>
 
     </main>

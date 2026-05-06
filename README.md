@@ -1,162 +1,98 @@
 # ウェザー・バスターズ 〜CLEAR THE SKY〜
 
-荒れた空を撃ち抜き、晴れを取り戻す3Dアリーナシューターです。  
-プレイヤーは「ウェザーブレイカー」として、豪雨・落雷・竜巻・梅雨・台風・吹雪などの異常気象モンスターと戦い、空を晴れに戻します。
+荒れた天候を撃ち抜き、空を晴らす 3D アリーナアクションです。
+プレイヤーは「ウェザー・バスター」として、豪雨・落雷・竜巻・梅雨・吹雪などの天候性侵害体を制圧します。
 
-敵を倒した瞬間に雲が割れ、青空とともに `CLEAR SKY!` が表示される体験を、このゲームの最優先価値として設計します。
+公開版: https://noa-aon.github.io/m-w-04_weather-buster/
 
-## コンセプト
+## 見どころ
 
-> 荒れた空を撃ち抜き、晴れを取り戻せ。
+- 天候モンスターごとに異なる攻撃、色、ステージ演出
+- 銃・ライフル・カノン・近接ブレードを切り替える装備選択
+- 撃破時に空が晴れる `CLEAR SKY!` 演出
+- バスター、武器、戦域、敵、難易度をホーム画面で即変更
+- SFX / BGM、GPS連動候補、視点感度などの設定つき
 
-このゲームでは、天気そのものではなく、生活や行動を妨げる「クセのある天候現象」を敵として扱います。
+## 遊び方
 
-- 晴れ: ゴール / 勝利状態
-- 曇り: チュートリアル・練習用
-- 豪雨・落雷・竜巻・梅雨・台風・吹雪: 敵
-- 台風: 将来的なボス候補
+1. ホーム画面の `MISSION PREVIEW` で敵、武器、バスター、戦域、難易度を選ぶ
+2. `ゲーム開始` で出撃
+3. 攻撃を避けながら敵HPを削る
+4. 気圧ゲージが溜まったら `Q` で武器スキル
+5. 敵を倒して `CLEAR SKY!` を目指す
 
-## ジャンル
+## 操作
 
-3Dアリーナシューター / FPS寄り
+| 操作 | 内容 |
+| --- | --- |
+| W A S D | 移動 |
+| Mouse | 視点操作 |
+| Left Click | 攻撃 |
+| Right Click / R | リロード |
+| Q | 武器スキル |
+| B | 気象シールド |
+| 1-4 | アイテム |
+| Space | ジャンプ |
+| Shift | ダッシュ |
+| Esc | ポーズ |
 
-本格的な競技FPSよりも、まずは次の体験を重視します。
+`風向ブレード` は弾を撃たない近接武器です。敵との間合いに入って正面から斬った時だけダメージが入ります。
 
-- 3D空間を移動する
-- 敵の攻撃を避ける
-- 天候モンスターを撃つ
-- スキルやアイテムを使う
-- 倒すと空が晴れる
+## 登場要素
 
-## コア体験
+### 敵
 
-```txt
-敵天候を倒す
-  ↓
-空が晴れる
-  ↓
-CLEAR SKY!
-```
+- 曇り: 練習向け
+- 豪雨: 視界妨害と連続攻撃
+- 落雷: 高威力の落雷攻撃
+- 竜巻: 吸引と接近圧
+- 梅雨: 鈍足を含む状態異常
+- 吹雪: 視界と動きを乱す氷雪系
+- 台風: Coming soon
 
-FPSとしての完成度を追い込む前に、まずは「天候をブレイクして晴れを取り戻した感」を成立させます。
-
-## MVPスコープ
-
-### 初期ステージ
-
-- 実験場
-
-### 初期敵
-
-- 曇り
-- 豪雨
-- 落雷
-
-### 初期武器
+### 武器
 
 - ウェザーガン
 - クリアスカイガン
 - 梅雨キラー
+- 雷除けライフル
+- 凍結カノン
+- 風向ブレード
 
-### 初期スキル
-
-- キャラ固有スキル
-- 武器スキル
-
-### 初期アイテム
-
-- 晴れ薬
-- デコイ傘
-- 避雷針
-- 気圧安定剤
-
-### 結果画面
-
-- 撃破時間
-- 命中率
-- 被ダメージ率
-- 晴天化スコア
-- ランク
-
-## スキル設計
-
-スキルは2系統に分けます。
-
-```txt
-キャラ固有スキル: 常時発動
-武器スキル: 命中でゲージが溜まり、任意発動
-```
-
-この構成により、キャラ選択・武器選択・プレイスキルのすべてに意味を持たせます。
-
-## 技術構成案
+## 技術構成
 
 - Vite
 - React
 - TypeScript
 - Three.js
-- `@react-three/fiber`
-- `@react-three/drei`
-- `@react-three/rapier`
-- zustand
+- @react-three/fiber
+- @react-three/drei
+- Zustand
+- Vitest
 
-## ドキュメント
-
-- 開発用詳細: [docs/development-readme.md](docs/development-readme.md)
-- 公開仕様: [docs/spec.md](docs/spec.md)
-- LP / 紹介文用: [docs/lp-readme.md](docs/lp-readme.md)
-- MVP仕様: [docs/mvp-spec.md](docs/mvp-spec.md)
-- アーキテクチャ方針: [docs/architecture.md](docs/architecture.md)
-- ディレクトリ構成: [docs/project-structure.md](docs/project-structure.md)
-- 開発計画: [docs/development-plan.md](docs/development-plan.md)
-- 実装手順: [docs/implementation-steps.md](docs/implementation-steps.md)
-
-## 開発コマンド
+## 開発
 
 ```sh
 pnpm install
 pnpm dev
+```
+
+開発サーバは `http://localhost:3040` で起動します。
+
+## 検証
+
+```sh
+pnpm typecheck
 pnpm build
+pnpm test
 ```
 
-`pnpm dev` は `http://localhost:3040` で起動します（兄弟 miniapp とポートを衝突させないため `3040` を固定）。
+## デプロイ
 
-## 初期ディレクトリ構成
+GitHub Pages へデプロイします。`main` に反映後、GitHub Actions の Pages workflow が `dist/` を公開します。
 
-```txt
-docs/
-public/
-src/
-tests/
-```
+## ドキュメント
 
-実装開始前に、仕様・設計・実装責務の置き場を先に固定します。
-
-## 今回やらないこと
-
-MVPでは以下を対象外とします。
-
-- ログイン
-- オンラインランキング
-- キャラ育成
-- 大量のステージ実装
-- 複雑な装備ビルド
-- マルチプレイ
-- 大量の3Dモデル制作
-- 高度な敵AI
-- セーブデータ
-- 課金要素
-
-## タイトル候補
-
-本命:
-
-```txt
-ウェザー・バスターズ 〜CLEAR THE SKY〜
-```
-
-英語寄り:
-
-```txt
-Weather Busters 〜CLEAR THE SKY〜
-```
+- 公開仕様: [docs/spec.md](docs/spec.md)
+- アーキテクチャ方針: [docs/architecture.md](docs/architecture.md)
+- 開発用詳細: [docs/development-readme.md](docs/development-readme.md)
