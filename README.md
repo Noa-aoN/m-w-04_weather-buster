@@ -1,4 +1,4 @@
-# ウェザーバスター 〜CLEAR THE SKY〜
+# ウェザー・バスターズ 〜CLEAR THE SKY〜
 
 荒れた空を撃ち抜き、晴れを取り戻す3Dアリーナシューターです。  
 プレイヤーは「ウェザーブレイカー」として、豪雨・落雷・竜巻・梅雨・台風・吹雪などの異常気象モンスターと戦い、空を晴れに戻します。
@@ -152,11 +152,11 @@ MVPでは以下を対象外とします。
 本命:
 
 ```txt
-ウェザーバスター 〜CLEAR THE SKY〜
+ウェザー・バスターズ 〜CLEAR THE SKY〜
 ```
 
 英語寄り:
 
 ```txt
-Weather Buster 〜CLEAR THE SKY〜
+Weather Busters 〜CLEAR THE SKY〜
 ```

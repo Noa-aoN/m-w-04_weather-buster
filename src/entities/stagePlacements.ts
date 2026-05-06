@@ -72,10 +72,11 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-base-bits/cargo_A_stacked.gltf", x: 8.5, z: 5, scale: 1.6, rotY: -0.2 },
       { url: "/models/space-kit/structure.glb", x: -8.5, z: 3, scale: 1.5, rotY: 0.3 },
       { url: "/models/space-kit/structure_detailed.glb", x: -8, z: 6, scale: 1.4, rotY: -0.4 },
-      // Center backdrop: detailed sci-fi computer console
-      { url: "/models/scifi-megakit/Props/Prop_Computer.gltf", x: 0, z: -8.5, scale: 1.4, rotY: 0 },
-      { url: "/models/scifi-megakit/Props/Prop_AccessPoint.gltf", x: -3, z: -8.6, scale: 1.5, rotY: 0.3 },
-      { url: "/models/scifi-megakit/Props/Prop_AccessPoint.gltf", x: 3, z: -8.6, scale: 1.5, rotY: -0.3 },
+      // Center backdrop: self-contained GLB consoles. Avoid scifi-megakit
+      // GLTFs here because their external trim textures are not included.
+      { url: "/models/space-kit/desk_computer.glb", x: 0, z: -8.5, scale: 1.6, rotY: 0 },
+      { url: "/models/factory-kit/screen-panel-wide.glb", x: -3, z: -8.6, scale: 1.5, rotY: 0.3 },
+      { url: "/models/factory-kit/screen-panel-wide.glb", x: 3, z: -8.6, scale: 1.5, rotY: -0.3 },
       // Side props
       { url: "/models/factory-kit/cog-a.glb", x: -10, z: 0, scale: 1.4, rotY: 0 },
       { url: "/models/factory-kit/cog-b.glb", x: 10, z: -1, scale: 1.4, rotY: 0.5 },
@@ -86,9 +87,9 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // Floor lamps + small detail props (KayKit lights mark walking lanes)
       { url: "/models/space-base-bits/lights.gltf", x: -2.4, z: 4.5, scale: 1.0, rotY: 0 },
       { url: "/models/space-base-bits/lights.gltf", x: 2.4, z: 4.5, scale: 1.0, rotY: 0 },
-      { url: "/models/scifi-megakit/Props/Prop_Fan_Small.gltf", x: 0, z: 6.0, scale: 0.9, rotY: 0 },
-      { url: "/models/scifi-megakit/Props/Prop_ItemHolder.gltf", x: 6.5, z: 4.5, scale: 1.1, rotY: -0.4 },
-      { url: "/models/scifi-megakit/Props/Prop_Cable_1.gltf", x: -7, z: -1.5, scale: 1.0, rotY: 0.2 },
+      { url: "/models/factory-kit/screen-hanging-small.glb", x: 0, z: 6.0, scale: 0.9, rotY: 0 },
+      { url: "/models/factory-kit/machine-window.glb", x: 6.5, z: 4.5, scale: 1.1, rotY: -0.4 },
+      { url: "/models/space-kit/machine_wirelessCable.glb", x: -7, z: -1.5, scale: 1.0, rotY: 0.2 },
       // KayKit ResourceBits: industrial pallets / fuel barrels / parts piles
       // line the side aisles. Pallets sit flat (no height) so they don't
       // block the player line of sight; barrels add silhouette.

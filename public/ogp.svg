@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="ウェザーバスター CLEAR THE SKY">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="ウェザー・バスターズ CLEAR THE SKY">
   <defs>
     <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
       <stop offset="0" stop-color="#061019"/>
@@ -24,7 +24,7 @@
     <path d="M852 78 752 324h126l-52 172 218-288H906l74-130H852z" fill="#ffd84d"/>
   </g>
   <text x="80" y="190" fill="#28d9ff" font-family="Arial, 'Hiragino Kaku Gothic ProN', sans-serif" font-size="30" font-weight="700" letter-spacing="8">PROJECT: WEATHER BUSTER</text>
-  <text x="78" y="308" fill="#f7fdff" font-family="Arial, 'Hiragino Kaku Gothic ProN', sans-serif" font-size="92" font-weight="900">ウェザーバスター</text>
+  <text x="78" y="308" fill="#f7fdff" font-family="Arial, 'Hiragino Kaku Gothic ProN', sans-serif" font-size="80" font-weight="900">ウェザー・バスターズ</text>
   <text x="84" y="382" fill="#ffd84d" font-family="Arial, sans-serif" font-size="46" font-weight="900" letter-spacing="14">CLEAR THE SKY</text>
   <text x="84" y="442" fill="#d9f6ff" font-family="Arial, 'Hiragino Kaku Gothic ProN', sans-serif" font-size="28">荒れた天候を撃ち抜き、空を晴らせ</text>
 </svg>
