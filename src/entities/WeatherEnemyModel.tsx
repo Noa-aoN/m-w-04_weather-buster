@@ -1,7 +1,40 @@
 import { useFrame } from "@react-three/fiber";
-import { useRef } from "react";
+import { useGLTF } from "@react-three/drei";
+import { useMemo, useRef } from "react";
 import type { Group, Mesh } from "three";
 import type { WeatherEnemy } from "../game/types";
+import { fitObjectToHeight } from "./fitObject";
+
+const REX_BODY_URL: Partial<Record<WeatherEnemy["id"], string>> = {
+  cloudy: "/models/custom-enemies/tiny-rex.glb",
+  heavyRain: "/models/custom-enemies/heavy-rain.glb",
+  rainySeason: "/models/custom-enemies/rainy-season.glb",
+  tornado: "/models/custom-enemies/tornado.glb",
+};
+
+function RexBody({ url, accent }: { url: string; accent: string }) {
+  const groupRef = useRef<Group>(null);
+  const { scene } = useGLTF(url);
+  const fitted = useMemo(() => {
+    const cloned = scene.clone(true) as Group;
+    fitObjectToHeight(cloned, 1.6);
+    return cloned;
+  }, [scene]);
+
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return;
+    const t = clock.getElapsedTime();
+    groupRef.current.position.y = Math.sin(t * 1.6) * 0.06;
+    groupRef.current.rotation.y = Math.sin(t * 0.45) * 0.18;
+  });
+
+  return (
+    <group ref={groupRef}>
+      <primitive object={fitted} />
+      <pointLight position={[0, 1.0, 0.6]} intensity={0.6} color={accent} distance={3.5} />
+    </group>
+  );
+}
 
 function Eye({
   side,
@@ -155,18 +188,6 @@ function CloudPuff({ enemy, clear, big = false }: { enemy: WeatherEnemy; clear: 
   );
 }
 
-function CloudFace({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean }) {
-  return (
-    <>
-      <Eye side={-1} scale={1.1} cute />
-      <Eye side={1} scale={1.1} cute />
-      <Mouth variant={clear ? "smile" : "small"} y={-0.18} z={0.78} scale={1.1} />
-      <Cheek side={-1} color={enemy.accentColor} z={0.7} height={-0.12} scale={1.1} />
-      <Cheek side={1} color={enemy.accentColor} z={0.7} height={-0.12} scale={1.1} />
-    </>
-  );
-}
-
 function RainDroplets({ color }: { color: string }) {
   const groupRef = useRef<Group>(null);
   useFrame((state) => {
@@ -196,10 +217,7 @@ function RainDroplets({ color }: { color: string }) {
 function HeavyRainModel({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean }) {
   return (
     <>
-      <CloudPuff enemy={enemy} clear={clear} big />
-      <Eye side={-1} scale={1.2} angry={!clear} cute />
-      <Eye side={1} scale={1.2} angry={!clear} cute />
-      <Mouth variant={clear ? "smile" : "frown"} y={-0.18} z={0.86} scale={1.2} />
+      <RexBody url={REX_BODY_URL.heavyRain!} accent={enemy.accentColor} />
       {!clear ? <RainDroplets color={enemy.accentColor} /> : null}
     </>
   );
@@ -277,14 +295,8 @@ function Vortex({ enemy, clear, layers = 4 }: { enemy: WeatherEnemy; clear: bool
 function TornadoModel({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean }) {
   return (
     <>
-      <Vortex enemy={enemy} clear={clear} layers={4} />
-      <group position={[0, 0.55, 0]}>
-        <Eye side={-1} scale={0.9} z={0.55} height={0.05} cute />
-        <Eye side={1} scale={0.9} z={0.55} height={0.05} cute />
-        <Mouth variant={clear ? "smile" : "open"} y={-0.18} z={0.6} scale={0.95} />
-        <Cheek side={-1} color={enemy.accentColor} z={0.5} height={-0.1} scale={0.9} />
-        <Cheek side={1} color={enemy.accentColor} z={0.5} height={-0.1} scale={0.9} />
-      </group>
+      <RexBody url={REX_BODY_URL.tornado!} accent={enemy.accentColor} />
+      {!clear ? <Vortex enemy={enemy} clear={clear} layers={3} /> : null}
     </>
   );
 }
@@ -346,12 +358,7 @@ function BlizzardModel({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean }
 function RainySeasonModel({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean }) {
   return (
     <>
-      <CloudPuff enemy={enemy} clear={clear} big />
-      <Eye side={-1} scale={1.15} cute />
-      <Eye side={1} scale={1.15} cute />
-      <Mouth variant={clear ? "smile" : "frown"} y={-0.18} z={0.86} scale={1.15} />
-      <Cheek side={-1} color={enemy.accentColor} z={0.74} height={-0.06} scale={1.15} />
-      <Cheek side={1} color={enemy.accentColor} z={0.74} height={-0.06} scale={1.15} />
+      <RexBody url={REX_BODY_URL.rainySeason!} accent={enemy.accentColor} />
       {!clear ? (
         <>
           <RainDroplets color={enemy.accentColor} />
@@ -365,14 +372,13 @@ function RainySeasonModel({ enemy, clear }: { enemy: WeatherEnemy; clear: boolea
   );
 }
 
-function CloudyModel({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean }) {
-  return (
-    <>
-      <CloudPuff enemy={enemy} clear={clear} />
-      <CloudFace enemy={enemy} clear={clear} />
-    </>
-  );
+function CloudyModel({ enemy }: { enemy: WeatherEnemy; clear: boolean }) {
+  return <RexBody url={REX_BODY_URL.cloudy!} accent={enemy.accentColor} />;
 }
+
+Object.values(REX_BODY_URL).forEach((url) => {
+  if (url) useGLTF.preload(url);
+});
 
 function Halo({ color }: { color: string }) {
   const ref = useRef<Mesh>(null);
@@ -392,8 +398,22 @@ function Halo({ color }: { color: string }) {
   );
 }
 
+// Per-enemy core tweaks. Rex-bodied enemies have their feet at y=0 (vs. the
+// procedural cloud puffs centred around y=0), so the core is lifted to chest
+// height. Tornado additionally shrinks its core because it's a small grounded
+// rex.
+const CORE_OVERRIDE: Partial<Record<WeatherEnemy["id"], { y: number; scale?: number }>> = {
+  cloudy: { y: 0.9 },
+  heavyRain: { y: 0.9 },
+  rainySeason: { y: 0.9 },
+  tornado: { y: 0.7, scale: 0.45 },
+};
+
 function CoreOrb({ enemy, clear, compact = false }: { enemy: WeatherEnemy; clear: boolean; compact?: boolean }) {
   const ref = useRef<Mesh>(null);
+  const override = CORE_OVERRIDE[enemy.id];
+  const scale = override?.scale ?? 1;
+  const y = override?.y ?? 0.05;
   useFrame(({ clock }) => {
     if (!ref.current) return;
     const t = clock.getElapsedTime();
@@ -404,7 +424,7 @@ function CoreOrb({ enemy, clear, compact = false }: { enemy: WeatherEnemy; clear
   });
   return (
     <>
-      <mesh ref={ref} name="enemyCore" position={[0, 0.05, 0.15]} userData={{ isCore: true }}>
+      <mesh ref={ref} name="enemyCore" position={[0, y, 0.15]} userData={{ isCore: true }} scale={scale}>
         <sphereGeometry args={[0.22, 28, 28]} />
         <meshStandardMaterial
           color={clear ? "#fff9bf" : enemy.coreColor}
@@ -415,7 +435,7 @@ function CoreOrb({ enemy, clear, compact = false }: { enemy: WeatherEnemy; clear
         />
       </mesh>
       {!compact && !clear ? (
-        <mesh position={[0, 0.05, 0.15]}>
+        <mesh position={[0, y, 0.15]} scale={scale}>
           <sphereGeometry args={[0.32, 20, 20]} />
           <meshBasicMaterial color={enemy.coreColor} transparent opacity={0.24} toneMapped={false} />
         </mesh>

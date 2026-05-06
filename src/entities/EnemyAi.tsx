@@ -251,14 +251,20 @@ export function EnemyMotion({
     node.position.z += (targetZ - node.position.z) * factor;
 
     const t = state.clock.getElapsedTime();
-    const verticalAmpBase = enemy.id === "tornado" || enemy.id === "typhoon"
-      ? 1.2 + aggression * 0.5
-      : enemy.id === "thunderstorm" ? 0.9
-      : 0.6 + aggression * 0.3;
-    const verticalAmp = phase.mode === "idle" ? verticalAmpBase * 0.35 : verticalAmpBase;
-    const verticalFreq = phase.mode === "idle" ? 0.7 : (1.2 + aggression * 0.4);
-    const verticalBase = baseY + (phase.mode === "telegraph" ? -0.6 : 0);
-    node.position.y = verticalBase + Math.sin(t * verticalFreq) * verticalAmp + Math.sin(t * verticalFreq * 1.9) * 0.18;
+    if (enemy.id === "tornado") {
+      // Tornado is grounded: keep feet on the floor, tiny step bob only.
+      const stepBob = Math.abs(Math.sin(t * 4.2)) * 0.08;
+      node.position.y = 0.4 + stepBob + (phase.mode === "telegraph" ? -0.1 : 0);
+    } else {
+      const verticalAmpBase = enemy.id === "typhoon"
+        ? 1.2 + aggression * 0.5
+        : enemy.id === "thunderstorm" ? 0.9
+        : 0.6 + aggression * 0.3;
+      const verticalAmp = phase.mode === "idle" ? verticalAmpBase * 0.35 : verticalAmpBase;
+      const verticalFreq = phase.mode === "idle" ? 0.7 : (1.2 + aggression * 0.4);
+      const verticalBase = baseY + (phase.mode === "telegraph" ? -0.6 : 0);
+      node.position.y = verticalBase + Math.sin(t * verticalFreq) * verticalAmp + Math.sin(t * verticalFreq * 1.9) * 0.18;
+    }
 
     // Apply flinch as a small position jitter on top of the AI's intent.
     if (hitFlinch > 0) {
@@ -269,7 +275,7 @@ export function EnemyMotion({
     const dxFace = playerX - node.position.x;
     const dzFace = playerZ - node.position.z;
     const facing = Math.atan2(dxFace, dzFace);
-    if (enemy.id === "tornado" || enemy.id === "typhoon") {
+    if (enemy.id === "typhoon") {
       node.rotation.y = t * (1.6 + aggression * 0.6);
     } else if (phase.mode === "telegraph") {
       node.rotation.y = facing;
