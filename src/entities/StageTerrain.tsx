@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useGLTF, useTexture } from "@react-three/drei";
 import { RepeatWrapping, SRGBColorSpace } from "three";
 import type { Stage } from "../game/types";
+import { assetUrl } from "../shared/assets";
 import {
   STAGE_PLACEMENTS,
   expandCluster,
@@ -15,7 +16,7 @@ import {
 // style edit is a one-line data change.
 
 function GLTFInstance({ url, ...props }: { url: string } & Record<string, unknown>) {
-  const { scene } = useGLTF(url);
+  const { scene } = useGLTF(assetUrl(url));
   const cloned = useMemo(() => scene.clone(true), [scene]);
   return <primitive object={cloned} {...props} />;
 }
@@ -82,10 +83,10 @@ function PbrFloor({
   const textureKey = floor.texture as string;
   const repeat = floor.textureRepeat ?? 6;
   const [colorMap, normalMap, roughMap, aoMap] = useTexture([
-    `/textures/field/${textureKey}/color.jpg`,
-    `/textures/field/${textureKey}/normal.jpg`,
-    `/textures/field/${textureKey}/roughness.jpg`,
-    `/textures/field/${textureKey}/ao.jpg`,
+    assetUrl(`/textures/field/${textureKey}/color.jpg`),
+    assetUrl(`/textures/field/${textureKey}/normal.jpg`),
+    assetUrl(`/textures/field/${textureKey}/roughness.jpg`),
+    assetUrl(`/textures/field/${textureKey}/ao.jpg`),
   ]);
   // sRGB for the color map only (normal / roughness / AO live in linear).
   // Wrap + repeat so a single 1024 tile spans the full floor.

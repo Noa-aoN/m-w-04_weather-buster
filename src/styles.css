@@ -1,6 +1,6 @@
 @font-face {
   font-family: "Kenney Future";
-  src: url("/fonts/kenney/KenneyFuture.ttf") format("truetype");
+  src: url("/m-w-04_weather-buster/fonts/kenney/KenneyFuture.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -8,7 +8,7 @@
 
 @font-face {
   font-family: "Kenney Future Narrow";
-  src: url("/fonts/kenney/KenneyFutureNarrow.ttf") format("truetype");
+  src: url("/m-w-04_weather-buster/fonts/kenney/KenneyFutureNarrow.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
