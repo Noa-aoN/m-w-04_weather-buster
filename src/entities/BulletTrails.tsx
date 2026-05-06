@@ -11,11 +11,13 @@ type Bullet = {
   spawnedAt: number;
 };
 
-const TRAIL_LIFETIME_MS = 220;
-const TRAIL_MAX_LENGTH = 36;
+const TRAIL_LIFETIME_MS = 280;
+const TRAIL_MAX_LENGTH = 42;
 
 function BulletTrail({ bullet, onExpire }: { bullet: Bullet; onExpire: (id: number) => void }) {
-  const meshRef = useRef<Mesh>(null);
+  const coreRef = useRef<Mesh>(null);
+  const haloRef = useRef<Mesh>(null);
+  const tipRef = useRef<Mesh>(null);
 
   const initialQuaternion = useMemo(() => {
     const q = new Quaternion();
@@ -27,43 +29,67 @@ function BulletTrail({ bullet, onExpire }: { bullet: Bullet; onExpire: (id: numb
   }, [bullet.direction]);
 
   useFrame(() => {
-    const node = meshRef.current;
-    if (!node) {
-      return;
-    }
     const elapsed = performance.now() - bullet.spawnedAt;
     if (elapsed >= TRAIL_LIFETIME_MS) {
       onExpire(bullet.id);
       return;
     }
     const ratio = elapsed / TRAIL_LIFETIME_MS;
-    const length = TRAIL_MAX_LENGTH * Math.min(1, ratio * 2.4);
-    const halfDistance = length / 2;
-    node.position.set(
-      bullet.origin.x + bullet.direction.x * halfDistance,
-      bullet.origin.y + bullet.direction.y * halfDistance,
-      bullet.origin.z + bullet.direction.z * halfDistance,
-    );
-    node.scale.set(1, 1, length);
-    const material = node.material as { opacity?: number; emissiveIntensity?: number };
-    material.opacity = Math.max(0, 1 - ratio * 1.05);
-    if (material.emissiveIntensity !== undefined) {
-      material.emissiveIntensity = 2 * (1 - ratio);
+    // Travel growth — fast initial extend, then asymptote.
+    const travel = TRAIL_MAX_LENGTH * Math.min(1, ratio * 3.0);
+    const halfDistance = travel / 2;
+    const cx = bullet.origin.x + bullet.direction.x * halfDistance;
+    const cy = bullet.origin.y + bullet.direction.y * halfDistance;
+    const cz = bullet.origin.z + bullet.direction.z * halfDistance;
+    const fade = Math.max(0, 1 - ratio * 1.05);
+
+    if (coreRef.current) {
+      coreRef.current.position.set(cx, cy, cz);
+      coreRef.current.scale.set(1, 1, travel);
+      const m = coreRef.current.material as { opacity?: number };
+      if (m.opacity !== undefined) m.opacity = fade;
+    }
+    if (haloRef.current) {
+      // Halo grows in width as it dissipates — sells velocity smear.
+      const widen = 1 + ratio * 1.4;
+      haloRef.current.position.set(cx, cy, cz);
+      haloRef.current.scale.set(widen, widen, travel);
+      const m = haloRef.current.material as { opacity?: number };
+      if (m.opacity !== undefined) m.opacity = fade * 0.55;
+    }
+    if (tipRef.current) {
+      // Bright tip rides the leading edge.
+      const tipDist = travel;
+      tipRef.current.position.set(
+        bullet.origin.x + bullet.direction.x * tipDist,
+        bullet.origin.y + bullet.direction.y * tipDist,
+        bullet.origin.z + bullet.direction.z * tipDist,
+      );
+      const tipFade = Math.max(0, 1 - ratio * 1.4);
+      const m = tipRef.current.material as { opacity?: number };
+      if (m.opacity !== undefined) m.opacity = tipFade;
+      tipRef.current.scale.setScalar(1 - ratio * 0.5);
     }
   });
 
   return (
-    <mesh ref={meshRef} quaternion={initialQuaternion}>
-      <boxGeometry args={[0.04, 0.04, 1]} />
-      <meshStandardMaterial
-        color={bullet.color}
-        emissive={bullet.color}
-        emissiveIntensity={2}
-        transparent
-        opacity={1}
-        toneMapped={false}
-      />
-    </mesh>
+    <group quaternion={initialQuaternion}>
+      {/* Bright white-hot core trail */}
+      <mesh ref={coreRef}>
+        <boxGeometry args={[0.025, 0.025, 1]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={1} toneMapped={false} depthWrite={false} />
+      </mesh>
+      {/* Coloured halo around the core (yellow on hit, cyan on miss) */}
+      <mesh ref={haloRef}>
+        <boxGeometry args={[0.075, 0.075, 1]} />
+        <meshBasicMaterial color={bullet.color} transparent opacity={0.55} toneMapped={false} depthWrite={false} />
+      </mesh>
+      {/* Glowing pinpoint at the leading edge */}
+      <mesh ref={tipRef}>
+        <sphereGeometry args={[0.07, 10, 10]} />
+        <meshBasicMaterial color="#fff7d0" transparent opacity={1} toneMapped={false} depthWrite={false} />
+      </mesh>
+    </group>
   );
 }
 
@@ -86,7 +112,8 @@ export function BulletTrails() {
         id: counter.current,
         origin: { x: muzzle.x, y: muzzle.y, z: muzzle.z },
         direction: { x: direction.x, y: direction.y, z: direction.z },
-        color: state.lastShotHit ? "#ffe16a" : "#9be3ff",
+        // Hit = warm gold halo, miss = cool cyan halo (white core stays the same)
+        color: state.lastShotHit ? "#ffd24a" : "#7bd5ff",
         spawnedAt: performance.now(),
       };
       setBullets((current) => [...current, bullet]);

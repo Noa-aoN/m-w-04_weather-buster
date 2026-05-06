@@ -65,21 +65,39 @@ export function PlayerWeapon() {
       </group>
       {flashVisible ? (
         <>
-          <mesh ref={flashRef} position={[0, 0, -0.62]}>
-            <sphereGeometry args={[0.16, 12, 12]} />
-            <meshBasicMaterial color="#fff7a0" transparent opacity={0.95} toneMapped={false} />
+          {/* Tight white-hot core */}
+          <mesh position={[0, 0, -0.62]}>
+            <sphereGeometry args={[0.06, 12, 12]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={1} toneMapped={false} />
           </mesh>
-          {[0, Math.PI / 4, Math.PI / 2, (Math.PI * 3) / 4].map((rot) => (
+          {/* Bright orange-yellow halo around the core */}
+          <mesh ref={flashRef} position={[0, 0, -0.62]}>
+            <sphereGeometry args={[0.18, 14, 14]} />
+            <meshBasicMaterial color="#ffd56a" transparent opacity={0.9} toneMapped={false} />
+          </mesh>
+          {/* Outer wide soft glow — sells volumetric muzzle blast */}
+          <mesh position={[0, 0, -0.62]}>
+            <sphereGeometry args={[0.34, 12, 12]} />
+            <meshBasicMaterial color="#ff8a3a" transparent opacity={0.32} toneMapped={false} depthWrite={false} />
+          </mesh>
+          {/* 6-pointed cross of flame petals (ratio'd plane sprites) */}
+          {[0, Math.PI / 6, Math.PI / 3, Math.PI / 2, (Math.PI * 2) / 3, (Math.PI * 5) / 6].map((rot, i) => (
             <mesh key={rot} position={[0, 0, -0.62]} rotation={[0, 0, rot]}>
-              <planeGeometry args={[0.6, 0.08]} />
-              <meshBasicMaterial color="#ffe9a8" transparent opacity={0.85} toneMapped={false} depthWrite={false} />
+              <planeGeometry args={[0.78 - (i % 2) * 0.18, 0.13 - (i % 2) * 0.04]} />
+              <meshBasicMaterial color={i % 2 === 0 ? "#ffe9a8" : "#ffaa42"} transparent opacity={0.78 - (i % 3) * 0.12} toneMapped={false} depthWrite={false} />
             </mesh>
           ))}
-          <mesh position={[0, 0, -0.74]}>
-            <sphereGeometry args={[0.07, 8, 8]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.95} toneMapped={false} />
+          {/* Forward smoke / heat-distort cone hint (a darker, smaller plane) */}
+          <mesh position={[0, 0, -0.92]} rotation={[Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.18, 0.45, 12, 1, true]} />
+            <meshBasicMaterial color="#ffb060" transparent opacity={0.32} toneMapped={false} depthWrite={false} />
           </mesh>
-          <pointLight ref={flashLightRef} position={[0, 0, -0.55]} intensity={8} color="#fff7a0" distance={5.5} />
+          {/* Distant pinpoint to give parallax depth */}
+          <mesh position={[0, 0, -1.05]}>
+            <sphereGeometry args={[0.05, 8, 8]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.85} toneMapped={false} />
+          </mesh>
+          <pointLight ref={flashLightRef} position={[0, 0, -0.55]} intensity={11} color="#ffd56a" distance={6.5} />
         </>
       ) : null}
     </group>
