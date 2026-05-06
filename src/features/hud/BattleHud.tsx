@@ -332,6 +332,28 @@ function BattleStartFlash() {
   return <div className="battleStartFlash" key={flash} aria-hidden="true" />;
 }
 
+// Big white-to-blue burst the moment the boss explodes — pairs with the 3D
+// DefeatBurst (shockwave + shards) to sell "雲が割れて青空が戻る".
+function ClearSkyBurst() {
+  const status = useBattleStore((state) => state.status);
+  const [flash, setFlash] = useState(0);
+  useEffect(() => {
+    if (status === "clear") {
+      setFlash(Date.now());
+    }
+  }, [status]);
+  if (flash === 0) {
+    return null;
+  }
+  return (
+    <>
+      <div className="clearSkyFlash" key={`flash-${flash}`} aria-hidden="true" />
+      <div className="clearSkyShockwave" key={`wave-${flash}`} aria-hidden="true" />
+      <div className="clearSkyRays" key={`rays-${flash}`} aria-hidden="true" />
+    </>
+  );
+}
+
 function DamageFlash() {
   const playerHp = useBattleStore((state) => state.playerHp);
   const prev = useRef(playerHp);
@@ -793,6 +815,7 @@ export function BattleHud({
       <ScreenShake />
       <LowHpVignette />
       <BattleStartFlash />
+      <ClearSkyBurst />
       <BossIntro enemyName={enemy.name} enemyTrait={enemy.trait} threat={enemy.threat} />
       <DamageFlash />
       <HealFlash />
