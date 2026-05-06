@@ -80,7 +80,12 @@ export function CharacterModel({
     }
     const t = clock.getElapsedTime();
     groupRef.current.rotation.y = Math.sin(t * 0.4) * 0.22 + t * 0.12;
-    // 上下振動を止め、足元を常にリング位置 (y=0) に揃える
+    // Subtle idle breathing for static-mesh characters (Meshy AI has no
+    // skeleton) — small Y bob + chest scale pulse so the figure doesn't
+    // read as a frozen statue.
+    groupRef.current.position.y = Math.sin(t * 1.4) * 0.04;
+    const breath = 1 + Math.sin(t * 1.4) * 0.012;
+    groupRef.current.scale.set(breath, breath, breath);
   });
 
   return (

@@ -211,7 +211,7 @@ export function PlayerBackAvatar() {
 
   const weaponGroupRef = useRef<Group>(null);
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
     const node = groupRef.current;
     if (!node || cameraMode !== "tps") {
       return;
@@ -222,29 +222,37 @@ export function PlayerBackAvatar() {
       forwardVec.current.set(0, 0, -1);
     }
     forwardVec.current.normalize();
+    const t = clock.getElapsedTime();
+    // Subtle idle breathing — Meshy AI meshes have no skeleton, so we fake
+    // life via a gentle Y-bob on the body group. Keep the amplitude small
+    // (~3cm) so it reads as "breathing" not "floating".
+    const bobY = Math.sin(t * 2.1) * 0.025;
     node.position.set(
       camera.position.x + forwardVec.current.x * 1.8,
-      0,
+      bobY,
       camera.position.z + forwardVec.current.z * 1.8,
     );
     lookTarget.current.set(
       node.position.x + forwardVec.current.x * 10,
-      0,
+      bobY,
       node.position.z + forwardVec.current.z * 10,
     );
     node.lookAt(lookTarget.current);
+    // Slight forward lean — sells "aiming" stance for the static mesh
+    node.rotateX(-0.06);
 
-    // Weapon follows camera orientation fully (yaw + pitch) so the barrel always
-    // points where the camera looks, even when aiming up/down at flying enemies.
-    // The avatar group lives ~1.8m in front of the camera; placing the weapon
-    // ~2.0m ahead with a slight right-shoulder offset puts it visually in the
-    // character's right hand (the new Modular Men idle_gun_pointing pose).
+    // Weapon follows camera orientation fully (yaw + pitch) so the barrel
+    // always points where the camera looks, even when aiming up/down at
+    // flying enemies. The avatar group lives ~1.8m in front of the camera;
+    // placing the weapon ~2.0m ahead with a slight right-shoulder offset
+    // puts it visually in the character's right hand. A tiny per-frame sway
+    // matches the body bob so weapon and torso feel coupled.
     const weapon = weaponGroupRef.current;
     if (weapon) {
       weapon.position.copy(camera.position);
       weapon.quaternion.copy(camera.quaternion);
       weapon.translateX(0.55);
-      weapon.translateY(0.1);
+      weapon.translateY(0.1 + bobY * 0.6);
       weapon.translateZ(-2.0);
     }
   });
