@@ -369,15 +369,15 @@ canvas {
 .mainMenu .menuItem {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: clamp(10px, 1.2vw, 18px);
 }
 
 .menuKey {
   margin-left: auto;
-  padding: 4px 12px;
+  padding: clamp(2px, 0.4vh, 4px) clamp(7px, 0.7vw, 12px);
   border: 1px solid currentColor;
   color: inherit;
-  font-size: 13px;
+  font-size: clamp(10px, 0.6vw + 0.25vh, 13px);
   letter-spacing: 0.18em;
   font-weight: 700;
   opacity: 0.8;
@@ -385,8 +385,8 @@ canvas {
 
 .menuIcon {
   display: inline-flex;
-  width: 50px;
-  height: 50px;
+  width: clamp(28px, 1.6vw + 1.2vh, 46px);
+  height: clamp(28px, 1.6vw + 1.2vh, 46px);
   align-items: center;
   justify-content: center;
   color: inherit;
@@ -445,9 +445,12 @@ canvas {
   position: absolute;
   z-index: 5;
   right: 4vw;
-  bottom: 8vh;
-  width: min(420px, 34vw);
-  padding: 22px;
+  bottom: clamp(40px, 7vh, 90px);
+  /* Tracks viewport similarly to .mainMenu — laptops get ~320px, full HD
+     gets ~400px, ultrawide caps at 460. */
+  width: clamp(240px, 22vw + 8vh, 460px);
+  padding: clamp(12px, 1.4vh, 22px);
+  font-size: clamp(12px, 0.7vw + 0.45vh, 16px);
   max-height: min(760px, calc(100vh - 130px));
   overflow: hidden;
   border: 1px solid rgba(40, 217, 255, 0.75);
@@ -499,7 +502,7 @@ canvas {
 
 .previewStage {
   position: relative;
-  height: 130px;
+  height: clamp(80px, 12vh, 140px);
   margin: 12px 0 16px;
   overflow: hidden;
   border: 1px solid rgba(111, 224, 255, 0.4);
