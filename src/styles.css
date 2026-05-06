@@ -458,7 +458,11 @@ canvas {
   width: clamp(240px, 22vw + 8vh, 460px);
   padding: clamp(12px, 1.4vh, 22px);
   font-size: clamp(12px, 0.7vw + 0.45vh, 16px);
-  max-height: min(760px, calc(100vh - 130px));
+  /* Cap height so the panel never extends up into the title's safe zone.
+     Title takes ~clamp(28px, 4vh, 64px) top + ~clamp(28px, 4.6vw + 2vh, 96px)
+     for the main + ~clamp(13, 1.4vw+0.5vh, 28) sub + tag — reserve ~28vh
+     overall and pull the cap from there so any laptop fits. */
+  max-height: min(720px, calc(100vh - 28vh - 60px));
   overflow: hidden;
   border: 1px solid rgba(40, 217, 255, 0.75);
   background: rgba(3, 19, 29, 0.78);
@@ -494,7 +498,7 @@ canvas {
 }
 
 .missionPreviewBody {
-  max-height: calc(min(760px, 100vh - 130px) - 68px);
+  max-height: calc(min(720px, 100vh - 28vh - 60px) - 68px);
   overflow-y: auto;
   padding-right: 4px;
 }
