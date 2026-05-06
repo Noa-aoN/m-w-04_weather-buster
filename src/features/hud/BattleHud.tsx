@@ -756,7 +756,7 @@ export function BattleHud({
         </label>
       </aside>
 
-      <button className="enemyBookButton" type="button" onClick={onOpenEnemyGrid}>気象モンスター図鑑</button>
+      <button className="enemyBookButton" type="button" onClick={onOpenEnemyGrid}>天候性侵害体図鑑</button>
 
       <div className="radarPanel tacticalPanel">
         <div className="radarCircle"><i /><b /></div>

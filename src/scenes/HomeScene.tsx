@@ -699,7 +699,8 @@ export function HomeScene({
   return (
     <main className="homeShell sceneEnter">
       <Canvas
-        camera={{ position: [-1.8, 2.2, 6.5], fov: 54 }}
+        camera={{ position: [-1.8, 4.6, 7.0], fov: 50 }}
+        onCreated={({ camera }) => camera.lookAt(0, 1.0, 0)}
         dpr={[1, 1.5]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
       >
@@ -740,7 +741,7 @@ export function HomeScene({
         </button>
         <button className="menuItem" type="button" onClick={onOpenEnemyGrid}>
           <span className="menuIcon"><GridIcon /></span>
-          <span className="menuLabel">気象モンスター図鑑</span>
+          <span className="menuLabel">天候性侵害体図鑑</span>
           <span className="menuKey">G</span>
         </button>
         <button className="menuItem" type="button" onClick={onOpenCharacterGrid}>
