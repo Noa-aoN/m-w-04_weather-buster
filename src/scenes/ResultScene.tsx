@@ -124,7 +124,7 @@ export function ResultScene({
       <section className="resultBlock">
         <p className="resultEyebrow">{enemy.name} — {result.cleared ? "撃破完了" : "撤収"}</p>
         <h2 className="resultHeadline">{result.cleared ? "CLEAR SKY!" : "WEATHER OVER"}</h2>
-        <span className="resultSub">PILOT {character.codename} / {weapon.name} / {stage.name}</span>
+        <span className="resultSub">BUSTER {character.codename} / {weapon.name} / {stage.name}</span>
       </section>
 
       <section className={`resultRank rank--${result.rank.toLowerCase()}`}>

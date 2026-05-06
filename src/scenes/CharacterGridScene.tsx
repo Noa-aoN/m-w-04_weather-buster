@@ -58,8 +58,8 @@ export function CharacterGridScene({
       <header className="screenHeader">
         <div className="screenHeaderInfo">
           <span>PROJECT: WEATHER BUSTER</span>
-          <h1>PILOT GRID</h1>
-          <small>パイロット図鑑 / キャラクター選択</small>
+          <h1>BUSTER GRID</h1>
+          <small>バスター図鑑 / バスター選択</small>
           <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
       </header>
@@ -92,7 +92,7 @@ export function CharacterGridScene({
         ))}
       </section>
 
-      <footer className="gridFooter">PILOT GRID / Press 1-3 to select / H to back</footer>
+      <footer className="gridFooter">BUSTER GRID / Press 1-3 to select / H to back</footer>
     </main>
   );
 }

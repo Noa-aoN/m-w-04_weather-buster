@@ -15,6 +15,7 @@ import {
   playLowAmmoBeep,
   playMiss,
   playReload,
+  playSlash,
   playShoot,
   playShieldBlock,
   playSkill,
@@ -80,7 +81,11 @@ export function AudioBridge() {
     let prev = useBattleStore.getState();
     return useBattleStore.subscribe((state) => {
       if (state.lastShotAt !== prev.lastShotAt && state.lastShotAt !== 0) {
-        playShoot();
+        if (state.selectedWeaponId === "windBlade") {
+          playSlash();
+        } else {
+          playShoot();
+        }
         if (state.lastShotHit) {
           playHit(state.lastShotCritical);
           playEnemyStagger(state.lastShotCritical);

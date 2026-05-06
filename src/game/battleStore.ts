@@ -356,10 +356,11 @@ export const useBattleStore = create<BattleState>((set, get) => {
     shoot: (didHit, critical = false) => {
       const state = get();
       const now = performance.now();
-      if (state.status !== "battle" || state.ammo <= 0 || now < state.reloadingUntil) {
+      const weapon = findWeapon(state.selectedWeaponId);
+      const isMelee = weapon.id === "windBlade";
+      if (state.status !== "battle" || (!isMelee && state.ammo <= 0) || now < state.reloadingUntil) {
         return;
       }
-      const weapon = findWeapon(state.selectedWeaponId);
       const character = findCharacter(state.selectedCharacterId);
       const patch = applyShot({
         didHit,
@@ -378,7 +379,7 @@ export const useBattleStore = create<BattleState>((set, get) => {
         now,
       });
       set({
-        ammo: state.ammo - 1,
+        ammo: isMelee ? state.ammo : state.ammo - 1,
         shotsFired: state.shotsFired + 1,
         shotsHit: state.shotsHit + (didHit ? 1 : 0),
         enemyHp: patch.enemyHp,
@@ -405,6 +406,9 @@ export const useBattleStore = create<BattleState>((set, get) => {
         return;
       }
       const weapon = findWeapon(state.selectedWeaponId);
+      if (weapon.id === "windBlade") {
+        return;
+      }
       if (state.ammo >= weapon.maxAmmo) {
         return;
       }

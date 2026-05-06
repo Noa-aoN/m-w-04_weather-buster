@@ -23,7 +23,7 @@ const ITEM_ACCENT_COLOR: Record<ItemId, string> = {
 const controlHints: Array<[string, string]> = [
   ["W A S D", "移動"],
   ["MOUSE", "視点"],
-  ["L-CLICK", "射撃"],
+  ["L-CLICK", "攻撃"],
   ["R-CLICK", "リロード"],
   ["B", "気象シールド"],
   ["SPACE", "ジャンプ"],
@@ -466,6 +466,7 @@ function ReloadPromptOverlay() {
   // empty (lastEmptyClickAt) within the last 1.4s. Manual reload (R / right
   // click) clears it implicitly when ammo refills.
   const ammo = useBattleStore((s) => s.ammo);
+  const selectedWeaponId = useBattleStore((s) => s.selectedWeaponId);
   const status = useBattleStore((s) => s.status);
   const reloadingUntil = useBattleStore((s) => s.reloadingUntil);
   const lastEmptyClickAt = useBattleStore((s) => s.lastEmptyClickAt);
@@ -475,6 +476,7 @@ function ReloadPromptOverlay() {
     setPulse(lastEmptyClickAt);
   }, [lastEmptyClickAt]);
   if (status !== "battle") return null;
+  if (selectedWeaponId === "windBlade") return null;
   if (ammo > 0) return null;
   if (performance.now() < reloadingUntil) return null;
   return (
@@ -488,6 +490,7 @@ function ReloadPromptOverlay() {
 function ReloadIndicator() {
   const reloadingUntil = useBattleStore((state) => state.reloadingUntil);
   const reloadingStartedAt = useBattleStore((state) => state.reloadingStartedAt);
+  const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
   const [progress, setProgress] = useState(0);
   useEffect(() => {
     if (reloadingUntil === 0) {
@@ -505,7 +508,7 @@ function ReloadIndicator() {
     }, 30);
     return () => window.clearInterval(id);
   }, [reloadingUntil, reloadingStartedAt]);
-  if (reloadingUntil === 0 || performance.now() >= reloadingUntil) {
+  if (selectedWeaponId === "windBlade" || reloadingUntil === 0 || performance.now() >= reloadingUntil) {
     return null;
   }
   return (
@@ -622,6 +625,7 @@ export function BattleHud({
 
   const enemy = weatherEnemies.find((candidate) => candidate.id === selectedEnemyId) ?? weatherEnemies[0];
   const weapon = findWeapon(selectedWeaponId);
+  const isMelee = selectedWeaponId === "windBlade";
   const character = findCharacter(selectedCharacterId);
   const stage = findStage(selectedStageId);
   const accuracy = shotsFired === 0 ? 0 : Math.round((shotsHit / shotsFired) * 100);
@@ -786,11 +790,11 @@ export function BattleHud({
         <p>敵性質: {enemy.trait}</p>
       </div>
 
-      <div className={`weaponStatus tacticalPanel ${ammo === 0 ? "weaponStatus--empty" : ammo <= 5 ? "weaponStatus--low" : ""}`}>
+      <div className={`weaponStatus tacticalPanel ${!isMelee && ammo === 0 ? "weaponStatus--empty" : !isMelee && ammo <= 5 ? "weaponStatus--low" : ""}`}>
         <WeaponIcon />
         <span>{weapon.name}</span>
-        <strong>{ammo} / {weapon.maxAmmo}</strong>
-        <small>命中率 {accuracy}%</small>
+        <strong>{isMelee ? "近接 / 無制限" : `${ammo} / ${weapon.maxAmmo}`}</strong>
+        <small>{isMelee ? "直接攻撃のみ" : `命中率 ${accuracy}%`}</small>
       </div>
 
       <div className={`skillStatus tacticalPanel ${pressureGauge >= 100 ? "skillStatus--ready" : ""}`}>

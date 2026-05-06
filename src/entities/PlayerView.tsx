@@ -22,13 +22,13 @@ export function PlayerWeapon() {
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
 
   useEffect(() => {
-    if (lastShotAt === 0) {
+    if (lastShotAt === 0 || selectedWeaponId === "windBlade") {
       return;
     }
     setFlashVisible(true);
     const id = window.setTimeout(() => setFlashVisible(false), 80);
     return () => window.clearTimeout(id);
-  }, [lastShotAt]);
+  }, [lastShotAt, selectedWeaponId]);
 
   useFrame(() => {
     const node = groupRef.current;
@@ -37,12 +37,19 @@ export function PlayerWeapon() {
     }
     node.position.copy(camera.position);
     node.quaternion.copy(camera.quaternion);
-    // FPS gun position: positioned for the new Sci-Fi Gun Pack which is
-    // beefier than the old AR set. Keep it lower-right so the muzzle does
-    // not block the central reticle.
-    node.translateX(0.42);
-    node.translateY(-0.36);
-    node.translateZ(-0.62);
+    if (selectedWeaponId === "windBlade") {
+      node.translateX(0.58);
+      node.translateY(-0.54);
+      node.translateZ(-0.72);
+      node.rotateZ(-0.28);
+    } else {
+      // FPS gun position: positioned for the new Sci-Fi Gun Pack which is
+      // beefier than the old AR set. Keep it lower-right so the muzzle does
+      // not block the central reticle.
+      node.translateX(0.42);
+      node.translateY(-0.36);
+      node.translateZ(-0.62);
+    }
     // Recoil: punch back along camera axis and tip the muzzle up briefly.
     const sinceShot = performance.now() - lastShotAt;
     const recoilK = lastShotAt > 0 ? Math.max(0, 1 - sinceShot / 130) : 0;
@@ -61,9 +68,9 @@ export function PlayerWeapon() {
   return (
     <group ref={groupRef}>
       <group rotation={weaponModelRotation(selectedWeaponId)}>
-        <WeaponObject id={selectedWeaponId} targetSize={0.6} />
+        <WeaponObject id={selectedWeaponId} targetSize={selectedWeaponId === "windBlade" ? 1.05 : 0.6} />
       </group>
-      {flashVisible ? (
+      {flashVisible && selectedWeaponId !== "windBlade" ? (
         <>
           {/* Tight white-hot core */}
           <mesh position={[0, 0, -0.62]}>

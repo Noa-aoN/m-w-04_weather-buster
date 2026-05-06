@@ -55,6 +55,7 @@ export function WeaponObject({ id, targetSize }: { id: WeaponId; targetSize: num
 
 export function WeaponModel({ id, accent }: { id: WeaponId; accent: string }) {
   const groupRef = useRef<Group>(null);
+  const targetSize = id === "windBlade" ? 2.6 : 1.6;
 
   useFrame(({ clock }) => {
     if (!groupRef.current) {
@@ -68,7 +69,7 @@ export function WeaponModel({ id, accent }: { id: WeaponId; accent: string }) {
   return (
     <group>
       <group ref={groupRef} rotation={weaponModelRotation(id)}>
-        <WeaponObject id={id} targetSize={1.6} />
+        <WeaponObject id={id} targetSize={targetSize} />
       </group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.55, 0]}>
         <ringGeometry args={[0.7, 0.86, 64]} />

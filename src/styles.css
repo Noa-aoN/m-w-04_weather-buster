@@ -90,6 +90,12 @@ canvas {
   overflow-y: auto;
 }
 
+.settingsShell {
+  height: auto;
+  min-height: 100vh;
+  overflow-y: visible;
+}
+
 .loadoutShell,
 .settingsShell,
 .resultShell {
@@ -143,25 +149,25 @@ canvas {
 .gpsToggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: clamp(5px, 0.45vw, 8px);
+  padding: clamp(7px, 0.8vh, 10px) clamp(9px, 0.8vw, 12px);
   border: 1px solid rgba(40, 217, 255, 0.45);
   color: #b8d8e6;
   background: rgba(4, 18, 28, 0.7);
-  font-size: 12px;
-  letter-spacing: 0.16em;
+  font-size: clamp(10px, 0.58vw + 0.28vh, 12px);
+  letter-spacing: 0.12em;
 }
 
 .gpsToggle small {
   color: #94c2cf;
-  letter-spacing: 0.32em;
-  font-size: 11px;
+  letter-spacing: 0.22em;
+  font-size: clamp(9px, 0.55vw + 0.2vh, 11px);
 }
 
 .gpsToggle em {
   color: #b8d8e6;
   font-style: normal;
-  font-size: 12px;
+  font-size: clamp(10px, 0.58vw + 0.24vh, 12px);
 }
 
 .gpsToggle .gpsDot {
@@ -195,12 +201,12 @@ canvas {
 
 .gpsEnemyHint {
   margin-left: 4px;
-  padding: 2px 6px;
+  padding: 1px 5px;
   border: 1px solid rgba(255, 100, 110, 0.55);
   color: #ff9aa6;
   font-style: normal;
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 9px;
+  letter-spacing: 0.12em;
   background: rgba(40, 8, 14, 0.6);
 }
 
@@ -1337,13 +1343,13 @@ canvas {
   z-index: 6;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: clamp(5px, 0.45vw, 8px);
+  padding: clamp(7px, 0.8vh, 10px) clamp(9px, 0.8vw, 12px);
   border: 1px solid rgba(40, 217, 255, 0.65);
   color: #b8d8e6;
   background: rgba(4, 18, 28, 0.78);
-  font-size: 12px;
-  letter-spacing: 0.16em;
+  font-size: clamp(10px, 0.58vw + 0.28vh, 12px);
+  letter-spacing: 0.12em;
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   box-shadow: 0 6px 22px rgba(0, 0, 0, 0.32), 0 0 14px rgba(40, 217, 255, 0.18);
@@ -1352,19 +1358,19 @@ canvas {
 .audioChip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 28px;
-  padding: 0 10px;
+  gap: 5px;
+  min-height: clamp(22px, 2.6vh, 26px);
+  padding: 0 clamp(7px, 0.65vw, 9px);
   border: 1px solid rgba(40, 217, 255, 0.45);
   color: #94c2cf;
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-size: clamp(9px, 0.55vw + 0.2vh, 11px);
+  letter-spacing: 0.12em;
   background: rgba(4, 18, 28, 0.7);
 }
 
 .audioChip svg {
-  width: 14px;
-  height: 14px;
+  width: clamp(12px, 0.8vw, 14px);
+  height: clamp(12px, 0.8vw, 14px);
 }
 
 .audioChip.on {
@@ -1374,7 +1380,7 @@ canvas {
 }
 
 .audioVolume {
-  width: 92px;
+  width: clamp(58px, 5.6vw, 82px);
   accent-color: #28d9ff;
 }
 
@@ -1409,19 +1415,23 @@ canvas {
   z-index: 4;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  grid-auto-rows: minmax(218px, auto);
+  grid-auto-rows: minmax(0, clamp(178px, 26vh, 238px));
   gap: 16px;
   height: calc(100vh - 116px);
   overflow-y: auto;
   padding-right: 4px;
   padding-bottom: 28px;
+  align-items: stretch;
 }
 
 .storyChapter {
   display: grid;
   align-content: start;
-  padding: 22px 26px;
-  min-height: 218px;
+  gap: 6px;
+  min-height: 0;
+  padding: clamp(16px, 1.5vw, 22px) clamp(18px, 1.8vw, 26px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .storyEyebrow {
@@ -1435,15 +1445,15 @@ canvas {
 .storyChapter h2 {
   margin: 0 0 10px;
   color: #f7fbff;
-  font-size: clamp(20px, 2.2vw, 26px);
+  font-size: clamp(18px, 1.7vw, 24px);
   letter-spacing: 0.04em;
 }
 
 .storyChapter p {
   margin: 0;
   color: #cee0e9;
-  line-height: 1.7;
-  font-size: 14px;
+  line-height: 1.62;
+  font-size: clamp(12px, 0.72vw + 0.18vh, 14px);
 }
 
 .characterGrid {
@@ -1810,7 +1820,8 @@ canvas {
   gap: 14px;
   max-width: 720px;
   margin-inline: auto;
-  padding-bottom: 32px;
+  min-height: calc(100vh - 112px);
+  padding-bottom: 48px;
 }
 
 .settingRow {

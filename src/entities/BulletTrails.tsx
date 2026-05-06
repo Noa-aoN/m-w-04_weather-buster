@@ -103,6 +103,9 @@ export function BulletTrails() {
       if (state.lastShotAt === prev.lastShotAt || state.lastShotAt === 0) {
         return;
       }
+      if (state.selectedWeaponId === "windBlade") {
+        return;
+      }
       const direction = new Vector3();
       camera.getWorldDirection(direction);
       const offset = new Vector3(0.34, -0.3, 0).applyQuaternion(camera.quaternion);

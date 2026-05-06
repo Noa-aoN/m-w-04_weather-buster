@@ -267,6 +267,14 @@ export function playShoot() {
   tone({ freq: 1600, duration: 0.02, type: "square", volume: 0.18, attack: 0.001, release: 0.03, delay: 0.002 });
 }
 
+export function playSlash() {
+  noiseBurst({ duration: 0.08, volume: 0.3, filter: 7200 });
+  noiseBurst({ duration: 0.16, volume: 0.18, filter: 2600, delay: 0.02 });
+  tone({ freq: 980, duration: 0.05, type: "sawtooth", volume: 0.16, attack: 0.001, release: 0.08 });
+  tone({ freq: 420, duration: 0.08, type: "triangle", volume: 0.14, attack: 0.001, release: 0.12, delay: 0.035 });
+  tone({ freq: 180, duration: 0.05, type: "sine", volume: 0.12, attack: 0.001, release: 0.12, delay: 0.08 });
+}
+
 export function playHit(critical = false) {
   if (sampleBuffers.size > 0) {
     if (critical) {

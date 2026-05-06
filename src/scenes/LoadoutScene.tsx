@@ -276,7 +276,7 @@ function CharacterTab({
           <div><dt>気圧蓄積</dt><dd>x{previewCharacter.gaugeGainMultiplier.toFixed(2)}</dd></div>
         </dl>
         <div className="weaponSkill">
-          <span>キャラ固有スキル</span>
+          <span>バスター固有スキル</span>
           <strong>{previewCharacter.passiveName}</strong>
           <p>{previewCharacter.passiveDescription}</p>
         </div>
@@ -286,7 +286,7 @@ function CharacterTab({
           disabled={selectedId === previewCharacter.id}
           onClick={() => selectCharacter(previewCharacter.id)}
         >
-          {selectedId === previewCharacter.id ? "選択中" : "このパイロットを選択"}
+          {selectedId === previewCharacter.id ? "選択中" : "このバスターを選択"}
         </button>
       </aside>
     </div>
@@ -333,8 +333,8 @@ export function PilotScene({ onBack }: { onBack: () => void }) {
       <header className="screenHeader">
         <div className="screenHeaderInfo">
           <span>PROJECT: WEATHER BUSTER</span>
-          <h1>PILOT</h1>
-          <small>パイロット選択</small>
+          <h1>BUSTER</h1>
+          <small>バスター選択</small>
           <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
       </header>

@@ -18,6 +18,8 @@ const DASH_MULTIPLIER = 1.55;
 const JUMP_HEIGHT = 1.25;
 const JUMP_DURATION = 0.55;
 const GROUND_Y = 2.15;
+const WIND_BLADE_REACH = 4.8;
+const WIND_BLADE_DOT = 0.62;
 
 function getSpecialDelay(enemyId: string): number {
   // Larger / scarier enemies fire specials more often
@@ -353,7 +355,9 @@ export function PlayerController({
       // player must explicitly press right click or R to reload.
       if (event.button === 2) {
         event.preventDefault();
-        store.reload();
+        if (store.selectedWeaponId !== "windBlade") {
+          store.reload();
+        }
         return;
       }
       if (event.button !== 0) return;
@@ -371,6 +375,15 @@ export function PlayerController({
 
       const dir = forward.current;
       camera.getWorldDirection(dir);
+      if (weapon.id === "windBlade") {
+        const toEnemy = enemyPositionRef.current.clone().sub(camera.position);
+        const distance = toEnemy.length();
+        const alignment = distance > 0 ? dir.dot(toEnemy.normalize()) : 0;
+        const didHit = distance <= WIND_BLADE_REACH && alignment >= WIND_BLADE_DOT;
+        const critical = didHit && distance <= WIND_BLADE_REACH * 0.62 && alignment >= 0.88;
+        store.shoot(didHit, critical);
+        return;
+      }
       raycaster.current.set(camera.position, dir);
       const target = enemyRef.current;
       const hits = target ? raycaster.current.intersectObject(target, true) : [];
@@ -406,7 +419,7 @@ export function PlayerController({
       window.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("contextmenu", onContextMenu);
     };
-  }, [camera, gl.domElement, enemyRef]);
+  }, [camera, gl.domElement, enemyRef, enemyPositionRef]);
 
   useEffect(() => {
     const tickId = window.setInterval(() => {

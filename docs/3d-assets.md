@@ -6,20 +6,19 @@
 
 ## Quaternius (CC0, アニメ付き人型)
 
-リアル等身寄りのアニメ付きキャラ。`@react-three/drei` の `useFBX` で読み込み、`useAnimations` で idle / walk / punch を再生。クローン時は `three-stdlib` の `SkeletonUtils.clone` を使用してスケルトンを保持する。
+リアル等身寄りのアニメ付きバスター素体。`@react-three/drei` の `useFBX` で読み込み、`useAnimations` で idle / walk / punch を再生。クローン時は `three-stdlib` の `SkeletonUtils.clone` を使用してスケルトンを保持する。
 
 | ディレクトリ | 出典パック | 出典 URL | ファイル | 用途 |
 | --- | --- | --- | --- | --- |
-| `public/models/modular-men/` | Ultimate Modular Men (Feb 2022) | https://quaternius.com/packs/ultimatemodularmen.html | `Spacesuit.gltf` | 全パイロット共有メッシュ。`SciFi_Light_Accent` マテリアルだけを各キャラの `accentColor` に塗り替えて色違いに（NOA = シアン / SAKA = 黄）。`tintCharacterMaterials` 参照 |
+| `public/models/modular-men/` | Ultimate Modular Men (Feb 2022) | https://quaternius.com/packs/ultimatemodularmen.html | `Spacesuit.gltf` | 全バスター共有メッシュ。`SciFi_Light_Accent` マテリアルだけを各バスターの `accentColor` に塗り替えて色違いに（NOA = シアン / SAKA = 黄）。`tintCharacterMaterials` 参照 |
 | `public/models/scifi-guns-q/` | Sci-Fi Gun Pack by Quaternius | https://quaternius.com (Patreon 配布) | `Rifle.fbx / LongPistol.fbx / Lightning Gun.fbx / Sniper rifle.fbx / Ray Gun.fbx` | 5 武器スロット（weatherGun / clearSkyGun / rainySeasonKiller / stormwallRifle / frostlance） |
-| `public/models/scifi-megakit/Props/` | Modular SciFi MegaKit (Standard) | https://quaternius.com/packs/modularscifimegakit.html | `Prop_Computer / AccessPoint / Barrel_Large / Crate3 / Crate4 / Fan_Small / Chest / Clamp / Cable_1 / ItemHolder / Light_Floor / Light_Wide` | 実験場ステージの装飾（コンソール・バレル・ライト・ファン・コンテナ） |
 | `public/models/stylized-nature/` | Stylized Nature MegaKit (Standard) | https://quaternius.com/packs/stylizednaturemegakit.html | `DeadTree_1 / DeadTree_3 / TwistedTree_1 / Rock_Medium_1〜3 / CommonTree_4` + bark/leaf textures (downsampled to 512px) | 都市跡(ruins) と 高地(highland) の植生装飾。CommonTree_4 は high mid-mountain、DeadTree / TwistedTree は ruins のシルエット要素。バーク/葉テクスチャは 2K → 512 にリサイズ済み |
 
-**変遷メモ**: もともと FBX (`quaternius-guns/`) → 旧 glTF (`sci-fi-guns/`) → 現在の **`scifi-guns-q/` (Sci-Fi Gun Pack by Quaternius / FBX)** と段階的に置換。最後の Pack は色味のあるローポリ・ポップな造形で、Lightning Gun や Ray Gun 等の SF テイストが既存の Quaternius 兵士キャラと統一感がある。barrel は **+Z 軸** なので rotation `[0, Math.PI, 0]` で -Z（カメラ前方）にマップ。
+**変遷メモ**: もともと FBX (`quaternius-guns/`) → 旧 glTF (`sci-fi-guns/`) → 現在の **`scifi-guns-q/` (Sci-Fi Gun Pack by Quaternius / FBX)** と段階的に置換。最後の Pack は色味のあるローポリ・ポップな造形で、Lightning Gun や Ray Gun 等の SF テイストが既存の Quaternius バスター素体と統一感がある。barrel は **+Z 軸** なので rotation `[0, Math.PI, 0]` で -Z（カメラ前方）にマップ。
 
-**キャラ変遷**: Soldier / Ninja の Quaternius Animated Character (FBX) → 一時期 `Adventurer / Spacesuit / Punk` の3メッシュ運用 → 現在の **Spacesuit 単一メッシュ + マテリアル塗り分け運用**。各キャラに **24 種のアニメ**（Idle / Idle_Gun / Idle_Gun_Pointing / Walk / Run / Run_Shoot / Gun_Shoot / Punch_Left/Right / Sword_Slash / Death / HitRecieve / Roll / Wave 等）が同梱。`useFBX` → `useGLTF` に統一し、`PlayerView.tsx` / `HomeScene.tsx` / `CharacterModel.tsx` の 3 箇所で同じ glTF パイプラインを使う。Spacesuit の 5 マテリアルのうち `SciFi_Light_Accent` だけがチームカラー用に分離されているため、`tintCharacterMaterials` ではマテリアル名に `accent` を含むスロットだけ `color` を accent に置換し、他は subtle emissive のみで本来のダーク・ティール基調を保持する。`Adventurer.gltf` / `Punk.gltf` は元キャラ削除に伴って削除済み（git history からは復元可能）。
+**バスター素体変遷**: Soldier / Ninja の Quaternius Animated Character (FBX) → 一時期 `Adventurer / Spacesuit / Punk` の3メッシュ運用 → 現在の **Spacesuit 単一メッシュ + マテリアル塗り分け運用**。各バスターに **24 種のアニメ**（Idle / Idle_Gun / Idle_Gun_Pointing / Walk / Run / Run_Shoot / Gun_Shoot / Punch_Left/Right / Sword_Slash / Death / HitRecieve / Roll / Wave 等）が同梱。`useFBX` → `useGLTF` に統一し、`PlayerView.tsx` / `HomeScene.tsx` / `CharacterModel.tsx` の 3 箇所で同じ glTF パイプラインを使う。Spacesuit の 5 マテリアルのうち `SciFi_Light_Accent` だけがチームカラー用に分離されているため、`tintCharacterMaterials` ではマテリアル名に `accent` を含むスロットだけ `color` を accent に置換し、他は subtle emissive のみで本来のダーク・ティール基調を保持する。`Adventurer.gltf` / `Punk.gltf` は元バスター削除に伴って削除済み（git history からは復元可能）。
 
-MegaKit Props は `.gltf` + `.bin` のペア構成で同梱。配置は `src/entities/stagePlacements.ts` の lab ステージ `fixed` 配列に集約。`License.txt` をパック直下 `public/models/scifi-megakit/License.txt` に同梱。
+MegaKit Props は外部テクスチャ不足で GitHub Pages 上の読み込み警告が出たため、lab 装飾を Kenney / KayKit の自己完結 GLB / glTF に置換し、同梱対象から削除済み。
 
 ## ステージ床テクスチャ (AmbientCG / CC0)
 
@@ -63,7 +62,7 @@ MegaKit Props は `.gltf` + `.bin` のペア構成で同梱。配置は `src/ent
 | `public/models/forest-nature/` | KayKit Forest Nature Pack 1.0 | https://kaylousberg.itch.io/forest-nature-pack | ruins の植生による街の浸食（裸木 / 茂み / 苔岩 / 若木）／ highland 外周の縦シルエット（高木 Tree_4_B / Tree_2_C） |
 | `public/models/resource-bits/` | KayKit Resource Bits 1.0 | https://kaylousberg.itch.io/resource-bits | lab の産業ディテール（燃料樽・パレット・パーツ山・銅鉄バー・ジェリ缶） |
 
-highland では `windturbine_tall / windturbine_low / solarpanel / roofmodule_solarpanels / landingpad_large / landingpad_small` で「気象観測基地」を成立させ、`basemodule_E / basemodule_garage / basemodule_C` で背後を埋めて滑走路の正体を「研究拠点」に固定。`lights.gltf` を着陸パッド両脇に置いて視線誘導。lab では `cargo_A_packed / cargo_B_packed / cargo_A_stacked / containers_A〜C / lights` で従来の `scifi-megakit` バレル/クレートを置換し、シルエットを強化。ruins は `cargodepot_C / structure_low / cargo_B_stacked` を `tilt` 付きで配置し、墜落基地の見た目を補強。
+highland では `windturbine_tall / windturbine_low / solarpanel / roofmodule_solarpanels / landingpad_large / landingpad_small` で「気象観測基地」を成立させ、`basemodule_E / basemodule_garage / basemodule_C` で背後を埋めて滑走路の正体を「研究拠点」に固定。`lights.gltf` を着陸パッド両脇に置いて視線誘導。lab では `cargo_A_packed / cargo_B_packed / cargo_A_stacked / containers_A〜C / lights` で旧 MegaKit バレル/クレートを置換し、シルエットを強化。ruins は `cargodepot_C / structure_low / cargo_B_stacked` を `tilt` 付きで配置し、墜落基地の見た目を補強。
 
 Forest Nature Pack は ruins メインで「壊れた街に植物が戻ってきた」ストーリーを支える。`Tree_Bare_*` を石化した街路樹として、`Tree_2_A / Tree_3_A` を瓦礫から伸びる若木として配置。`Bush_*_A/C` と `Rock_*` を `scattered` クラスタで外縁から中央に向かって散布。highland では `Tree_4_B`（高木）と `Tree_2_C` を地平線方向に置いて縦のシルエットを足す。`forest_texture.png` 1枚で全モデルが共有テクスチャ（KayKit のアトラス方式）。
 
