@@ -16,7 +16,7 @@ let bgmFilter: BiquadFilterNode | null = null;
 
 const audioState = {
   sfxEnabled: true,
-  bgmEnabled: true,
+  bgmEnabled: false,
   masterVolume: 0.6,
   scene: "title" as BgmScene,
 };
@@ -590,7 +590,7 @@ const TITLE: BgmTrack = (() => {
     [n("F2"), n("A2"), n("C3"), n("F3")],
   ];
 
-  return { bpm: 110, bass, lead, pad, drums, filterCutoff: 2400, volume: 0.85 };
+  return { bpm: 110, bass, lead, pad, drums, filterCutoff: 2400, volume: 0.34 };
 })();
 
 // Battle: 138 BPM, driving in A minor (Am-F-C-G).
@@ -647,7 +647,7 @@ const BATTLE: BgmTrack = (() => {
     [n("G2"), n("B2"), n("D3"), n("G3")],
   ];
 
-  return { bpm: 138, bass, lead, pad, drums, filterCutoff: 3200, volume: 1.0 };
+  return { bpm: 138, bass, lead, pad, drums, filterCutoff: 3200, volume: 0.4 };
 })();
 
 // Victory: short major fanfare loop (D major), 120 BPM
@@ -675,7 +675,7 @@ const VICTORY: BgmTrack = (() => {
     [n("D3"), n("F#3"), n("A3"), n("D4")],
   ];
 
-  return { bpm: 120, bass, lead, pad, drums, filterCutoff: 3600, volume: 0.9 };
+  return { bpm: 120, bass, lead, pad, drums, filterCutoff: 3600, volume: 0.36 };
 })();
 
 // Defeat: slow descending minor (D minor), 70 BPM
@@ -699,7 +699,7 @@ const DEFEAT: BgmTrack = (() => {
     [n("A2"), n("C3"), n("E3"), n("A3")],
   ];
 
-  return { bpm: 70, bass, lead, pad, drums, filterCutoff: 1400, volume: 0.7 };
+  return { bpm: 70, bass, lead, pad, drums, filterCutoff: 1400, volume: 0.28 };
 })();
 
 const SCENE_TRACK: Record<BgmScene, BgmTrack> = {

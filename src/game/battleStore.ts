@@ -316,7 +316,7 @@ export const useBattleStore = create<BattleState>((set, get) => {
       });
     },
     sfxEnabled: true,
-    bgmEnabled: true,
+    bgmEnabled: false,
     masterVolume: 0.6,
     setMouseSensitivity: (value) => set({ mouseSensitivity: value }),
     setFov: (value) => set({ fov: value }),
