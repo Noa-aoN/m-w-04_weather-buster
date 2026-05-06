@@ -10,6 +10,7 @@ const REX_BODY_URL: Partial<Record<WeatherEnemy["id"], string>> = {
   heavyRain: "/models/custom-enemies/heavy-rain.glb",
   rainySeason: "/models/custom-enemies/rainy-season.glb",
   tornado: "/models/custom-enemies/tornado.glb",
+  blizzard: "/models/custom-enemies/blizzard.glb",
 };
 
 function RexBody({ url, accent }: { url: string; accent: string }) {
@@ -339,12 +340,7 @@ function Snowflake({ side }: { side: -1 | 1 }) {
 function BlizzardModel({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean }) {
   return (
     <>
-      <CloudPuff enemy={enemy} clear={clear} big />
-      <Eye side={-1} scale={1.15} closed={!clear} cute />
-      <Eye side={1} scale={1.15} closed={!clear} cute />
-      <Mouth variant={clear ? "smile" : "small"} y={-0.18} z={0.86} scale={1.15} />
-      <Cheek side={-1} color="#a8e2ff" z={0.74} height={-0.08} scale={1.15} />
-      <Cheek side={1} color="#a8e2ff" z={0.74} height={-0.08} scale={1.15} />
+      <RexBody url={REX_BODY_URL.blizzard!} accent={enemy.accentColor} />
       {!clear ? (
         <>
           <Snowflake side={-1} />
@@ -407,6 +403,7 @@ const CORE_OVERRIDE: Partial<Record<WeatherEnemy["id"], { y: number; scale?: num
   heavyRain: { y: 0.9 },
   rainySeason: { y: 0.9 },
   tornado: { y: 0.7, scale: 0.45 },
+  blizzard: { y: 0.9 },
 };
 
 function CoreOrb({ enemy, clear, compact = false }: { enemy: WeatherEnemy; clear: boolean; compact?: boolean }) {

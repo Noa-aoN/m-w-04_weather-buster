@@ -6,17 +6,14 @@ import { SkeletonUtils } from "three-stdlib";
 import type { CharacterId } from "../game/types";
 import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
 
-// Quaternius "Ultimate Modular Men - Feb 2022" (CC0). Each character is a
-// self-contained .gltf with embedded buffer + 24 named animations
-// (Idle / Idle_Gun / Idle_Gun_Pointing / Walk / Run / Run_Shoot / Gun_Shoot /
-// Punch_Left/Right / Sword_Slash / Death / HitRecieve / Roll / Wave / ...).
-//
-// All three pilots share the Spacesuit mesh and are differentiated by
-// recolouring its `SciFi_Light_Accent` material with each character's
-// accentColor (see tintCharacterMaterials in fitObject.ts).
+// Each pilot is a static Meshy AI mesh — no skeleton, no animations. The
+// existing `useAnimations` flow stays in place but no-ops when the GLB has
+// zero clips. `tintCharacterMaterials` no longer recolours (the new models
+// have no `accent`-named slot); each character is visually distinct by
+// virtue of being a different mesh.
 export const CHARACTER_MODEL_URL: Record<CharacterId, string> = {
-  noa: "/models/modular-men/Spacesuit.gltf",
-  saka: "/models/modular-men/Spacesuit.gltf",
+  noa: "/models/custom-characters/noa.glb",
+  saka: "/models/custom-characters/saka.glb",
 };
 
 const TARGET_HEIGHT = 1.6;
@@ -106,3 +103,4 @@ export function CharacterModel({
 }
 
 useGLTF.preload(CHARACTER_MODEL_URL.noa);
+useGLTF.preload(CHARACTER_MODEL_URL.saka);
