@@ -1105,22 +1105,125 @@ canvas {
 }
 
 .clearBanner {
-  background: linear-gradient(135deg, rgba(40, 88, 60, 0.85), rgba(20, 40, 36, 0.92));
-  border-color: rgba(160, 255, 200, 0.6);
-  box-shadow: 0 0 60px rgba(120, 255, 180, 0.45), inset 0 0 50px rgba(120, 255, 180, 0.18);
-  animation: bannerPop 0.5s cubic-bezier(0.18, 0.9, 0.3, 1);
+  /* Sky-blue gradient with a soft sun-warm wash on top — semi-transparent
+     so the cleared 3D scene shows through. */
+  background:
+    radial-gradient(circle at 50% -10%, rgba(255, 248, 210, 0.55) 0%, transparent 55%),
+    linear-gradient(180deg, rgba(195, 235, 255, 0.78) 0%, rgba(125, 199, 237, 0.7) 55%, rgba(80, 156, 200, 0.78) 100%);
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow:
+    0 0 70px rgba(180, 230, 255, 0.55),
+    inset 0 0 60px rgba(255, 255, 255, 0.32);
+  backdrop-filter: blur(8px) saturate(1.2);
+  animation: bannerPop 0.55s cubic-bezier(0.18, 0.9, 0.3, 1);
+  overflow: hidden;
+}
+
+.clearBanner p {
+  color: #f5fbff;
+  text-shadow: 0 1px 0 rgba(80, 130, 170, 0.45);
 }
 
 .clearBanner h1 {
-  color: #fff7a8;
+  position: relative;
+  /* Sky-blue gradient text with a warm sun rim — replaces the lime/lemon
+     yellow of the old jungle-green banner. */
+  background: linear-gradient(180deg, #ffffff 0%, #d8f4ff 30%, #6ec5f5 70%, #2a78b5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   font-size: clamp(40px, 7vw, 80px);
   letter-spacing: 0.08em;
-  text-shadow:
-    0 0 36px rgba(255, 243, 130, 0.95),
-    0 0 72px rgba(180, 255, 130, 0.55),
-    0 4px 0 #1a3008,
-    0 8px 22px rgba(0, 0, 0, 0.6);
+  filter:
+    drop-shadow(0 0 36px rgba(255, 248, 210, 0.85))
+    drop-shadow(0 0 64px rgba(180, 230, 255, 0.6))
+    drop-shadow(0 4px 0 rgba(40, 90, 130, 0.6))
+    drop-shadow(0 10px 22px rgba(0, 0, 0, 0.4));
   animation: clearTitlePulse 1.4s ease-out infinite alternate;
+}
+
+/* Decorative sun behind the title */
+.clearBannerSun {
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  width: 200px;
+  height: 200px;
+  margin-left: -100px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 248, 200, 0.95) 0%, rgba(255, 220, 130, 0.55) 35%, transparent 75%);
+  filter: blur(2px);
+  animation: clearSunPulse 3.4s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+/* Drifting wispy clouds (pure CSS, no images) */
+.clearBannerCloud {
+  position: absolute;
+  background:
+    radial-gradient(ellipse 60% 90% at 30% 50%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(ellipse 50% 80% at 65% 60%, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(ellipse 40% 70% at 80% 45%, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+  filter: blur(0.4px);
+  opacity: 0.85;
+}
+.clearBannerCloud--a {
+  top: 18%;
+  left: -6%;
+  width: 38%;
+  height: 32%;
+  animation: clearCloudDriftA 9s ease-in-out infinite alternate;
+}
+.clearBannerCloud--b {
+  bottom: 28%;
+  right: -8%;
+  width: 32%;
+  height: 26%;
+  animation: clearCloudDriftB 11s ease-in-out infinite alternate;
+}
+.clearBannerCloud--c {
+  bottom: -2%;
+  left: 22%;
+  width: 30%;
+  height: 22%;
+  opacity: 0.7;
+  animation: clearCloudDriftA 14s ease-in-out 1s infinite alternate-reverse;
+}
+
+@keyframes clearSunPulse {
+  0% { transform: scale(0.95); opacity: 0.85; }
+  100% { transform: scale(1.08); opacity: 1; }
+}
+@keyframes clearCloudDriftA {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(14px); }
+}
+@keyframes clearCloudDriftB {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-18px); }
+}
+
+.clearBanner .bannerHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 auto 14px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  color: #f8fcff;
+  background: rgba(40, 100, 145, 0.4);
+  font-size: clamp(11px, 0.9vw, 14px);
+  letter-spacing: 0.12em;
+}
+.clearBanner .bannerHint kbd {
+  padding: 2px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
 }
 
 .clearBanner p {
@@ -1159,8 +1262,8 @@ canvas {
 }
 
 @keyframes clearTitlePulse {
-  0% { filter: drop-shadow(0 0 12px rgba(255, 243, 130, 0.6)); transform: scale(1); }
-  100% { filter: drop-shadow(0 0 32px rgba(255, 243, 130, 1)); transform: scale(1.04); }
+  0% { transform: scale(1); }
+  100% { transform: scale(1.04); }
 }
 
 @keyframes defeatTitleGlitch {

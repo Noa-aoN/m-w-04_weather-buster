@@ -871,8 +871,16 @@ export function BattleHud({
 
       {status === "clear" ? (
         <div className="centerBanner clearBanner">
+          <span className="clearBannerSun" aria-hidden="true" />
+          <span className="clearBannerCloud clearBannerCloud--a" aria-hidden="true" />
+          <span className="clearBannerCloud clearBannerCloud--b" aria-hidden="true" />
+          <span className="clearBannerCloud clearBannerCloud--c" aria-hidden="true" />
           <p>雲が割れ、空が戻った</p>
           <h1>CLEAR SKY!</h1>
+          <p className="bannerHint">
+            <kbd>ESC</kbd>
+            <span>マウス操作に戻る（カーソルを表示）</span>
+          </p>
           <div className="readyActions">
             <button type="button" className="primaryMenuButton" onClick={onShowResult}>結果を見る (Enter)</button>
             <button type="button" onClick={onBack}>ホームへ (H)</button>
