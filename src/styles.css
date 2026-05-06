@@ -991,11 +991,17 @@ canvas {
 }
 
 .weaponStatus {
-  bottom: 120px;
+  bottom: 130px;
 }
 
 .skillStatus {
   bottom: 24px;
+}
+
+@media (max-height: 700px) {
+  .weaponStatus {
+    bottom: 150px;
+  }
 }
 
 .weaponStatus strong {
@@ -1529,6 +1535,7 @@ canvas {
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
+  padding-bottom: 24px;
 }
 
 .enemyCard {
@@ -1670,6 +1677,7 @@ canvas {
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
+  padding-bottom: 24px;
 }
 
 .weaponCard {
@@ -1819,8 +1827,11 @@ canvas {
   grid-template-columns: 1fr;
   gap: 14px;
   max-width: 720px;
+  height: calc(100vh - 112px);
   margin-inline: auto;
-  min-height: calc(100vh - 112px);
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
   padding-bottom: 48px;
 }
 
@@ -1830,19 +1841,34 @@ canvas {
 
 .settingRow header {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingHeaderMain {
+  display: flex;
   gap: 14px;
   align-items: baseline;
 }
 
-.settingRow header span {
+.settingRow header span,
+.settingHeaderMain span {
   color: #28d9ff;
   font-size: 12px;
   letter-spacing: 0.18em;
 }
 
-.settingRow header strong {
+.settingRow header strong,
+.settingHeaderMain strong {
   color: #f7fbff;
   font-size: 22px;
+}
+
+.settingHeaderDesc {
+  margin: 0;
+  color: #c7dce5;
+  line-height: 1.5;
+  font-size: 13px;
 }
 
 .settingRow p {

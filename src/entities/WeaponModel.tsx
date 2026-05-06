@@ -8,9 +8,8 @@ import { fitObjectToSize } from "./fitObject";
 
 type WeaponModelType = "fbx" | "gltf";
 
-// Quaternius "Sci-Fi Gun Pack" (CC0) FBX. Bounding box inspection shows
-// barrel along +Z (longest axis ~ Z, with the muzzle on +Z by Quaternius
-// authoring convention). [0, PI, 0] flips +Z to -Z = camera forward.
+// Quaternius "Sci-Fi Gun Pack" (CC0) FBX. Models are authored with barrel
+// along +Z. Y 180° to flip forward. Scale Z inverted to fix roll.
 export const WEAPON_MODEL: Record<WeaponId, { url: string; type: WeaponModelType; rotation: [number, number, number] }> = {
   weatherGun: { url: assetUrl("/models/scifi-guns-q/Rifle.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
   clearSkyGun: { url: assetUrl("/models/scifi-guns-q/LongPistol.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
@@ -19,6 +18,8 @@ export const WEAPON_MODEL: Record<WeaponId, { url: string; type: WeaponModelType
   frostlance: { url: assetUrl("/models/scifi-guns-q/Ray Gun.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
   windBlade: { url: assetUrl("/models/prototype-kit/weapon-sword.glb"), type: "gltf", rotation: [0, Math.PI / 2, -Math.PI / 7] },
 };
+
+export const weaponModelScale = (id: WeaponId) => (id === "windBlade" ? [1, 1, 1] : [1, 1, -1]) as [number, number, number];
 
 export const WEAPON_MODEL_URL = Object.fromEntries(
   Object.entries(WEAPON_MODEL).map(([id, model]) => [id, model.url]),

@@ -7,7 +7,7 @@ import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
 import { CHARACTER_MODEL_URL } from "./CharacterModel";
 import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
-import { WeaponObject, weaponModelRotation } from "./WeaponModel";
+import { WeaponObject, weaponModelRotation, weaponModelScale } from "./WeaponModel";
 
 // First-person weapon: tracks camera quaternion every frame, with a kicked
 // recoil that decays over 130ms.
@@ -67,7 +67,7 @@ export function PlayerWeapon() {
 
   return (
     <group ref={groupRef}>
-      <group rotation={weaponModelRotation(selectedWeaponId)}>
+      <group rotation={weaponModelRotation(selectedWeaponId)} scale={weaponModelScale(selectedWeaponId)}>
         <WeaponObject id={selectedWeaponId} targetSize={selectedWeaponId === "windBlade" ? 1.05 : 0.6} />
       </group>
       {flashVisible && selectedWeaponId !== "windBlade" ? (
@@ -294,7 +294,7 @@ export function PlayerBackAvatar() {
         </group>
       </group>
       <group ref={weaponGroupRef}>
-        <group rotation={weaponModelRotation(selectedWeaponId)}>
+        <group rotation={weaponModelRotation(selectedWeaponId)} scale={weaponModelScale(selectedWeaponId)}>
           <WeaponObject id={selectedWeaponId} targetSize={0.7} />
         </group>
         {flashVisible ? (

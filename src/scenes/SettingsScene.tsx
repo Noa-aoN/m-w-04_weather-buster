@@ -55,10 +55,12 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
       <section className="settingsLayout">
         <article className="settingRow tacticalPanel">
           <header>
-            <span>感度</span>
-            <strong>マウス感度</strong>
+            <div className="settingHeaderMain">
+              <span>感度</span>
+              <strong>マウス感度</strong>
+            </div>
+            <p className="settingHeaderDesc">視点旋回の倍率。標準は 1.0x。</p>
           </header>
-          <p>視点旋回の倍率。標準は 1.0x。</p>
           <div className="settingControl">
             <input
               type="range"
@@ -74,10 +76,12 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
 
         <article className="settingRow tacticalPanel">
           <header>
-            <span>視野</span>
-            <strong>FOV</strong>
+            <div className="settingHeaderMain">
+              <span>視野</span>
+              <strong>FOV</strong>
+            </div>
+            <p className="settingHeaderDesc">戦闘カメラの視野角。広いほど周囲を見渡せる。標準 58°。</p>
           </header>
-          <p>戦闘カメラの視野角。広いほど周囲を見渡せる。標準 58°。</p>
           <div className="settingControl">
             <input
               type="range"
@@ -93,10 +97,12 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
 
         <article className="settingRow tacticalPanel">
           <header>
-            <span>視点</span>
-            <strong>戦闘カメラ</strong>
+            <div className="settingHeaderMain">
+              <span>視点</span>
+              <strong>戦闘カメラ</strong>
+            </div>
+            <p className="settingHeaderDesc">FPS は銃口視点。TPS（背中越し）は調整中のため一時的に無効。</p>
           </header>
-          <p>FPS は銃口視点。TPS（背中越し）は調整中のため一時的に無効。</p>
           <div className="cameraModeSwitch" role="radiogroup" aria-label="戦闘カメラ">
             <button
               type="button"
@@ -123,10 +129,12 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
 
         <article className="settingRow tacticalPanel">
           <header>
-            <span>HUD</span>
-            <strong>照準カラー</strong>
+            <div className="settingHeaderMain">
+              <span>HUD</span>
+              <strong>照準カラー</strong>
+            </div>
+            <p className="settingHeaderDesc">レティクル / クロスヘアの色。背景に合わせて選ぶ。</p>
           </header>
-          <p>レティクル / クロスヘアの色。背景に合わせて選ぶ。</p>
           <div className="crosshairOptions" role="radiogroup" aria-label="照準カラー">
             {crosshairPresets.map((preset) => (
               <button
@@ -152,10 +160,12 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
 
         <article className="settingRow tacticalPanel">
           <header>
-            <span>音量</span>
-            <strong>マスターボリューム</strong>
+            <div className="settingHeaderMain">
+              <span>音量</span>
+              <strong>マスターボリューム</strong>
+            </div>
+            <p className="settingHeaderDesc">BGM・効果音の総音量。`,` / `.` キーでも 0.1 単位で増減できる。</p>
           </header>
-          <p>BGM・効果音の総音量。`,` / `.` キーでも 0.1 単位で増減できる。</p>
           <div className="settingControl">
             <input
               type="range"
@@ -171,10 +181,12 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
 
         <article className="settingRow tacticalPanel">
           <header>
-            <span>音響</span>
-            <strong>SFX / BGM</strong>
+            <div className="settingHeaderMain">
+              <span>音響</span>
+              <strong>SFX / BGM</strong>
+            </div>
+            <p className="settingHeaderDesc">効果音と BGM の ON/OFF。`M` キーで両方をまとめて切り替えられる。右上のミニトグルからも操作可能。</p>
           </header>
-          <p>効果音と BGM の ON/OFF。`M` キーで両方をまとめて切り替えられる。右上のミニトグルからも操作可能。</p>
           <div className="cameraModeSwitch" role="group" aria-label="音響トグル">
             <button
               type="button"
