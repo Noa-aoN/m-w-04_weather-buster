@@ -24,6 +24,27 @@ export const STANDOFF_DISTANCE = 7.5;
 export const MIN_DISTANCE = 5.5;
 export const ENEMY_SCALE = 1.55;
 
+// Per-enemy vertical tier. Four bands (地面 / 少し浮く / まぁまぁ浮く /
+// だいぶ浮く) keep the silhouette varied across battles. Tornado is the only
+// pure-ground enemy; lighter cloud types hover low; thunder/typhoon ride
+// high in the sky.
+const ENEMY_VERTICAL_TIER: Record<
+  WeatherEnemy["id"],
+  { base: number; amp: number; freq: number; grounded?: boolean }
+> = {
+  // 地面: 足が地面に着いた状態。微小な歩行バウンスのみ
+  tornado:      { base: 0.4, amp: 0.05, freq: 4.2, grounded: true },
+  // 少し浮く: 1〜1.5m
+  cloudy:       { base: 1.2, amp: 0.35, freq: 1.2 },
+  heavyRain:    { base: 1.4, amp: 0.4,  freq: 1.0 },
+  // まぁまぁ浮く: 1.8〜2.4m
+  blizzard:     { base: 1.8, amp: 0.5,  freq: 1.1 },
+  rainySeason:  { base: 2.2, amp: 0.55, freq: 1.0 },
+  // だいぶ浮く: 3〜3.6m （高層の雷雲・台風）
+  thunderstorm: { base: 3.6, amp: 0.9,  freq: 0.9 },
+  typhoon:      { base: 3.4, amp: 1.2,  freq: 1.3 },
+};
+
 export function EnemyMotion({
   enemy,
   enemyRef,
@@ -78,8 +99,11 @@ export function EnemyMotion({
     // longer locks the enemy in place, so they can immediately roll into a
     // dodge / zigzag / evade phase if the AI decides to.
     const hitFlinch = lastShotHit ? Math.max(0, 1 - (performance.now() - lastShotAt) / 80) : 0;
-    const baseY = 2.6;
-    const idleY = baseY + Math.sin(state.clock.getElapsedTime() * 1.1) * 0.18;
+    // Pre-battle idle pose uses the same per-enemy vertical tier as combat,
+    // so the tornado lands on the floor and high-altitude enemies hover up
+    // top from the moment the player sees them on the ready screen.
+    const idleTier = ENEMY_VERTICAL_TIER[enemy.id] ?? { base: 2.6, amp: 0.18, freq: 1.1 };
+    const idleY = idleTier.base + Math.sin(state.clock.getElapsedTime() * 1.1) * (idleTier.grounded ? 0.04 : 0.18);
     if (status !== "battle") {
       node.position.set(0, idleY, baseZ);
       node.rotation.y = Math.sin(state.clock.getElapsedTime() * 0.4) * 0.25;
@@ -251,19 +275,20 @@ export function EnemyMotion({
     node.position.z += (targetZ - node.position.z) * factor;
 
     const t = state.clock.getElapsedTime();
-    if (enemy.id === "tornado") {
-      // Tornado is grounded: keep feet on the floor, tiny step bob only.
-      const stepBob = Math.abs(Math.sin(t * 4.2)) * 0.08;
-      node.position.y = 0.4 + stepBob + (phase.mode === "telegraph" ? -0.1 : 0);
+    const tier = ENEMY_VERTICAL_TIER[enemy.id] ?? { base: 1.6, amp: 0.6, freq: 1.0 };
+    if (tier.grounded) {
+      // 地面組: 足は床に着いたまま、ごく軽い歩行バウンス
+      const stepBob = Math.abs(Math.sin(t * tier.freq)) * (tier.amp + 0.03);
+      node.position.y = tier.base + stepBob + (phase.mode === "telegraph" ? -0.1 : 0);
     } else {
-      const verticalAmpBase = enemy.id === "typhoon"
-        ? 1.2 + aggression * 0.5
-        : enemy.id === "thunderstorm" ? 0.9
-        : 0.6 + aggression * 0.3;
-      const verticalAmp = phase.mode === "idle" ? verticalAmpBase * 0.35 : verticalAmpBase;
-      const verticalFreq = phase.mode === "idle" ? 0.7 : (1.2 + aggression * 0.4);
-      const verticalBase = baseY + (phase.mode === "telegraph" ? -0.6 : 0);
-      node.position.y = verticalBase + Math.sin(t * verticalFreq) * verticalAmp + Math.sin(t * verticalFreq * 1.9) * 0.18;
+      // 浮遊組: tier の base + amp で高度層を表現。aggression と phase で振幅を微調整
+      const ampBase = tier.amp * (1 + aggression * 0.3);
+      const amp = phase.mode === "idle" ? ampBase * 0.35 : ampBase;
+      const freq = phase.mode === "idle" ? tier.freq * 0.6 : tier.freq * (1 + aggression * 0.25);
+      const baseOffset = phase.mode === "telegraph" ? -0.4 : 0;
+      node.position.y = tier.base + baseOffset
+        + Math.sin(t * freq) * amp
+        + Math.sin(t * freq * 1.9) * amp * 0.25;
     }
 
     // Apply flinch as a small position jitter on top of the AI's intent.
