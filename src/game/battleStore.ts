@@ -37,9 +37,11 @@ const {
   ENEMY_TICK_DAMAGE_BASE,
   SHIELD_REGEN_PER_SECOND,
 } = COMBAT_CONSTANTS;
-const DEFAULT_ENEMY_INDEX = 2;
-const DEFAULT_WEAPON_INDEX = 1;
-const DEFAULT_CHARACTER_ID: CharacterId = "halo";
+// Default loadout: ノア / ウェザーガン / 実験場 / 豪雨 / 難易度3
+const DEFAULT_ENEMY_INDEX = 1;        // weatherEnemies[1] = heavyRain
+const DEFAULT_WEAPON_INDEX = 0;       // weapons[0] = weatherGun
+const DEFAULT_CHARACTER_ID: CharacterId = "noa";
+const DEFAULT_DIFFICULTY: DifficultyLevel = 3;
 
 const initialStocks = (multiplier: number): Record<ItemId, number> => {
   const stocks = {} as Record<ItemId, number>;
@@ -257,7 +259,7 @@ export const useBattleStore = create<BattleState>((set, get) => {
     selectedWeaponId: defaultWeapon.id,
     selectedCharacterId: DEFAULT_CHARACTER_ID,
     selectedStageId: stages[0].id,
-    selectedDifficulty: defaultEnemy.difficulty,
+    selectedDifficulty: DEFAULT_DIFFICULTY,
     playerMaxHp: PLAYER_MAX_HP,
     isPointerLocked: false,
     mouseSensitivity: 1,
@@ -316,7 +318,7 @@ export const useBattleStore = create<BattleState>((set, get) => {
       });
     },
     sfxEnabled: true,
-    bgmEnabled: true,
+    bgmEnabled: false,
     masterVolume: 0.6,
     setMouseSensitivity: (value) => set({ mouseSensitivity: value }),
     setFov: (value) => set({ fov: value }),

@@ -122,8 +122,14 @@ export function AudioBridge() {
       for (const id of prevIds) {
         if (!currIds.has(id)) removed += 1;
       }
-      if (added > 0) playMarkerSpawn();
-      if (removed > 0) playMarkerImpact();
+      // Marker SFX only while a battle is actually running. Without this guard
+      // the bulk-clear of markers triggered by reset() (clear / defeat /
+      // home-return) would fire playMarkerImpact and play a loud explosion
+      // sound on the way back to the title.
+      if (state.status === "battle") {
+        if (added > 0) playMarkerSpawn();
+        if (removed > 0) playMarkerImpact();
+      }
       if (state.status !== prev.status) {
         if (state.status === "battle") {
           setBgmScene("battle");

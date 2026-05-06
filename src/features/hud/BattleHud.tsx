@@ -332,6 +332,28 @@ function BattleStartFlash() {
   return <div className="battleStartFlash" key={flash} aria-hidden="true" />;
 }
 
+// Big white-to-blue burst the moment the boss explodes — pairs with the 3D
+// DefeatBurst (shockwave + shards) to sell "雲が割れて青空が戻る".
+function ClearSkyBurst() {
+  const status = useBattleStore((state) => state.status);
+  const [flash, setFlash] = useState(0);
+  useEffect(() => {
+    if (status === "clear") {
+      setFlash(Date.now());
+    }
+  }, [status]);
+  if (flash === 0) {
+    return null;
+  }
+  return (
+    <>
+      <div className="clearSkyFlash" key={`flash-${flash}`} aria-hidden="true" />
+      <div className="clearSkyShockwave" key={`wave-${flash}`} aria-hidden="true" />
+      <div className="clearSkyRays" key={`rays-${flash}`} aria-hidden="true" />
+    </>
+  );
+}
+
 function DamageFlash() {
   const playerHp = useBattleStore((state) => state.playerHp);
   const prev = useRef(playerHp);
@@ -756,7 +778,7 @@ export function BattleHud({
         </label>
       </aside>
 
-      <button className="enemyBookButton" type="button" onClick={onOpenEnemyGrid}>気象モンスター図鑑</button>
+      <button className="enemyBookButton" type="button" onClick={onOpenEnemyGrid}>天候性侵害体図鑑</button>
 
       <div className="radarPanel tacticalPanel">
         <div className="radarCircle"><i /><b /></div>
@@ -793,6 +815,7 @@ export function BattleHud({
       <ScreenShake />
       <LowHpVignette />
       <BattleStartFlash />
+      <ClearSkyBurst />
       <BossIntro enemyName={enemy.name} enemyTrait={enemy.trait} threat={enemy.threat} />
       <DamageFlash />
       <HealFlash />
@@ -848,8 +871,16 @@ export function BattleHud({
 
       {status === "clear" ? (
         <div className="centerBanner clearBanner">
+          <span className="clearBannerSun" aria-hidden="true" />
+          <span className="clearBannerCloud clearBannerCloud--a" aria-hidden="true" />
+          <span className="clearBannerCloud clearBannerCloud--b" aria-hidden="true" />
+          <span className="clearBannerCloud clearBannerCloud--c" aria-hidden="true" />
           <p>雲が割れ、空が戻った</p>
           <h1>CLEAR SKY!</h1>
+          <p className="bannerHint">
+            <kbd>ESC</kbd>
+            <span>マウス操作に戻る（カーソルを表示）</span>
+          </p>
           <div className="readyActions">
             <button type="button" className="primaryMenuButton" onClick={onShowResult}>結果を見る (Enter)</button>
             <button type="button" onClick={onBack}>ホームへ (H)</button>

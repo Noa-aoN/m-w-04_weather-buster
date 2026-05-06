@@ -65,11 +65,11 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // Heavy machinery clustered in back
       { url: "/models/space-kit/machine_generatorLarge.glb", x: -8, z: -5, scale: 1.3, rotY: 0.2 },
       { url: "/models/space-kit/machine_generator.glb", x: -3, z: -7, scale: 1.4, rotY: -0.3 },
-      { url: "/models/scifi-megakit/Props/Prop_Barrel_Large.gltf", x: 4, z: -6, scale: 1.6, rotY: 0 },
+      { url: "/models/space-base-bits/cargo_A_packed.gltf", x: 4, z: -6, scale: 2.2, rotY: 0 },
       { url: "/models/space-kit/machine_wireless.glb", x: 8, z: -4, scale: 1.4, rotY: -0.5 },
       // Side structures
-      { url: "/models/scifi-megakit/Props/Prop_Barrel_Large.gltf", x: 9, z: 2, scale: 1.5, rotY: 0.4 },
-      { url: "/models/scifi-megakit/Props/Prop_Barrel_Large.gltf", x: 8.5, z: 5, scale: 1.4, rotY: -0.2 },
+      { url: "/models/space-base-bits/cargo_B_packed.gltf", x: 9, z: 2, scale: 2.0, rotY: 0.4 },
+      { url: "/models/space-base-bits/cargo_A_stacked.gltf", x: 8.5, z: 5, scale: 1.6, rotY: -0.2 },
       { url: "/models/space-kit/structure.glb", x: -8.5, z: 3, scale: 1.5, rotY: 0.3 },
       { url: "/models/space-kit/structure_detailed.glb", x: -8, z: 6, scale: 1.4, rotY: -0.4 },
       // Center backdrop: detailed sci-fi computer console
@@ -79,16 +79,29 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // Side props
       { url: "/models/factory-kit/cog-a.glb", x: -10, z: 0, scale: 1.4, rotY: 0 },
       { url: "/models/factory-kit/cog-b.glb", x: 10, z: -1, scale: 1.4, rotY: 0.5 },
-      // Containers / crates
-      { url: "/models/scifi-megakit/Props/Prop_Crate4.gltf", x: -5, z: 7, scale: 1.2, rotY: 0.6 },
-      { url: "/models/scifi-megakit/Props/Prop_Chest.gltf", x: -3.5, z: 7.4, scale: 1.2, rotY: -0.2 },
-      { url: "/models/scifi-megakit/Props/Prop_Crate3.gltf", x: 4.6, z: 7.6, scale: 1.3, rotY: 0.4 },
-      // Detail props on the lab floor for ローポリ感
-      { url: "/models/scifi-megakit/Props/Prop_Light_Wide.gltf", x: -2.4, z: 4.5, scale: 1.0, rotY: 0 },
-      { url: "/models/scifi-megakit/Props/Prop_Light_Wide.gltf", x: 2.4, z: 4.5, scale: 1.0, rotY: 0 },
+      // Containers / crates (KayKit modular cargo for stronger silhouette)
+      { url: "/models/space-base-bits/containers_A.gltf", x: -5, z: 7, scale: 2.4, rotY: 0.6 },
+      { url: "/models/space-base-bits/containers_B.gltf", x: -3.5, z: 7.4, scale: 2.4, rotY: -0.2 },
+      { url: "/models/space-base-bits/containers_C.gltf", x: 4.6, z: 7.6, scale: 2.4, rotY: 0.4 },
+      // Floor lamps + small detail props (KayKit lights mark walking lanes)
+      { url: "/models/space-base-bits/lights.gltf", x: -2.4, z: 4.5, scale: 1.0, rotY: 0 },
+      { url: "/models/space-base-bits/lights.gltf", x: 2.4, z: 4.5, scale: 1.0, rotY: 0 },
       { url: "/models/scifi-megakit/Props/Prop_Fan_Small.gltf", x: 0, z: 6.0, scale: 0.9, rotY: 0 },
       { url: "/models/scifi-megakit/Props/Prop_ItemHolder.gltf", x: 6.5, z: 4.5, scale: 1.1, rotY: -0.4 },
       { url: "/models/scifi-megakit/Props/Prop_Cable_1.gltf", x: -7, z: -1.5, scale: 1.0, rotY: 0.2 },
+      // KayKit ResourceBits: industrial pallets / fuel barrels / parts piles
+      // line the side aisles. Pallets sit flat (no height) so they don't
+      // block the player line of sight; barrels add silhouette.
+      { url: "/models/resource-bits/Pallet_Wood_Covered_A.gltf", x: -5.5, z: -2.5, scale: 1.2, rotY: 0.3 },
+      { url: "/models/resource-bits/Fuel_A_Barrels.gltf", x: -5.5, z: -2.5, scale: 1.0, rotY: 0.3 },
+      { url: "/models/resource-bits/Pallet_Wood.gltf", x: 5.5, z: -2.5, scale: 1.2, rotY: -0.4 },
+      { url: "/models/resource-bits/Fuel_C_Barrels.gltf", x: 5.5, z: -2.5, scale: 1.0, rotY: -0.4 },
+      { url: "/models/resource-bits/Iron_Bars_Stack_Large.gltf", x: -3, z: 0, scale: 1.0, rotY: 0.5 },
+      { url: "/models/resource-bits/Copper_Bars_Stack_Medium.gltf", x: 3, z: 0, scale: 1.0, rotY: -0.4 },
+      { url: "/models/resource-bits/Parts_Pile_Large.gltf", x: -1.6, z: -3.2, scale: 1.0, rotY: 0.2 },
+      { url: "/models/resource-bits/Parts_Pile_Medium.gltf", x: 1.6, z: -3.2, scale: 1.0, rotY: -0.5 },
+      { url: "/models/resource-bits/Fuel_A_Jerrycan.gltf", x: -7, z: 4, scale: 1.2, rotY: 0.7 },
+      { url: "/models/resource-bits/Fuel_A_Barrel_Dirty.gltf", x: 7.5, z: 1, scale: 1.0, rotY: 0.4 },
     ],
     scattered: [],
   },
@@ -100,19 +113,28 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/tower-defense-kit/tower-square-roof-c.glb", x: -2, z: 8, scale: 1.3, rotY: 1.2 },
       { url: "/models/space-kit/hangar_largeB.glb", x: 0, z: 14, scale: 1.4, rotY: 0.6, tilt: 0.05 },
       { url: "/models/space-kit/craft_cargoB.glb", x: -9, z: 12, scale: 1.6, rotY: -0.3 },
-      // Stylized dead / twisted trees: silhouette anchors for the ruined city
-      { url: "/models/stylized-nature/DeadTree_1.gltf", x: 12, z: 4, scale: 0.45, rotY: 0.6 },
-      { url: "/models/stylized-nature/DeadTree_3.gltf", x: -13, z: 6, scale: 0.4, rotY: -0.4 },
-      { url: "/models/stylized-nature/TwistedTree_1.gltf", x: 9, z: -7, scale: 0.32, rotY: 1.1 },
-      { url: "/models/stylized-nature/DeadTree_1.gltf", x: -10, z: -8, scale: 0.5, rotY: -0.9 },
-      // Boulders flanking the cargo wreck
-      { url: "/models/stylized-nature/Rock_Medium_1.gltf", x: -6, z: 11, scale: 0.6, rotY: 0.2 },
-      { url: "/models/stylized-nature/Rock_Medium_3.gltf", x: 5, z: 10, scale: 0.55, rotY: -0.3 },
+      // KayKit cargo wreckage: scattered base-module debris around the central crash
+      { url: "/models/space-base-bits/cargodepot_C.gltf", x: 8, z: 12, scale: 1.6, rotY: -0.4, tilt: 0.08 },
+      { url: "/models/space-base-bits/structure_low.gltf", x: -4, z: -10, scale: 1.8, rotY: 0.5, tilt: 0.1 },
+      { url: "/models/space-base-bits/cargo_B_stacked.gltf", x: 11, z: -5, scale: 1.8, rotY: 0.7 },
+      // Nature reclaiming the city: bare KayKit trees mixed with stylized dead trees
+      { url: "/models/forest-nature/Tree_Bare_1_A_Color1.gltf", x: 12, z: 4, scale: 0.7, rotY: 0.6 },
+      { url: "/models/forest-nature/Tree_Bare_1_B_Color1.gltf", x: -13, z: 6, scale: 0.65, rotY: -0.4 },
+      { url: "/models/forest-nature/Tree_Bare_2_A_Color1.gltf", x: 9, z: -7, scale: 0.6, rotY: 1.1 },
+      { url: "/models/forest-nature/Tree_Bare_1_A_Color1.gltf", x: -10, z: -8, scale: 0.85, rotY: -0.9, tilt: 0.06 },
+      // A few young trees breaking through the rubble (color = recovery)
+      { url: "/models/forest-nature/Tree_3_A_Color1.gltf", x: -2, z: -13, scale: 0.45, rotY: 0.3 },
+      { url: "/models/forest-nature/Tree_2_A_Color1.gltf", x: 14, z: -2, scale: 0.4, rotY: -0.7 },
+      // Bushes hugging cargo wreckage
+      { url: "/models/forest-nature/Bush_1_C_Color1.gltf", x: -6, z: 11, scale: 1.4, rotY: 0.2 },
+      { url: "/models/forest-nature/Bush_2_A_Color1.gltf", x: 5, z: 10, scale: 1.6, rotY: -0.3 },
+      { url: "/models/forest-nature/Bush_3_A_Color1.gltf", x: 9.5, z: 13, scale: 1.4, rotY: 0.5 },
+      { url: "/models/forest-nature/Bush_1_A_Color1.gltf", x: -3, z: -10.5, scale: 2.0, rotY: -0.4 },
     ],
     scattered: [
       // Small rubble scattered across the field
       {
-        count: 18,
+        count: 14,
         pool: [
           "/models/space-kit/rocks_smallA.glb",
           "/models/space-kit/rocks_smallB.glb",
@@ -135,6 +157,31 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
         seed: 41,
         tilt: 0.18,
       },
+      // Mossy rocks + scattered bushes from the forest pack — vegetation
+      // creeping out from the perimeter toward the city centre.
+      {
+        count: 9,
+        pool: [
+          "/models/forest-nature/Rock_1_A_Color1.gltf",
+          "/models/forest-nature/Rock_1_F_Color1.gltf",
+          "/models/forest-nature/Rock_3_A_Color1.gltf",
+          "/models/forest-nature/Rock_3_F_Color1.gltf",
+        ],
+        radius: [9, 18],
+        scale: [1.0, 2.0],
+        seed: 91,
+      },
+      {
+        count: 8,
+        pool: [
+          "/models/forest-nature/Bush_1_A_Color1.gltf",
+          "/models/forest-nature/Bush_1_C_Color1.gltf",
+          "/models/forest-nature/Bush_2_A_Color1.gltf",
+        ],
+        radius: [6, 17],
+        scale: [1.2, 2.4],
+        seed: 137,
+      },
     ],
   },
   highland: {
@@ -143,6 +190,28 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-kit/hangar_roundGlass.glb", x: 0, z: -16, scale: 2.4, rotY: 0 },
       { url: "/models/space-kit/satelliteDish_large.glb", x: 6, z: -14, scale: 1.6, rotY: 0.4 },
       { url: "/models/space-kit/satelliteDish.glb", x: -6, z: -14, scale: 1.6, rotY: -0.6 },
+      // KayKit weather observation gear: turbines + solar arrays = "we measure the wind"
+      { url: "/models/space-base-bits/windturbine_tall.gltf", x: -14, z: -8, scale: 2.2, rotY: 0.4 },
+      { url: "/models/space-base-bits/windturbine_tall.gltf", x: 15, z: -10, scale: 2.0, rotY: -0.3 },
+      { url: "/models/space-base-bits/windturbine_low.gltf", x: 18, z: 10, scale: 1.8, rotY: 0.8 },
+      { url: "/models/space-base-bits/landingpad_large.gltf", x: -10, z: 14, scale: 2.0, rotY: 0 },
+      { url: "/models/space-base-bits/landingpad_small.gltf", x: 6, z: 18, scale: 1.6, rotY: 0.5 },
+      { url: "/models/space-base-bits/roofmodule_solarpanels.gltf", x: -2, z: -8, scale: 2.0, rotY: 0 },
+      { url: "/models/space-base-bits/solarpanel.gltf", x: 3, z: -8, scale: 1.6, rotY: -0.2 },
+      // Anchor base: drum-shaped basemodules behind the central hangar so the
+      // turbines/solar field reads as a connected research outpost.
+      { url: "/models/space-base-bits/basemodule_E.gltf", x: -8, z: -19, scale: 2.4, rotY: 0.2 },
+      { url: "/models/space-base-bits/basemodule_garage.gltf", x: 9, z: -19, scale: 2.4, rotY: -0.2 },
+      { url: "/models/space-base-bits/basemodule_C.gltf", x: -16, z: -16, scale: 2.0, rotY: 0.6 },
+      // Marker lights flanking the landing pads (visual lane cues at altitude)
+      { url: "/models/space-base-bits/lights.gltf", x: -12.5, z: 14, scale: 1.4, rotY: 0 },
+      { url: "/models/space-base-bits/lights.gltf", x: -7.5, z: 14, scale: 1.4, rotY: 0 },
+      { url: "/models/space-base-bits/lights.gltf", x: 4, z: 18, scale: 1.2, rotY: 0 },
+      { url: "/models/space-base-bits/lights.gltf", x: 8, z: 18, scale: 1.2, rotY: 0 },
+      // Tall pines for vertical silhouette against the horizon
+      { url: "/models/forest-nature/Tree_4_B_Color1.gltf", x: 19, z: 4, scale: 0.55, rotY: 0.5 },
+      { url: "/models/forest-nature/Tree_4_B_Color1.gltf", x: -20, z: 0, scale: 0.5, rotY: -0.7 },
+      { url: "/models/forest-nature/Tree_2_C_Color1.gltf", x: 17, z: 17, scale: 0.45, rotY: 1.0 },
       // Mid-altitude evergreens around the observatory
       { url: "/models/stylized-nature/CommonTree_4.gltf", x: 14, z: 6, scale: 0.5, rotY: 0.3 },
       { url: "/models/stylized-nature/CommonTree_4.gltf", x: -16, z: 4, scale: 0.6, rotY: -0.6 },

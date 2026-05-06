@@ -10,6 +10,8 @@ function CharacterCardCanvas({ id, accent }: { id: CharacterId; accent: string }
     <Canvas
       camera={{ position: [0, 0.78, 5.2], fov: 34 }}
       onCreated={({ camera }) => camera.lookAt(0, 0.78, 0)}
+      dpr={[1, 1.25]}
+      gl={{ antialias: false, powerPreference: "high-performance" }}
     >
       <color attach="background" args={["#07131b"]} />
       <ambientLight intensity={0.6} />

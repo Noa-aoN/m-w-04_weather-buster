@@ -9,8 +9,7 @@ import {
 } from "./combatRules";
 import { findCharacter, findWeapon, weatherEnemies } from "./data";
 
-const noa = findCharacter("iris");
-const halu = findCharacter("halo");
+const noa = findCharacter("noa");
 const weatherGun = findWeapon("weatherGun");
 const rainKiller = findWeapon("rainySeasonKiller");
 const heavyRain = weatherEnemies.find((e) => e.id === "heavyRain")!;
@@ -202,7 +201,7 @@ describe("applyShot", () => {
       didHit: true,
       critical: true,
       weapon: weatherGun,
-      character: halu, // gauge gain x0.9 to make sure cap math holds
+      character: noa,
       enemyId: cloudy.id,
       state: { ...baseShotState, pressureGauge: 96 },
       now: 1000,

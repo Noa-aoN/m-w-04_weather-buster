@@ -65,21 +65,39 @@ export function PlayerWeapon() {
       </group>
       {flashVisible ? (
         <>
-          <mesh ref={flashRef} position={[0, 0, -0.62]}>
-            <sphereGeometry args={[0.16, 12, 12]} />
-            <meshBasicMaterial color="#fff7a0" transparent opacity={0.95} toneMapped={false} />
+          {/* Tight white-hot core */}
+          <mesh position={[0, 0, -0.62]}>
+            <sphereGeometry args={[0.06, 12, 12]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={1} toneMapped={false} />
           </mesh>
-          {[0, Math.PI / 4, Math.PI / 2, (Math.PI * 3) / 4].map((rot) => (
+          {/* Bright orange-yellow halo around the core */}
+          <mesh ref={flashRef} position={[0, 0, -0.62]}>
+            <sphereGeometry args={[0.18, 14, 14]} />
+            <meshBasicMaterial color="#ffd56a" transparent opacity={0.9} toneMapped={false} />
+          </mesh>
+          {/* Outer wide soft glow — sells volumetric muzzle blast */}
+          <mesh position={[0, 0, -0.62]}>
+            <sphereGeometry args={[0.34, 12, 12]} />
+            <meshBasicMaterial color="#ff8a3a" transparent opacity={0.32} toneMapped={false} depthWrite={false} />
+          </mesh>
+          {/* 6-pointed cross of flame petals (ratio'd plane sprites) */}
+          {[0, Math.PI / 6, Math.PI / 3, Math.PI / 2, (Math.PI * 2) / 3, (Math.PI * 5) / 6].map((rot, i) => (
             <mesh key={rot} position={[0, 0, -0.62]} rotation={[0, 0, rot]}>
-              <planeGeometry args={[0.6, 0.08]} />
-              <meshBasicMaterial color="#ffe9a8" transparent opacity={0.85} toneMapped={false} depthWrite={false} />
+              <planeGeometry args={[0.78 - (i % 2) * 0.18, 0.13 - (i % 2) * 0.04]} />
+              <meshBasicMaterial color={i % 2 === 0 ? "#ffe9a8" : "#ffaa42"} transparent opacity={0.78 - (i % 3) * 0.12} toneMapped={false} depthWrite={false} />
             </mesh>
           ))}
-          <mesh position={[0, 0, -0.74]}>
-            <sphereGeometry args={[0.07, 8, 8]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.95} toneMapped={false} />
+          {/* Forward smoke / heat-distort cone hint (a darker, smaller plane) */}
+          <mesh position={[0, 0, -0.92]} rotation={[Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.18, 0.45, 12, 1, true]} />
+            <meshBasicMaterial color="#ffb060" transparent opacity={0.32} toneMapped={false} depthWrite={false} />
           </mesh>
-          <pointLight ref={flashLightRef} position={[0, 0, -0.55]} intensity={8} color="#fff7a0" distance={5.5} />
+          {/* Distant pinpoint to give parallax depth */}
+          <mesh position={[0, 0, -1.05]}>
+            <sphereGeometry args={[0.05, 8, 8]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.85} toneMapped={false} />
+          </mesh>
+          <pointLight ref={flashLightRef} position={[0, 0, -0.55]} intensity={11} color="#ffd56a" distance={6.5} />
         </>
       ) : null}
     </group>
@@ -145,11 +163,10 @@ export function PlayerBackAvatar() {
   const cameraMode = useBattleStore((state) => state.cameraMode);
   const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
-  const charGltf = useGLTF(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.iris);
+  const charGltf = useGLTF(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.noa);
   const characterAccent = useBattleStore((state) => {
     const id = state.selectedCharacterId;
-    if (id === "iris") return "#28d9ff";
-    if (id === "halo") return "#6cdcff";
+    if (id === "noa") return "#28d9ff";
     return "#ffd84d";
   });
 
@@ -212,7 +229,7 @@ export function PlayerBackAvatar() {
 
   const weaponGroupRef = useRef<Group>(null);
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
     const node = groupRef.current;
     if (!node || cameraMode !== "tps") {
       return;
@@ -223,29 +240,37 @@ export function PlayerBackAvatar() {
       forwardVec.current.set(0, 0, -1);
     }
     forwardVec.current.normalize();
+    const t = clock.getElapsedTime();
+    // Subtle idle breathing — Meshy AI meshes have no skeleton, so we fake
+    // life via a gentle Y-bob on the body group. Keep the amplitude small
+    // (~3cm) so it reads as "breathing" not "floating".
+    const bobY = Math.sin(t * 2.1) * 0.025;
     node.position.set(
       camera.position.x + forwardVec.current.x * 1.8,
-      0,
+      bobY,
       camera.position.z + forwardVec.current.z * 1.8,
     );
     lookTarget.current.set(
       node.position.x + forwardVec.current.x * 10,
-      0,
+      bobY,
       node.position.z + forwardVec.current.z * 10,
     );
     node.lookAt(lookTarget.current);
+    // Slight forward lean — sells "aiming" stance for the static mesh
+    node.rotateX(-0.06);
 
-    // Weapon follows camera orientation fully (yaw + pitch) so the barrel always
-    // points where the camera looks, even when aiming up/down at flying enemies.
-    // The avatar group lives ~1.8m in front of the camera; placing the weapon
-    // ~2.0m ahead with a slight right-shoulder offset puts it visually in the
-    // character's right hand (the new Modular Men idle_gun_pointing pose).
+    // Weapon follows camera orientation fully (yaw + pitch) so the barrel
+    // always points where the camera looks, even when aiming up/down at
+    // flying enemies. The avatar group lives ~1.8m in front of the camera;
+    // placing the weapon ~2.0m ahead with a slight right-shoulder offset
+    // puts it visually in the character's right hand. A tiny per-frame sway
+    // matches the body bob so weapon and torso feel coupled.
     const weapon = weaponGroupRef.current;
     if (weapon) {
       weapon.position.copy(camera.position);
       weapon.quaternion.copy(camera.quaternion);
       weapon.translateX(0.55);
-      weapon.translateY(0.1);
+      weapon.translateY(0.1 + bobY * 0.6);
       weapon.translateZ(-2.0);
     }
   });
@@ -279,9 +304,8 @@ export function PlayerBackAvatar() {
   );
 }
 
-useGLTF.preload(CHARACTER_MODEL_URL.iris);
-useGLTF.preload(CHARACTER_MODEL_URL.halo);
-useGLTF.preload(CHARACTER_MODEL_URL.raika);
+useGLTF.preload(CHARACTER_MODEL_URL.noa);
+useGLTF.preload(CHARACTER_MODEL_URL.saka);
 
 // Sets camera FOV from the store and adds a brief "punch" on each shot / skill.
 export function FovController() {

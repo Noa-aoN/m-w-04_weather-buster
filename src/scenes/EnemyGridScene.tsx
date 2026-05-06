@@ -10,7 +10,11 @@ function EnemyCardCanvas({ enemyId }: { enemyId: WeatherEnemyId }) {
   const enemy = weatherEnemies.find((candidate) => candidate.id === enemyId) ?? weatherEnemies[0];
 
   return (
-    <Canvas camera={{ position: [0, 0.8, 4.1], fov: 45 }}>
+    <Canvas
+      camera={{ position: [0, 0.8, 4.1], fov: 45 }}
+      dpr={[1, 1.25]}
+      gl={{ antialias: false, powerPreference: "high-performance" }}
+    >
       <color attach="background" args={["#07131b"]} />
       <ambientLight intensity={0.6} />
       <directionalLight position={[3, 4, 3]} intensity={1.6} color={enemy.accentColor} />
@@ -69,7 +73,10 @@ export function EnemyGridScene({
 
       <section className="enemyGrid">
         {weatherEnemies.map((enemy) => (
-          <article key={enemy.id} className={`enemyCard ${enemy.id === selectedEnemyId ? "selected" : ""}`}>
+          <article
+            key={enemy.id}
+            className={`enemyCard ${enemy.id === selectedEnemyId ? "selected" : ""} ${!enemy.playableInMvp ? "locked" : ""}`}
+          >
             <button type="button" onClick={() => onSelectEnemy(enemy.id)} disabled={!enemy.playableInMvp}>
               <span className="enemyIndex">{enemy.index}</span>
               <div className="enemyPreview"><EnemyCardCanvas enemyId={enemy.id} /></div>
@@ -81,7 +88,7 @@ export function EnemyGridScene({
                   <p>{enemy.description}</p>
                 </div>
               </div>
-              {!enemy.playableInMvp ? <b className="futureBadge">拡張候補</b> : null}
+              {!enemy.playableInMvp ? <b className="futureBadge">Coming soon</b> : null}
             </button>
           </article>
         ))}

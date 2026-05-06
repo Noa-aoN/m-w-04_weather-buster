@@ -37,7 +37,11 @@ const WEAPON_ACCENT: Record<WeaponId, string> = {
 function WeaponSilhouette({ id }: { id: WeaponId }) {
   const accent = WEAPON_ACCENT[id];
   return (
-    <Canvas camera={{ position: [0, 0.6, 3.0], fov: 36 }}>
+    <Canvas
+      camera={{ position: [0, 0.6, 3.0], fov: 36 }}
+      dpr={[1, 1.25]}
+      gl={{ antialias: false, powerPreference: "high-performance" }}
+    >
       <ambientLight intensity={0.7} />
       <directionalLight position={[3, 4, 3]} intensity={1.8} color={accent} />
       <pointLight position={[-2, 1, 1]} intensity={1.2} color="#27d9ff" />
@@ -48,15 +52,18 @@ function WeaponSilhouette({ id }: { id: WeaponId }) {
 }
 
 const CHARACTER_ACCENT: Record<CharacterId, string> = {
-  iris: "#28d9ff",
-  halo: "#6cdcff",
-  raika: "#ffd84d",
+  noa: "#28d9ff",
+  saka: "#ffd84d",
 };
 
 function CharacterPortrait({ id }: { id: CharacterId }) {
   const tint = CHARACTER_ACCENT[id];
   return (
-    <Canvas camera={{ position: [0, 0.4, 3.6], fov: 38 }}>
+    <Canvas
+      camera={{ position: [0, 0.4, 3.6], fov: 38 }}
+      dpr={[1, 1.25]}
+      gl={{ antialias: false, powerPreference: "high-performance" }}
+    >
       <ambientLight intensity={0.7} />
       <directionalLight position={[3, 4, 3]} intensity={1.8} color={tint} />
       <pointLight position={[-2, 1, 1]} intensity={1.2} color="#27d9ff" />
@@ -112,7 +119,11 @@ function StagePreview({ id }: { id: StageId }) {
   });
 
   return (
-    <Canvas camera={{ position: [0, 1.8, 4.4], fov: 42 }}>
+    <Canvas
+      camera={{ position: [0, 1.8, 4.4], fov: 42 }}
+      dpr={[1, 1.25]}
+      gl={{ antialias: false, powerPreference: "high-performance" }}
+    >
       <color attach="background" args={[stage.fogColor]} />
       <ambientLight intensity={0.6} color={stage.ambientColor} />
       <directionalLight position={[3, 5, 2]} intensity={1.5} color={stage.ringColor} />

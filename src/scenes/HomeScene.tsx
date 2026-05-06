@@ -698,7 +698,12 @@ export function HomeScene({
 
   return (
     <main className="homeShell sceneEnter">
-      <Canvas camera={{ position: [-1.8, 2.2, 6.5], fov: 54 }}>
+      <Canvas
+        camera={{ position: [-1.8, 4.6, 7.0], fov: 50 }}
+        onCreated={({ camera }) => camera.lookAt(0, 1.0, 0)}
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, powerPreference: "high-performance" }}
+      >
         <HomeStage
           accent={character.accentColor}
           ringColor={stage.ringColor}
@@ -718,9 +723,9 @@ export function HomeScene({
       </header>
 
       <section className="titleBlock">
-        <h1>ウェザーバスター</h1>
-        <strong>CLEAR THE SKY</strong>
-        <span>荒れた天候を撃ち抜き、空を晴らせ</span>
+        <h1 className="titleMain" data-text="ウェザー・バスターズ"><span>ウェザー・バスターズ</span></h1>
+        <strong className="titleSub" data-text="CLEAR THE SKY"><span>CLEAR THE SKY</span></strong>
+        <span className="titleTag">荒れた天候を撃ち抜き、空を晴らせ</span>
       </section>
 
       <nav className="mainMenu" aria-label="メインメニュー">
@@ -736,7 +741,7 @@ export function HomeScene({
         </button>
         <button className="menuItem" type="button" onClick={onOpenEnemyGrid}>
           <span className="menuIcon"><GridIcon /></span>
-          <span className="menuLabel">気象モンスター図鑑</span>
+          <span className="menuLabel">天候性侵害体図鑑</span>
           <span className="menuKey">G</span>
         </button>
         <button className="menuItem" type="button" onClick={onOpenCharacterGrid}>
@@ -857,35 +862,6 @@ export function HomeScene({
         <em>{character.flavor}</em>
       </blockquote>
 
-      <SeedCounter />
     </main>
-  );
-}
-
-function SeedCounter() {
-  const seedCount = useBattleStore((state) => state.seedCount);
-  const seedHistory = useBattleStore((state) => state.seedHistory);
-  const recent = seedHistory.slice(0, 4);
-  return (
-    <aside className="seedCounter" aria-label="晴天の種子">
-      <span className="seedLabel">晴天の種子</span>
-      <strong className="seedValue">{seedCount}</strong>
-      <small className="seedSub">{seedHistory.length} 件の戦闘記録</small>
-      {recent.length > 0 ? (
-        <ul className="seedRecent" aria-label="最近の戦闘記録">
-          {recent.map((entry, idx) => {
-            const enemy = weatherEnemies.find((e) => e.id === entry.enemyId);
-            const enemyName = enemy?.name ?? entry.enemyId;
-            return (
-              <li key={`${entry.at}-${idx}`}>
-                <span className={`seedRank seedRank--${entry.rank.toLowerCase()}`}>{entry.rank}</span>
-                <span className="seedEnemy">{enemyName}</span>
-                <em>LV {entry.difficulty}</em>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
-    </aside>
   );
 }

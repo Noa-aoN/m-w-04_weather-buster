@@ -6,14 +6,14 @@ import { SkeletonUtils } from "three-stdlib";
 import type { CharacterId } from "../game/types";
 import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
 
-// Quaternius "Ultimate Modular Men - Feb 2022" (CC0). Each character is a
-// self-contained .gltf with embedded buffer + 24 named animations
-// (Idle / Idle_Gun / Idle_Gun_Pointing / Walk / Run / Run_Shoot / Gun_Shoot /
-// Punch_Left/Right / Sword_Slash / Death / HitRecieve / Roll / Wave / ...).
+// Each pilot is a static Meshy AI mesh — no skeleton, no animations. The
+// existing `useAnimations` flow stays in place but no-ops when the GLB has
+// zero clips. `tintCharacterMaterials` no longer recolours (the new models
+// have no `accent`-named slot); each character is visually distinct by
+// virtue of being a different mesh.
 export const CHARACTER_MODEL_URL: Record<CharacterId, string> = {
-  iris: "/models/modular-men/Adventurer.gltf",   // NOA: bearded outdoorsman, fits the weather observer
-  halo: "/models/modular-men/Spacesuit.gltf",    // HALO: literal pressure suit
-  raika: "/models/modular-men/Punk.gltf",        // SAKA: red mohawk attacker
+  noa: "/models/custom-characters/noa.glb",
+  saka: "/models/custom-characters/saka.glb",
 };
 
 const TARGET_HEIGHT = 1.6;
@@ -80,7 +80,12 @@ export function CharacterModel({
     }
     const t = clock.getElapsedTime();
     groupRef.current.rotation.y = Math.sin(t * 0.4) * 0.22 + t * 0.12;
-    // 上下振動を止め、足元を常にリング位置 (y=0) に揃える
+    // Subtle idle breathing for static-mesh characters (Meshy AI has no
+    // skeleton) — small Y bob + chest scale pulse so the figure doesn't
+    // read as a frozen statue.
+    groupRef.current.position.y = Math.sin(t * 1.4) * 0.04;
+    const breath = 1 + Math.sin(t * 1.4) * 0.012;
+    groupRef.current.scale.set(breath, breath, breath);
   });
 
   return (
@@ -102,6 +107,5 @@ export function CharacterModel({
   );
 }
 
-useGLTF.preload(CHARACTER_MODEL_URL.iris);
-useGLTF.preload(CHARACTER_MODEL_URL.halo);
-useGLTF.preload(CHARACTER_MODEL_URL.raika);
+useGLTF.preload(CHARACTER_MODEL_URL.noa);
+useGLTF.preload(CHARACTER_MODEL_URL.saka);

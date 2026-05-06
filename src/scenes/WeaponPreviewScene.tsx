@@ -66,7 +66,11 @@ export function WeaponPreviewScene() {
       </header>
 
       <section className="weaponPreviewCanvas">
-        <Canvas camera={{ position: [3.2, 1.4, 3.6], fov: 36 }}>
+        <Canvas
+          camera={{ position: [3.2, 1.4, 3.6], fov: 36 }}
+          dpr={[1, 1.5]}
+          gl={{ antialias: true, powerPreference: "high-performance" }}
+        >
           <color attach="background" args={["#091421"]} />
           <ambientLight intensity={0.7} />
           <hemisphereLight args={["#bdeeff", "#1c2a36", 0.65]} />

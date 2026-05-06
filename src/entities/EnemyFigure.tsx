@@ -1,5 +1,6 @@
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
+import type { RefObject } from "react";
 import type { Group, Mesh } from "three";
 import { Vector3 } from "three";
 import { useBattleStore } from "../game/battleStore";
@@ -9,14 +10,20 @@ import { WeatherEnemyModel } from "./WeatherEnemyModel";
 const DEFEAT_GROW_MS = 360;
 const DEFEAT_FADE_MS = 900;
 
+const DEFEAT_FX_DURATION = 1.8;
+const DEFEAT_PARTICLE_COUNT = 80;
+
 function DefeatBurst({ color }: { color: string }) {
   const groupRef = useRef<Group>(null);
+  const flashRef = useRef<Mesh>(null);
+  const ringRef = useRef<Mesh>(null);
+  const ring2Ref = useRef<Mesh>(null);
   const lastDefeatAt = useBattleStore((state) => state.lastDefeatAt);
   const startedAt = useRef<number | null>(null);
   const lastSeenDefeatAt = useRef(0);
 
   const particles = useMemo(() => {
-    return Array.from({ length: 24 }, (_, index) => {
+    return Array.from({ length: DEFEAT_PARTICLE_COUNT }, () => {
       const phi = Math.acos(2 * Math.random() - 1);
       const theta = Math.random() * Math.PI * 2;
       const direction = new Vector3(
@@ -24,11 +31,19 @@ function DefeatBurst({ color }: { color: string }) {
         Math.sin(phi) * Math.sin(theta),
         Math.cos(phi),
       );
-      void index;
+      // Bias slightly upward so the burst forms a debris dome rather than a
+      // pure sphere — reads more dramatic with gravity-like fallout.
+      direction.y += 0.3;
+      direction.normalize();
       return {
         direction,
-        speed: 4.5 + Math.random() * 3.5,
-        size: 0.08 + Math.random() * 0.06,
+        speed: 5.5 + Math.random() * 7.5,
+        size: 0.06 + Math.random() * 0.12,
+        spinAxis: new Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize(),
+        spinSpeed: 6 + Math.random() * 8,
+        // Mix of accent-coloured shards and bright white flash chips
+        useWhite: Math.random() < 0.35,
+        gravity: 0.6 + Math.random() * 0.8,
       };
     });
   }, []);
@@ -41,59 +56,115 @@ function DefeatBurst({ color }: { color: string }) {
     if (lastDefeatAt !== lastSeenDefeatAt.current) {
       lastSeenDefeatAt.current = lastDefeatAt;
       startedAt.current = lastDefeatAt > 0 ? performance.now() : null;
-      for (const child of node.children) {
+      // Reset particle positions
+      for (let i = 0; i < node.children.length && i < particles.length; i += 1) {
+        const child = node.children[i];
         child.position.set(0, 0, 0);
+        child.rotation.set(0, 0, 0);
         const mat = (child as { material?: { opacity?: number; emissiveIntensity?: number } }).material;
         if (mat) {
           mat.opacity = 1;
           if (mat.emissiveIntensity !== undefined) {
-            mat.emissiveIntensity = 2.4;
+            mat.emissiveIntensity = 3.0;
           }
         }
       }
     }
     if (startedAt.current === null) {
       node.visible = false;
+      if (flashRef.current) flashRef.current.visible = false;
+      if (ringRef.current) ringRef.current.visible = false;
+      if (ring2Ref.current) ring2Ref.current.visible = false;
       return;
     }
     node.visible = true;
     const elapsed = (performance.now() - startedAt.current) / 1000;
-    if (elapsed > 1.4) {
+    if (elapsed > DEFEAT_FX_DURATION) {
       node.visible = false;
+      if (flashRef.current) flashRef.current.visible = false;
+      if (ringRef.current) ringRef.current.visible = false;
+      if (ring2Ref.current) ring2Ref.current.visible = false;
       return;
     }
-    for (let i = 0; i < node.children.length; i += 1) {
+
+    // Shards with gravity-like Y-decay
+    for (let i = 0; i < particles.length; i += 1) {
       const child = node.children[i];
+      if (!child) break;
       const data = particles[i];
       child.position.x = data.direction.x * data.speed * elapsed;
-      child.position.y = data.direction.y * data.speed * elapsed;
+      child.position.y = data.direction.y * data.speed * elapsed - data.gravity * elapsed * elapsed * 4.5;
       child.position.z = data.direction.z * data.speed * elapsed;
+      child.rotation.x += data.spinSpeed * 0.016 * data.spinAxis.x;
+      child.rotation.y += data.spinSpeed * 0.016 * data.spinAxis.y;
+      child.rotation.z += data.spinSpeed * 0.016 * data.spinAxis.z;
       const mat = (child as { material?: { opacity?: number; emissiveIntensity?: number } }).material;
       if (mat) {
-        mat.opacity = Math.max(0, 1 - elapsed * 0.85);
+        mat.opacity = Math.max(0, 1 - elapsed * 0.7);
         if (mat.emissiveIntensity !== undefined) {
-          mat.emissiveIntensity = Math.max(0, 2.4 - elapsed * 1.6);
+          mat.emissiveIntensity = Math.max(0, 3.0 - elapsed * 1.7);
         }
       }
     }
+
+    // Central white flash (very brief)
+    if (flashRef.current) {
+      const flashK = Math.max(0, 1 - elapsed / 0.35);
+      flashRef.current.visible = flashK > 0;
+      flashRef.current.scale.setScalar(0.5 + (1 - flashK) * 4);
+      const mat = flashRef.current.material as { opacity?: number };
+      if (mat.opacity !== undefined) mat.opacity = flashK * 0.95;
+    }
+
+    // Two expanding shockwave rings, offset in time
+    const setRing = (ref: RefObject<Mesh | null>, delay: number) => {
+      if (!ref.current) return;
+      const local = elapsed - delay;
+      ref.current.visible = local > 0 && local < 1.0;
+      if (!ref.current.visible) return;
+      const k = local / 1.0;
+      const radius = 0.5 + k * 9;
+      ref.current.scale.set(radius, radius, radius);
+      const mat = ref.current.material as { opacity?: number };
+      if (mat.opacity !== undefined) mat.opacity = (1 - k) * 0.85;
+    };
+    setRing(ringRef, 0);
+    setRing(ring2Ref, 0.18);
   });
 
   return (
-    <group ref={groupRef}>
-      {particles.map((particle, index) => (
-        <mesh key={index}>
-          <sphereGeometry args={[particle.size, 10, 10]} />
-          <meshStandardMaterial
-            color={color}
-            emissive={color}
-            emissiveIntensity={2.4}
-            transparent
-            opacity={1}
-            toneMapped={false}
-          />
-        </mesh>
-      ))}
-    </group>
+    <>
+      {/* Central pop-in white flash */}
+      <mesh ref={flashRef} visible={false}>
+        <sphereGeometry args={[1, 18, 14]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0} toneMapped={false} depthWrite={false} />
+      </mesh>
+      {/* Expanding shockwave rings (XZ plane) */}
+      <mesh ref={ringRef} visible={false} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.92, 1.0, 64]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0} toneMapped={false} depthWrite={false} />
+      </mesh>
+      <mesh ref={ring2Ref} visible={false} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.92, 1.0, 64]} />
+        <meshBasicMaterial color={color} transparent opacity={0} toneMapped={false} depthWrite={false} />
+      </mesh>
+      {/* Shards */}
+      <group ref={groupRef}>
+        {particles.map((particle, index) => (
+          <mesh key={index}>
+            <boxGeometry args={[particle.size, particle.size * 0.5, particle.size * 0.4]} />
+            <meshStandardMaterial
+              color={particle.useWhite ? "#ffffff" : color}
+              emissive={particle.useWhite ? "#ffffff" : color}
+              emissiveIntensity={3.0}
+              transparent
+              opacity={1}
+              toneMapped={false}
+            />
+          </mesh>
+        ))}
+      </group>
+    </>
   );
 }
 

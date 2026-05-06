@@ -16,7 +16,7 @@ let bgmFilter: BiquadFilterNode | null = null;
 
 const audioState = {
   sfxEnabled: true,
-  bgmEnabled: true,
+  bgmEnabled: false,
   masterVolume: 0.6,
   scene: "title" as BgmScene,
 };
@@ -42,6 +42,29 @@ const SAMPLE_FILES: Record<string, string[]> = {
   clear: ["/audio/sfx/clear-1.ogg"],
   defeat: ["/audio/sfx/defeat-1.ogg"],
   uiClick: ["/audio/sfx/ui-click.ogg"],
+  // Kenney Sci-Fi Sounds (CC0). Used to upgrade synth-only events to real
+  // recorded sci-fi audio without disturbing the curated samples above.
+  chargeFire: [
+    "/audio/sfx-kenney/lowFrequency_explosion_000.ogg",
+    "/audio/sfx-kenney/lowFrequency_explosion_001.ogg",
+  ],
+  shieldBlock: [
+    "/audio/sfx-kenney/forceField_000.ogg",
+    "/audio/sfx-kenney/forceField_001.ogg",
+    "/audio/sfx-kenney/forceField_002.ogg",
+  ],
+  reloadOpen: ["/audio/sfx-kenney/doorOpen_000.ogg", "/audio/sfx-kenney/doorOpen_001.ogg"],
+  reloadClose: ["/audio/sfx-kenney/doorClose_000.ogg", "/audio/sfx-kenney/doorClose_001.ogg"],
+  bigImpact: [
+    "/audio/sfx-kenney/explosionCrunch_000.ogg",
+    "/audio/sfx-kenney/explosionCrunch_001.ogg",
+    "/audio/sfx-kenney/explosionCrunch_002.ogg",
+  ],
+  metalHit: [
+    "/audio/sfx-kenney/impactMetal_000.ogg",
+    "/audio/sfx-kenney/impactMetal_001.ogg",
+    "/audio/sfx-kenney/impactMetal_002.ogg",
+  ],
 };
 
 async function loadOneSample(url: string) {
@@ -103,6 +126,15 @@ function playRandomSample(category: keyof typeof SAMPLE_FILES, volume: number) {
   }
   const url = list[Math.floor(Math.random() * list.length)];
   playBuffer(url, volume);
+}
+
+function playBufferDelayed(category: keyof typeof SAMPLE_FILES, delay: number, volume: number) {
+  const list = SAMPLE_FILES[category];
+  if (!list || list.length === 0) {
+    return;
+  }
+  const url = list[Math.floor(Math.random() * list.length)];
+  playBuffer(url, volume, delay);
 }
 
 function ensureContext(): AudioContext | null {
@@ -293,7 +325,8 @@ export function playMarkerSpawn() {
 
 export function playMarkerImpact() {
   if (sampleBuffers.size > 0) {
-    playRandomSample("impact", 0.85);
+    playRandomSample("impact", 0.7);
+    playRandomSample("bigImpact", 0.55);
     tone({ freq: 50, duration: 0.32, type: "sine", volume: 0.32, attack: 0.001, release: 0.32 });
     return;
   }
@@ -308,6 +341,11 @@ export function playMarkerImpact() {
 }
 
 export function playShieldBlock() {
+  if (sampleBuffers.size > 0) {
+    playRandomSample("shieldBlock", 0.55);
+    tone({ freq: 1080, duration: 0.04, type: "square", volume: 0.06, attack: 0.001, release: 0.08, delay: 0.02 });
+    return;
+  }
   tone({ freq: 180, duration: 0.08, type: "triangle", volume: 0.2, attack: 0.001, release: 0.14 });
   tone({ freq: 540, duration: 0.09, type: "sine", volume: 0.16, attack: 0.002, release: 0.12, delay: 0.015 });
   tone({ freq: 1080, duration: 0.04, type: "square", volume: 0.08, attack: 0.001, release: 0.08, delay: 0.035 });
@@ -377,6 +415,13 @@ export function playUiClick() {
 }
 
 export function playReload() {
+  if (sampleBuffers.size > 0) {
+    // clip out → clip in → charge
+    playRandomSample("reloadOpen", 0.45);
+    playBufferDelayed("reloadClose", 0.18, 0.55);
+    tone({ freq: 1320, duration: 0.07, type: "triangle", volume: 0.14, release: 0.12, delay: 0.36 });
+    return;
+  }
   // Multi-stage: clip out, clip in, charge.
   noiseBurst({ duration: 0.05, volume: 0.18, filter: 4400 });
   tone({ freq: 320, duration: 0.07, type: "square", volume: 0.16, release: 0.1 });
@@ -392,6 +437,10 @@ export function playLowAmmoBeep() {
 }
 
 export function playBlocked() {
+  if (sampleBuffers.size > 0) {
+    playRandomSample("metalHit", 0.6);
+    return;
+  }
   // Metallic "tink" — high steel hit + fast filtered noise
   tone({ freq: 2400, duration: 0.05, type: "triangle", volume: 0.18, attack: 0.001, release: 0.06 });
   tone({ freq: 1700, duration: 0.06, type: "sine", volume: 0.12, attack: 0.001, release: 0.08, delay: 0.005 });
@@ -421,6 +470,12 @@ export function playEnemyChargeStart() {
 }
 
 export function playEnemyChargeFire() {
+  if (sampleBuffers.size > 0) {
+    playRandomSample("chargeFire", 0.95);
+    // sub layer for body
+    tone({ freq: 60, duration: 0.32, type: "sine", volume: 0.32, attack: 0.001, release: 0.36 });
+    return;
+  }
   // Deep bass hit + crash
   tone({ freq: 60, duration: 0.32, type: "sine", volume: 0.45, attack: 0.001, release: 0.36 });
   tone({ freq: 120, duration: 0.22, type: "triangle", volume: 0.32, attack: 0.001, release: 0.26 });
@@ -535,7 +590,7 @@ const TITLE: BgmTrack = (() => {
     [n("F2"), n("A2"), n("C3"), n("F3")],
   ];
 
-  return { bpm: 110, bass, lead, pad, drums, filterCutoff: 2400, volume: 0.85 };
+  return { bpm: 110, bass, lead, pad, drums, filterCutoff: 2400, volume: 0.34 };
 })();
 
 // Battle: 138 BPM, driving in A minor (Am-F-C-G).
@@ -592,7 +647,7 @@ const BATTLE: BgmTrack = (() => {
     [n("G2"), n("B2"), n("D3"), n("G3")],
   ];
 
-  return { bpm: 138, bass, lead, pad, drums, filterCutoff: 3200, volume: 1.0 };
+  return { bpm: 138, bass, lead, pad, drums, filterCutoff: 3200, volume: 0.4 };
 })();
 
 // Victory: short major fanfare loop (D major), 120 BPM
@@ -620,7 +675,7 @@ const VICTORY: BgmTrack = (() => {
     [n("D3"), n("F#3"), n("A3"), n("D4")],
   ];
 
-  return { bpm: 120, bass, lead, pad, drums, filterCutoff: 3600, volume: 0.9 };
+  return { bpm: 120, bass, lead, pad, drums, filterCutoff: 3600, volume: 0.36 };
 })();
 
 // Defeat: slow descending minor (D minor), 70 BPM
@@ -644,7 +699,7 @@ const DEFEAT: BgmTrack = (() => {
     [n("A2"), n("C3"), n("E3"), n("A3")],
   ];
 
-  return { bpm: 70, bass, lead, pad, drums, filterCutoff: 1400, volume: 0.7 };
+  return { bpm: 70, bass, lead, pad, drums, filterCutoff: 1400, volume: 0.28 };
 })();
 
 const SCENE_TRACK: Record<BgmScene, BgmTrack> = {

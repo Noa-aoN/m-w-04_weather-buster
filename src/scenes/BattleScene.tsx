@@ -70,8 +70,14 @@ function ExperimentField({
         <StageTerrain stage={stage} isClear={isClear} />
       </Suspense>
 
+      {/* Suspense isolation around EnemyFigure: rex GLBs are 9-19MB after
+          optimization (much larger before). Without this boundary the
+          Canvas-default Suspense unmounts the whole scene → pitch-black
+          battle screen during the few seconds the GLB loads. */}
       <group ref={enemyRef} position={[0, 2.6, baseZ]} scale={ENEMY_SCALE}>
-        <EnemyFigure enemy={enemy} clear={isClear} />
+        <Suspense fallback={null}>
+          <EnemyFigure enemy={enemy} clear={isClear} />
+        </Suspense>
       </group>
       <EnemyMotion
         enemy={enemy}
@@ -123,7 +129,11 @@ export function BattleScene({
 
   return (
     <main className="gameShell sceneEnter">
-      <Canvas camera={{ position: [0, 2.15, 7.1], fov: initialFov }}>
+      <Canvas
+        camera={{ position: [0, 2.15, 7.1], fov: initialFov }}
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, powerPreference: "high-performance" }}
+      >
         <FovController />
         <ExperimentField
           enemyId={selectedEnemyId}
