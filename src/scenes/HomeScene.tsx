@@ -723,9 +723,9 @@ export function HomeScene({
       </header>
 
       <section className="titleBlock">
-        <h1>ウェザーバスター</h1>
-        <strong>CLEAR THE SKY</strong>
-        <span>荒れた天候を撃ち抜き、空を晴らせ</span>
+        <h1 className="titleMain" data-text="ウェザー・バスターズ"><span>ウェザー・バスターズ</span></h1>
+        <strong className="titleSub" data-text="CLEAR THE SKY"><span>CLEAR THE SKY</span></strong>
+        <span className="titleTag">荒れた天候を撃ち抜き、空を晴らせ</span>
       </section>
 
       <nav className="mainMenu" aria-label="メインメニュー">
