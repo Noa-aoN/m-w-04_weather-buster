@@ -352,7 +352,8 @@ canvas {
   position: absolute;
   z-index: 5;
   left: 5vw;
-  top: clamp(180px, 28vh, 340px);
+  /* Pushed lower so the title block has clear breathing room above. */
+  top: clamp(220px, 36vh, 380px);
   display: grid;
   gap: clamp(5px, 0.8vh, 10px);
   /* Width tracks the smaller of viewport sides — laptop monitors get
