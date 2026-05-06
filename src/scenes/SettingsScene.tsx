@@ -96,7 +96,7 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
             <span>視点</span>
             <strong>戦闘カメラ</strong>
           </header>
-          <p>FPS は銃口視点、TPS は選択パイロットの背中越し。</p>
+          <p>FPS は銃口視点。TPS（背中越し）は調整中のため一時的に無効。</p>
           <div className="cameraModeSwitch" role="radiogroup" aria-label="戦闘カメラ">
             <button
               type="button"
@@ -110,9 +110,11 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
             <button
               type="button"
               role="radio"
-              aria-checked={cameraMode === "tps"}
-              className={cameraMode === "tps" ? "selected" : ""}
-              onClick={() => setCameraMode("tps")}
+              aria-checked={false}
+              aria-disabled="true"
+              disabled
+              className="disabled"
+              title="TPS は現在調整中のため選択不可"
             >
               TPS
             </button>

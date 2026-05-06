@@ -2287,6 +2287,14 @@ canvas {
   box-shadow: 0 0 22px rgba(255, 216, 77, 0.22), inset 0 0 14px rgba(255, 216, 77, 0.18);
 }
 
+.cameraModeSwitch button.disabled,
+.cameraModeSwitch button:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+  box-shadow: none;
+}
+
 .hudToast {
   position: absolute;
   top: 116px;
