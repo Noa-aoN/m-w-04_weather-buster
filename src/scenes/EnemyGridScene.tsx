@@ -94,7 +94,7 @@ export function EnemyGridScene({
         ))}
       </section>
 
-      <footer className="gridFooter">ウェザーバスター / CLEAR THE SKY</footer>
+      <footer className="gridFooter">ウェザー・バスターズ / CLEAR THE SKY</footer>
     </main>
   );
 }

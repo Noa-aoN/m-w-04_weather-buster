@@ -5,5 +5,11 @@ export function setLockTarget(canvas: HTMLCanvasElement | null) {
 }
 
 export function requestPointerLock() {
-  lockTarget?.requestPointerLock();
+  if (!lockTarget || !lockTarget.isConnected) {
+    return;
+  }
+  lockTarget.requestPointerLock()?.catch(() => {
+    // Pointer lock can be rejected if the battle canvas was replaced during
+    // Suspense/loading or the call was not triggered by a fresh user gesture.
+  });
 }
