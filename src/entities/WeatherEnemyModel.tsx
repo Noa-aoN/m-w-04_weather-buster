@@ -8,6 +8,7 @@ import { fitObjectToHeight } from "./fitObject";
 const REX_BODY_URL: Partial<Record<WeatherEnemy["id"], string>> = {
   cloudy: "/models/custom-enemies/tiny-rex.glb",
   heavyRain: "/models/custom-enemies/heavy-rain.glb",
+  thunderstorm: "/models/custom-enemies/thunderstorm.glb",
   rainySeason: "/models/custom-enemies/rainy-season.glb",
   tornado: "/models/custom-enemies/tornado.glb",
   blizzard: "/models/custom-enemies/blizzard.glb",
@@ -137,58 +138,6 @@ function Mouth({
   );
 }
 
-function Cheek({ side, color, z = 0.76, height = -0.05, scale = 1 }: {
-  side: -1 | 1;
-  color: string;
-  z?: number;
-  height?: number;
-  scale?: number;
-}) {
-  return (
-    <mesh position={[side * 0.42 * scale, height, z * scale]}>
-      <sphereGeometry args={[0.08 * scale, 12, 12]} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.8} transparent opacity={0.7} toneMapped={false} />
-    </mesh>
-  );
-}
-
-function CloudPuff({ enemy, clear, big = false }: { enemy: WeatherEnemy; clear: boolean; big?: boolean }) {
-  const offsets: Array<[number, number, number, number]> = big
-    ? [
-        [-1.05, 0.12, 0.05, 0.55],
-        [-0.55, 0.42, 0.18, 0.6],
-        [0.0, 0.25, 0.0, 0.7],
-        [0.55, 0.42, 0.18, 0.6],
-        [1.05, 0.12, 0.05, 0.55],
-        [-0.25, -0.18, 0.18, 0.5],
-        [0.25, -0.18, 0.18, 0.5],
-      ]
-    : [
-        [-0.92, 0.05, 0.05, 0.5],
-        [-0.45, 0.32, 0.16, 0.55],
-        [0.0, 0.18, 0.0, 0.62],
-        [0.45, 0.32, 0.16, 0.55],
-        [0.92, 0.05, 0.05, 0.5],
-      ];
-
-  return (
-    <group>
-      {offsets.map(([x, y, z, r], index) => (
-        <mesh key={`${enemy.id}-${index}`} position={[x, y, z]}>
-          <sphereGeometry args={[r, 24, 20]} />
-          <meshStandardMaterial
-            color={clear ? "#f7fbff" : enemy.color}
-            emissive={clear ? "#a5c8e0" : enemy.accentColor}
-            emissiveIntensity={clear ? 0.18 : 0.14}
-            roughness={0.6}
-            metalness={0.05}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
 function RainDroplets({ color }: { color: string }) {
   const groupRef = useRef<Group>(null);
   useFrame((state) => {
@@ -246,12 +195,7 @@ function ThunderboltSpark({ side, color }: { side: -1 | 1; color: string }) {
 function ThunderstormModel({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean }) {
   return (
     <>
-      <CloudPuff enemy={enemy} clear={clear} big />
-      <Eye side={-1} scale={1.2} angry={!clear} cute />
-      <Eye side={1} scale={1.2} angry={!clear} cute />
-      <Mouth variant={clear ? "smile" : "zigzag"} y={-0.22} z={0.86} scale={1.2} />
-      <Cheek side={-1} color={enemy.accentColor} z={0.74} height={-0.05} scale={1.2} />
-      <Cheek side={1} color={enemy.accentColor} z={0.74} height={-0.05} scale={1.2} />
+      <RexBody url={REX_BODY_URL.thunderstorm!} accent={enemy.accentColor} />
       {!clear ? (
         <>
           <ThunderboltSpark side={-1} color={enemy.accentColor} />
@@ -401,6 +345,7 @@ function Halo({ color }: { color: string }) {
 const CORE_OVERRIDE: Partial<Record<WeatherEnemy["id"], { y: number; scale?: number }>> = {
   cloudy: { y: 0.9 },
   heavyRain: { y: 0.9 },
+  thunderstorm: { y: 0.9 },
   rainySeason: { y: 0.9 },
   tornado: { y: 0.7, scale: 0.45 },
   blizzard: { y: 0.9 },

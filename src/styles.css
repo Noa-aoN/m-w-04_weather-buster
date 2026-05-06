@@ -1532,6 +1532,10 @@ canvas {
   box-shadow: inset 0 0 28px rgba(255, 224, 77, 0.1);
 }
 
+.enemyCard.locked {
+  border-color: rgba(129, 157, 170, 0.34);
+}
+
 .enemyCard button {
   position: relative;
   display: grid;
@@ -1545,6 +1549,10 @@ canvas {
   text-align: left;
 }
 
+.enemyCard button:disabled {
+  cursor: not-allowed;
+}
+
 .enemyIndex {
   position: absolute;
   z-index: 2;
@@ -1556,7 +1564,23 @@ canvas {
 }
 
 .enemyPreview {
+  position: relative;
   min-height: 0;
+}
+
+.enemyCard.locked .enemyPreview {
+  filter: brightness(0) saturate(0);
+  opacity: 0.68;
+}
+
+.enemyCard.locked .enemyPreview::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(40, 217, 255, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(2, 11, 17, 0.1), rgba(2, 11, 17, 0.78));
+  pointer-events: none;
 }
 
 .enemyCardFooter {

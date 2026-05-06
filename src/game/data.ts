@@ -106,11 +106,11 @@ export const weatherEnemies: WeatherEnemy[] = [
     accentColor: "#24d8ff",
     coreColor: "#f9fbff",
     icon: "◎",
-    trait: "複合型",
+    trait: "Coming soon",
     threat: 9,
     difficulty: 5,
-    description: "豪雨・落雷・竜巻の複合型。ボス級の脅威。",
-    playableInMvp: true,
+    description: "豪雨・落雷・竜巻の複合型。現在は調整中。",
+    playableInMvp: false,
   },
 ];
 

@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
+  base: "/m-w-04_weather-buster/",
   plugins: [react()],
   build: {
     // Split out the heaviest dependencies so the Home-only first paint can

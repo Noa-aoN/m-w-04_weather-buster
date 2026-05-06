@@ -73,7 +73,10 @@ export function EnemyGridScene({
 
       <section className="enemyGrid">
         {weatherEnemies.map((enemy) => (
-          <article key={enemy.id} className={`enemyCard ${enemy.id === selectedEnemyId ? "selected" : ""}`}>
+          <article
+            key={enemy.id}
+            className={`enemyCard ${enemy.id === selectedEnemyId ? "selected" : ""} ${!enemy.playableInMvp ? "locked" : ""}`}
+          >
             <button type="button" onClick={() => onSelectEnemy(enemy.id)} disabled={!enemy.playableInMvp}>
               <span className="enemyIndex">{enemy.index}</span>
               <div className="enemyPreview"><EnemyCardCanvas enemyId={enemy.id} /></div>
@@ -85,7 +88,7 @@ export function EnemyGridScene({
                   <p>{enemy.description}</p>
                 </div>
               </div>
-              {!enemy.playableInMvp ? <b className="futureBadge">拡張候補</b> : null}
+              {!enemy.playableInMvp ? <b className="futureBadge">Coming soon</b> : null}
             </button>
           </article>
         ))}
