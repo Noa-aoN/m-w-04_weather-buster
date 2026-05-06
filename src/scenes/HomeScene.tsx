@@ -698,7 +698,11 @@ export function HomeScene({
 
   return (
     <main className="homeShell sceneEnter">
-      <Canvas camera={{ position: [-1.8, 2.2, 6.5], fov: 54 }}>
+      <Canvas
+        camera={{ position: [-1.8, 2.2, 6.5], fov: 54 }}
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, powerPreference: "high-performance" }}
+      >
         <HomeStage
           accent={character.accentColor}
           ringColor={stage.ringColor}

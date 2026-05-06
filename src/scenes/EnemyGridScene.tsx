@@ -10,7 +10,11 @@ function EnemyCardCanvas({ enemyId }: { enemyId: WeatherEnemyId }) {
   const enemy = weatherEnemies.find((candidate) => candidate.id === enemyId) ?? weatherEnemies[0];
 
   return (
-    <Canvas camera={{ position: [0, 0.8, 4.1], fov: 45 }}>
+    <Canvas
+      camera={{ position: [0, 0.8, 4.1], fov: 45 }}
+      dpr={[1, 1.25]}
+      gl={{ antialias: false, powerPreference: "high-performance" }}
+    >
       <color attach="background" args={["#07131b"]} />
       <ambientLight intensity={0.6} />
       <directionalLight position={[3, 4, 3]} intensity={1.6} color={enemy.accentColor} />
