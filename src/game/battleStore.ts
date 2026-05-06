@@ -39,7 +39,7 @@ const {
 } = COMBAT_CONSTANTS;
 const DEFAULT_ENEMY_INDEX = 2;
 const DEFAULT_WEAPON_INDEX = 1;
-const DEFAULT_CHARACTER_ID: CharacterId = "halo";
+const DEFAULT_CHARACTER_ID: CharacterId = "noa";
 
 const initialStocks = (multiplier: number): Record<ItemId, number> => {
   const stocks = {} as Record<ItemId, number>;

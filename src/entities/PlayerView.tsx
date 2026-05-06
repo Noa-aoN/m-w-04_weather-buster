@@ -145,11 +145,10 @@ export function PlayerBackAvatar() {
   const cameraMode = useBattleStore((state) => state.cameraMode);
   const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
-  const charGltf = useGLTF(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.iris);
+  const charGltf = useGLTF(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.noa);
   const characterAccent = useBattleStore((state) => {
     const id = state.selectedCharacterId;
-    if (id === "iris") return "#28d9ff";
-    if (id === "halo") return "#6cdcff";
+    if (id === "noa") return "#28d9ff";
     return "#ffd84d";
   });
 
@@ -279,9 +278,7 @@ export function PlayerBackAvatar() {
   );
 }
 
-useGLTF.preload(CHARACTER_MODEL_URL.iris);
-useGLTF.preload(CHARACTER_MODEL_URL.halo);
-useGLTF.preload(CHARACTER_MODEL_URL.raika);
+useGLTF.preload(CHARACTER_MODEL_URL.noa);
 
 // Sets camera FOV from the store and adds a brief "punch" on each shot / skill.
 export function FovController() {

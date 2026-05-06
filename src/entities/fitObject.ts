@@ -30,20 +30,29 @@ export function fitObjectToSize(object: Object3D, targetSize: number) {
   object.position.z = -center.z * factor;
 }
 
-// Clone materials so the tint stays unique to this instance (preventing accent
-// bleed between simultaneous renders) and apply a very subtle accent emissive
-// rim to nudge the colour toward the pilot's accent, without overriding the
-// original Quaternius palette. Earlier versions overwrote metalness/roughness
-// which made the soldier look plasticky and wrong.
+// All three pilots share Quaternius' Spacesuit mesh. The mesh has a
+// dedicated `SciFi_Light_Accent` material that the original artist isolated
+// for team-color use — recolour it to the pilot's accent and the suit reads
+// as a clean colour variant. Other materials (`SciFi_Main`, `MainDark`,
+// `Grey`, `SciFi_Light`) keep their dark teal base so the silhouette stays
+// stable across pilots. A very subtle emissive rim is layered on every
+// material so the accent reads even in shadowed scenes.
 export function tintCharacterMaterials(object: Object3D, accent: string, intensity = 0.05) {
   object.traverse((child) => {
     const mesh = child as Mesh;
     if (!mesh.isMesh || !mesh.material) return;
     const apply = (mat: MeshStandardMaterial) => {
-      const tintable = mat as { clone?: () => MeshStandardMaterial; emissive?: Color };
+      const tintable = mat as { clone?: () => MeshStandardMaterial; emissive?: Color; name?: string };
       if (!mat || !mat.color || typeof tintable.clone !== "function") return undefined;
       const tinted = tintable.clone!();
-      if (tinted.emissive) {
+      const isAccentSlot = (tintable.name ?? "").toLowerCase().includes("accent");
+      if (isAccentSlot && tinted.color) {
+        tinted.color.set(accent);
+        if (tinted.emissive) {
+          tinted.emissive.set(accent);
+          tinted.emissiveIntensity = Math.max(intensity, 0.18);
+        }
+      } else if (tinted.emissive) {
         tinted.emissive.set(accent);
         tinted.emissiveIntensity = intensity;
       }

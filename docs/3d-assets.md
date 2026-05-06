@@ -10,16 +10,14 @@
 
 | ディレクトリ | 出典パック | 出典 URL | ファイル | 用途 |
 | --- | --- | --- | --- | --- |
-| `public/models/modular-men/` | Ultimate Modular Men (Feb 2022) | https://quaternius.com/packs/ultimatemodularmen.html | `Adventurer.gltf` | NOA (IRIS / バランス) — 顎髭の野外観測員 |
-| 同上 | 同上 | 同上 | `Spacesuit.gltf` | HALO (重装) — 文字どおり耐圧スーツ |
-| 同上 | 同上 | 同上 | `Punk.gltf` | SAKA (RAIKA / 攻撃) — 赤モヒカン |
+| `public/models/modular-men/` | Ultimate Modular Men (Feb 2022) | https://quaternius.com/packs/ultimatemodularmen.html | `Spacesuit.gltf` | 全パイロット共有メッシュ。`SciFi_Light_Accent` マテリアルだけを各キャラの `accentColor` に塗り替えて色違いに（NOA = シアン / SAKA = 黄）。`tintCharacterMaterials` 参照 |
 | `public/models/scifi-guns-q/` | Sci-Fi Gun Pack by Quaternius | https://quaternius.com (Patreon 配布) | `Rifle.fbx / LongPistol.fbx / Lightning Gun.fbx / Sniper rifle.fbx / Ray Gun.fbx` | 5 武器スロット（weatherGun / clearSkyGun / rainySeasonKiller / stormwallRifle / frostlance） |
 | `public/models/scifi-megakit/Props/` | Modular SciFi MegaKit (Standard) | https://quaternius.com/packs/modularscifimegakit.html | `Prop_Computer / AccessPoint / Barrel_Large / Crate3 / Crate4 / Fan_Small / Chest / Clamp / Cable_1 / ItemHolder / Light_Floor / Light_Wide` | 実験場ステージの装飾（コンソール・バレル・ライト・ファン・コンテナ） |
 | `public/models/stylized-nature/` | Stylized Nature MegaKit (Standard) | https://quaternius.com/packs/stylizednaturemegakit.html | `DeadTree_1 / DeadTree_3 / TwistedTree_1 / Rock_Medium_1〜3 / CommonTree_4` + bark/leaf textures (downsampled to 512px) | 都市跡(ruins) と 高地(highland) の植生装飾。CommonTree_4 は high mid-mountain、DeadTree / TwistedTree は ruins のシルエット要素。バーク/葉テクスチャは 2K → 512 にリサイズ済み |
 
 **変遷メモ**: もともと FBX (`quaternius-guns/`) → 旧 glTF (`sci-fi-guns/`) → 現在の **`scifi-guns-q/` (Sci-Fi Gun Pack by Quaternius / FBX)** と段階的に置換。最後の Pack は色味のあるローポリ・ポップな造形で、Lightning Gun や Ray Gun 等の SF テイストが既存の Quaternius 兵士キャラと統一感がある。barrel は **+Z 軸** なので rotation `[0, Math.PI, 0]` で -Z（カメラ前方）にマップ。
 
-**キャラ変遷**: Soldier / Ninja の Quaternius Animated Character (FBX) から **Ultimate Modular Men (glTF)** に切替。各キャラに **24 種のアニメ**（Idle / Idle_Gun / Idle_Gun_Pointing / Walk / Run / Run_Shoot / Gun_Shoot / Punch_Left/Right / Sword_Slash / Death / HitRecieve / Roll / Wave 等）が同梱。`useFBX` → `useGLTF` に統一し、`PlayerView.tsx` / `HomeScene.tsx` / `CharacterModel.tsx` の 3 箇所で同じ glTF パイプラインを使う。
+**キャラ変遷**: Soldier / Ninja の Quaternius Animated Character (FBX) → 一時期 `Adventurer / Spacesuit / Punk` の3メッシュ運用 → 現在の **Spacesuit 単一メッシュ + マテリアル塗り分け運用**。各キャラに **24 種のアニメ**（Idle / Idle_Gun / Idle_Gun_Pointing / Walk / Run / Run_Shoot / Gun_Shoot / Punch_Left/Right / Sword_Slash / Death / HitRecieve / Roll / Wave 等）が同梱。`useFBX` → `useGLTF` に統一し、`PlayerView.tsx` / `HomeScene.tsx` / `CharacterModel.tsx` の 3 箇所で同じ glTF パイプラインを使う。Spacesuit の 5 マテリアルのうち `SciFi_Light_Accent` だけがチームカラー用に分離されているため、`tintCharacterMaterials` ではマテリアル名に `accent` を含むスロットだけ `color` を accent に置換し、他は subtle emissive のみで本来のダーク・ティール基調を保持する。`Adventurer.gltf` / `Punk.gltf` は元キャラ削除に伴って削除済み（git history からは復元可能）。
 
 MegaKit Props は `.gltf` + `.bin` のペア構成で同梱。配置は `src/entities/stagePlacements.ts` の lab ステージ `fixed` 配列に集約。`License.txt` をパック直下 `public/models/scifi-megakit/License.txt` に同梱。
 
@@ -54,6 +52,44 @@ MegaKit Props は `.gltf` + `.bin` のペア構成で同梱。配置は `src/ent
 | `public/models/prototype-kit/` | Prototype Kit (動物・ボタン・扉・標識・蓄電などにアニメ込み) | https://kenney.nl/assets/prototype-kit | 145 |
 
 各ディレクトリ直下に `License.txt` を同梱しています（CC0 + Kenney からの公開クレジット）。
+
+## KayKit / Kay Lousberg (CC0)
+
+ローポリ寄りの単一テクスチャ・アトラスで Three.js / WebGL 配信に向く。`.gltf + .bin + spacebits_texture.png` の3点で1パック完結。
+
+| ディレクトリ | パック名 | 出典 URL | 用途 |
+| --- | --- | --- | --- |
+| `public/models/space-base-bits/` | KayKit Space Base Bits 1.0 | https://kaylousberg.itch.io/space-base-bits | highland 観測拠点（風車・ソーラー・着陸パッド・基地モジュール・ライト）／ lab のカーゴ／ ruins の壊れた建造物 |
+| `public/models/forest-nature/` | KayKit Forest Nature Pack 1.0 | https://kaylousberg.itch.io/forest-nature-pack | ruins の植生による街の浸食（裸木 / 茂み / 苔岩 / 若木）／ highland 外周の縦シルエット（高木 Tree_4_B / Tree_2_C） |
+| `public/models/resource-bits/` | KayKit Resource Bits 1.0 | https://kaylousberg.itch.io/resource-bits | lab の産業ディテール（燃料樽・パレット・パーツ山・銅鉄バー・ジェリ缶） |
+
+highland では `windturbine_tall / windturbine_low / solarpanel / roofmodule_solarpanels / landingpad_large / landingpad_small` で「気象観測基地」を成立させ、`basemodule_E / basemodule_garage / basemodule_C` で背後を埋めて滑走路の正体を「研究拠点」に固定。`lights.gltf` を着陸パッド両脇に置いて視線誘導。lab では `cargo_A_packed / cargo_B_packed / cargo_A_stacked / containers_A〜C / lights` で従来の `scifi-megakit` バレル/クレートを置換し、シルエットを強化。ruins は `cargodepot_C / structure_low / cargo_B_stacked` を `tilt` 付きで配置し、墜落基地の見た目を補強。
+
+Forest Nature Pack は ruins メインで「壊れた街に植物が戻ってきた」ストーリーを支える。`Tree_Bare_*` を石化した街路樹として、`Tree_2_A / Tree_3_A` を瓦礫から伸びる若木として配置。`Bush_*_A/C` と `Rock_*` を `scattered` クラスタで外縁から中央に向かって散布。highland では `Tree_4_B`（高木）と `Tree_2_C` を地平線方向に置いて縦のシルエットを足す。`forest_texture.png` 1枚で全モデルが共有テクスチャ（KayKit のアトラス方式）。
+
+Resource Bits は lab に「整備が継続している現役の研究施設」感を加える。`Pallet_Wood + Fuel_*_Barrels` を組ませて整備パレット、`Iron/Copper_Bars_Stack_*` を中央通路に、`Parts_Pile_*` を左右に置いて作業途中の床ディテールを作る。`resource_bits_texture.png` 1枚共有。
+
+ライセンスはそれぞれ `LICENSE.txt` を各ディレクトリ直下に同梱。
+
+## Kenney Sci-Fi Sounds (追加分 CC0)
+
+`public/audio/sfx-kenney/` に Kenney Sci-Fi Sounds パックから合成のみだったイベントの差し替え用に厳選コピー。`audio.ts` の各関数は curated `sfx/*` サンプルが優先、未該当だった以下のイベントで `sfx-kenney/*` を再生する。
+
+| イベント | サンプル | 既存合成 |
+| --- | --- | --- |
+| `playEnemyChargeFire` | `lowFrequency_explosion_000/001` + 60Hz サブ | フォールバック維持 |
+| `playShieldBlock` | `forceField_000〜002` + 1080Hz square click | フォールバック維持 |
+| `playReload` | `doorOpen_000/001` → 0.18s 後 `doorClose_000/001` → 1320Hz triangle | フォールバック維持 |
+| `playBlocked` | `impactMetal_000〜002` | フォールバック維持 |
+| `playMarkerImpact` | curated `impact` + `explosionCrunch_000〜002` 重ね | 維持 |
+
+ライセンスは `public/audio/sfx-kenney/LICENSE.txt`。
+
+## Kenney Future フォント (CC0)
+
+`public/fonts/kenney/` に Kenney Future Narrow Font Pack の `KenneyFuture.ttf` / `KenneyFutureNarrow.ttf` を同梱。`styles.css` 冒頭で `@font-face` 登録し、HUD の `Bebas Neue / Oswald` スタックの先頭に `"Kenney Future"` を追加（フォールバックは維持）。
+
+ライセンスは `public/fonts/kenney/LICENSE.txt`。
 
 ## 音声 (Kenney CC0)
 

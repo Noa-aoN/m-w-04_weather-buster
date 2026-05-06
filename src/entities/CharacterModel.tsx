@@ -10,10 +10,13 @@ import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
 // self-contained .gltf with embedded buffer + 24 named animations
 // (Idle / Idle_Gun / Idle_Gun_Pointing / Walk / Run / Run_Shoot / Gun_Shoot /
 // Punch_Left/Right / Sword_Slash / Death / HitRecieve / Roll / Wave / ...).
+//
+// All three pilots share the Spacesuit mesh and are differentiated by
+// recolouring its `SciFi_Light_Accent` material with each character's
+// accentColor (see tintCharacterMaterials in fitObject.ts).
 export const CHARACTER_MODEL_URL: Record<CharacterId, string> = {
-  iris: "/models/modular-men/Adventurer.gltf",   // NOA: bearded outdoorsman, fits the weather observer
-  halo: "/models/modular-men/Spacesuit.gltf",    // HALO: literal pressure suit
-  raika: "/models/modular-men/Punk.gltf",        // SAKA: red mohawk attacker
+  noa: "/models/modular-men/Spacesuit.gltf",
+  saka: "/models/modular-men/Spacesuit.gltf",
 };
 
 const TARGET_HEIGHT = 1.6;
@@ -102,6 +105,4 @@ export function CharacterModel({
   );
 }
 
-useGLTF.preload(CHARACTER_MODEL_URL.iris);
-useGLTF.preload(CHARACTER_MODEL_URL.halo);
-useGLTF.preload(CHARACTER_MODEL_URL.raika);
+useGLTF.preload(CHARACTER_MODEL_URL.noa);

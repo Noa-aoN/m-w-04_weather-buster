@@ -238,7 +238,7 @@ export const items: Item[] = [
 
 export const characters: Character[] = [
   {
-    id: "iris",
+    id: "noa",
     codename: "ノア",
     callSign: "NOA",
     role: "バランス",
@@ -252,21 +252,7 @@ export const characters: Character[] = [
     flavor: "梅雨だけは許さない。",
   },
   {
-    id: "halo",
-    codename: "ハル",
-    callSign: "HALO",
-    role: "重装",
-    passiveName: "気圧耐性",
-    passiveDescription: "被ダメージ -18% / 与ダメージ -5%",
-    damageMultiplier: 0.95,
-    damageTakenMultiplier: 0.82,
-    gaugeGainMultiplier: 0.9,
-    accentColor: "#6cdcff",
-    description: "気象耐圧スーツのテストパイロット。前線突入役として長期戦に強い。",
-    flavor: "嵐は、私の背中で止める。",
-  },
-  {
-    id: "raika",
+    id: "saka",
     codename: "サカ",
     callSign: "SAKA",
     role: "攻撃",
