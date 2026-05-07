@@ -3,6 +3,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import { Object3D, Raycaster, Vector3 } from "three";
 import { useBattleStore } from "../../game/battleStore";
+import { COMBAT_CONSTANTS } from "../../game/combatRules";
 import {
   difficultyModifiers,
   enemyAttackPatterns,
@@ -212,7 +213,7 @@ export function PlayerController({
       if (enemy && pattern && now >= nextLightningAt.current) {
       const diffMod = difficultyModifiers[state.selectedDifficulty];
       const interval = pattern.intervalMs * diffMod.attackInterval;
-      const damage = pattern.damage * diffMod.attackDamage;
+      const damage = pattern.damage * diffMod.attackDamage * COMBAT_CONSTANTS.ENEMY_REGULAR_ATTACK_RATIO;
       const half = (arena.zBack - arena.zFront) / 2;
       const center = (arena.zBack + arena.zFront) / 2;
       const targetX = pattern.followsPlayer

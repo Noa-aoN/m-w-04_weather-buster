@@ -183,7 +183,7 @@ function WeaponTab({
             >
               <span className="weaponIndex">{String(index + 1).padStart(2, "0")}</span>
               <strong>{weapon.name}</strong>
-              <em>DMG {weapon.damage} / AMMO {weapon.maxAmmo}</em>
+              <em>攻撃力 {weapon.damage} / 装弾 {weapon.maxAmmo}</em>
               <p>{weapon.description}</p>
             </button>
           </article>
@@ -305,8 +305,8 @@ export function WeaponScene({ onBack }: { onBack: () => void }) {
       <header className="screenHeader">
         <div className="screenHeaderInfo">
           <span>PROJECT: WEATHER BUSTER</span>
-          <h1>WEAPON</h1>
-          <small>武装選択</small>
+          <h1>武器庫</h1>
+          <small>武装を選ぶ</small>
           <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
       </header>
@@ -333,8 +333,8 @@ export function PilotScene({ onBack }: { onBack: () => void }) {
       <header className="screenHeader">
         <div className="screenHeaderInfo">
           <span>PROJECT: WEATHER BUSTER</span>
-          <h1>BUSTER</h1>
-          <small>バスター選択</small>
+          <h1>バスター</h1>
+          <small>バスターを選ぶ</small>
           <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
       </header>
@@ -360,8 +360,8 @@ export function StageScene({ onBack }: { onBack: () => void }) {
       <header className="screenHeader">
         <div className="screenHeaderInfo">
           <span>PROJECT: WEATHER BUSTER</span>
-          <h1>STAGE</h1>
-          <small>戦域詳細</small>
+          <h1>戦域</h1>
+          <small>戦域の詳細</small>
           <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
       </header>

@@ -11,6 +11,13 @@ import { WeaponObject, weaponModelRotation, weaponModelScale } from "./WeaponMod
 
 // First-person weapon: tracks camera quaternion every frame, with a kicked
 // recoil that decays over 130ms.
+//
+// For windBlade, left click triggers one of four varied slash animations
+// (right→left swipe, diagonal cross, forward thrust, vertical chop) cycled
+// through so consecutive clicks visibly differ.
+const SLASH_DURATION_MS = 320;
+const SLASH_VARIANTS = 4;
+
 export function PlayerWeapon() {
   const { camera } = useThree();
   const groupRef = useRef<Group>(null);
@@ -20,9 +27,16 @@ export function PlayerWeapon() {
   const lastShotAt = useBattleStore((state) => state.lastShotAt);
   const cameraMode = useBattleStore((state) => state.cameraMode);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
+  const slashVariantRef = useRef(0);
+  const slashStartedAt = useRef(0);
 
   useEffect(() => {
-    if (lastShotAt === 0 || selectedWeaponId === "windBlade") {
+    if (lastShotAt === 0) {
+      return;
+    }
+    if (selectedWeaponId === "windBlade") {
+      slashVariantRef.current = (slashVariantRef.current + 1) % SLASH_VARIANTS;
+      slashStartedAt.current = lastShotAt;
       return;
     }
     setFlashVisible(true);
@@ -42,6 +56,42 @@ export function PlayerWeapon() {
       node.translateY(-0.54);
       node.translateZ(-0.72);
       node.rotateZ(-0.28);
+      // Slash animation: pose the blade through one of four arcs over
+      // SLASH_DURATION_MS. We use eased t (1 - cos π t / 2 type curves) so
+      // the swing feels weighty — fast wind-up, slower follow-through.
+      const slashElapsed = slashStartedAt.current > 0
+        ? performance.now() - slashStartedAt.current
+        : Infinity;
+      if (slashElapsed < SLASH_DURATION_MS) {
+        const t = slashElapsed / SLASH_DURATION_MS;
+        // Bell curve so peak is in the middle of the swing.
+        const swing = Math.sin(t * Math.PI);
+        const arc = Math.sin(t * Math.PI * 0.5);
+        switch (slashVariantRef.current) {
+          case 0: // horizontal right → left
+            node.rotateY(swing * 1.4);
+            node.rotateZ(arc * 0.5);
+            node.translateX(-swing * 0.36);
+            node.translateZ(-arc * 0.18);
+            break;
+          case 1: // diagonal upper-right → lower-left
+            node.rotateZ(-swing * 1.5);
+            node.rotateY(arc * 0.8);
+            node.translateY(arc * 0.22);
+            node.translateZ(-swing * 0.2);
+            break;
+          case 2: // forward thrust
+            node.translateZ(-swing * 0.95);
+            node.rotateX(-arc * 0.32);
+            node.rotateZ(swing * 0.18);
+            break;
+          case 3: // vertical chop top → bottom
+            node.rotateX(-swing * 1.6);
+            node.translateY(arc * 0.32);
+            node.translateZ(-arc * 0.18);
+            break;
+        }
+      }
     } else {
       // FPS gun position: positioned for the new Sci-Fi Gun Pack which is
       // beefier than the old AR set. Keep it lower-right so the muzzle does
@@ -49,15 +99,15 @@ export function PlayerWeapon() {
       node.translateX(0.42);
       node.translateY(-0.36);
       node.translateZ(-0.62);
-    }
-    // Recoil: punch back along camera axis and tip the muzzle up briefly.
-    const sinceShot = performance.now() - lastShotAt;
-    const recoilK = lastShotAt > 0 ? Math.max(0, 1 - sinceShot / 130) : 0;
-    if (recoilK > 0) {
-      const eased = recoilK * recoilK;
-      node.translateZ(eased * 0.12);
-      node.translateY(eased * 0.04);
-      node.rotateX(eased * 0.18);
+      // Recoil: punch back along camera axis and tip the muzzle up briefly.
+      const sinceShot = performance.now() - lastShotAt;
+      const recoilK = lastShotAt > 0 ? Math.max(0, 1 - sinceShot / 130) : 0;
+      if (recoilK > 0) {
+        const eased = recoilK * recoilK;
+        node.translateZ(eased * 0.12);
+        node.translateY(eased * 0.04);
+        node.rotateX(eased * 0.18);
+      }
     }
   });
 
@@ -321,6 +371,7 @@ export function FovController() {
   const lastShotAt = useBattleStore((state) => state.lastShotAt);
   const lastShotCritical = useBattleStore((state) => state.lastShotCritical);
   const lastSkillAt = useBattleStore((state) => state.lastSkillAt);
+  const status = useBattleStore((state) => state.status);
   useEffect(() => {
     const perspective = camera as PerspectiveCamera;
     if (perspective.isPerspectiveCamera) {
@@ -331,6 +382,11 @@ export function FovController() {
   useFrame(() => {
     const perspective = camera as PerspectiveCamera;
     if (!perspective.isPerspectiveCamera) {
+      return;
+    }
+    // While the clear sky pan is animating, let it own the FOV / pitch so we
+    // don't fight its easing.
+    if (status === "clear") {
       return;
     }
     const now = performance.now();

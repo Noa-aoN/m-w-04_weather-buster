@@ -37,7 +37,7 @@ const {
   ENEMY_TICK_DAMAGE_BASE,
   SHIELD_REGEN_PER_SECOND,
 } = COMBAT_CONSTANTS;
-// Default loadout: ノア / ウェザーガン / 実験場 / 豪雨 / 難易度3
+// Default loadout: ノア / ウェザーガン / 天候研究所 / 豪雨 / 難易度3
 const DEFAULT_ENEMY_INDEX = 1;        // weatherEnemies[1] = heavyRain
 const DEFAULT_WEAPON_INDEX = 0;       // weapons[0] = weatherGun
 const DEFAULT_CHARACTER_ID: CharacterId = "noa";

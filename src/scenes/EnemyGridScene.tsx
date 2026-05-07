@@ -65,8 +65,8 @@ export function EnemyGridScene({
       <header className="screenHeader">
         <div className="screenHeaderInfo">
           <span>PROJECT: WEATHER BUSTER</span>
-          <h1>WEATHER ENEMY GRID</h1>
-          <small>ウェザーエネミー図鑑</small>
+          <h1>天候性侵害体図鑑</h1>
+          <small>敵リスト</small>
           <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
       </header>
@@ -88,7 +88,7 @@ export function EnemyGridScene({
                   <p>{enemy.description}</p>
                 </div>
               </div>
-              {!enemy.playableInMvp ? <b className="futureBadge">Coming soon</b> : null}
+              {!enemy.playableInMvp ? <b className="futureBadge">準備中</b> : null}
             </button>
           </article>
         ))}

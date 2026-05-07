@@ -46,8 +46,8 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
       <header className="screenHeader">
         <div className="screenHeaderInfo">
           <span>PROJECT: WEATHER BUSTER</span>
-          <h1>SETTINGS</h1>
-          <small>動作設定 / HUD設定</small>
+          <h1>設定</h1>
+          <small>操作とHUDの調整</small>
           <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
       </header>
@@ -78,7 +78,7 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
           <header>
             <div className="settingHeaderMain">
               <span>視野</span>
-              <strong>FOV</strong>
+              <strong>視野角 (FOV)</strong>
             </div>
             <p className="settingHeaderDesc">戦闘カメラの視野角。広いほど周囲を見渡せる。標準 58°。</p>
           </header>

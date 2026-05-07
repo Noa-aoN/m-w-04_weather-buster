@@ -418,7 +418,7 @@ export function playDefeat() {
 
 export function playUiClick() {
   if (sampleBuffers.size > 0) {
-    playRandomSample("uiClick", 0.5);
+    playRandomSample("uiClick", 0.32);
     return;
   }
   tone({ freq: 880, duration: 0.04, type: "triangle", volume: 0.1, release: 0.06 });

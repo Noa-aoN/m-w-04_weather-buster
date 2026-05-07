@@ -19,6 +19,7 @@ import {
   playShoot,
   playShieldBlock,
   playSkill,
+  playUiClick,
   setBgmEnabled,
   setBgmScene,
   setMasterVolume,
@@ -53,6 +54,31 @@ export function AudioBridge() {
       setBgmEnabled(false);
     }
   }, [bgmEnabled]);
+
+  useEffect(() => {
+    function onUiClick(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+      const interactive = target.closest("button, [role='radio'], [role='switch']");
+      if (!interactive) {
+        return;
+      }
+      if (interactive instanceof HTMLButtonElement && interactive.disabled) {
+        return;
+      }
+      if (interactive.getAttribute("aria-disabled") === "true") {
+        return;
+      }
+      if (interactive.closest("[data-no-ui-sound]")) {
+        return;
+      }
+      playUiClick();
+    }
+    window.addEventListener("click", onUiClick, true);
+    return () => window.removeEventListener("click", onUiClick, true);
+  }, []);
 
   useEffect(() => {
     const onInteract = () => {

@@ -16,7 +16,7 @@ export const WEAPON_MODEL: Record<WeaponId, { url: string; type: WeaponModelType
   rainySeasonKiller: { url: assetUrl("/models/scifi-guns-q/Lightning Gun.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
   stormwallRifle: { url: assetUrl("/models/scifi-guns-q/Sniper rifle.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
   frostlance: { url: assetUrl("/models/scifi-guns-q/Ray Gun.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
-  windBlade: { url: assetUrl("/models/prototype-kit/weapon-sword.glb"), type: "gltf", rotation: [0, Math.PI / 2, -Math.PI / 7] },
+  windBlade: { url: assetUrl("/models/custom-weapons/wind-blade.glb"), type: "gltf", rotation: [0, Math.PI / 2, -Math.PI / 7] },
 };
 
 export const weaponModelScale = (id: WeaponId) => (id === "windBlade" ? [1, 1, 1] : [1, 1, -1]) as [number, number, number];

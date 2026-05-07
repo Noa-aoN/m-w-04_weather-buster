@@ -58,15 +58,28 @@ function PlacedProp({ piece }: { piece: GltfPlacement }) {
 }
 
 function HighlandPlatform({ p, isClear }: { p: RaisedPlatform; isClear: boolean }) {
+  const variant = p.variant ?? "snow";
+  const sideColor = variant === "ruin"
+    ? (isClear ? "#7d4f3a" : "#3a2620")
+    : variant === "metal"
+    ? (isClear ? "#9aaab4" : "#2a3a47")
+    : (isClear ? "#cdd9e3" : "#33495b");
+  const topColor = variant === "ruin"
+    ? (isClear ? "#a8765c" : "#6b4636")
+    : variant === "metal"
+    ? (isClear ? "#bccbd4" : "#52677a")
+    : (isClear ? "#f5fbff" : "#dfeff7");
+  const roughness = variant === "metal" ? 0.4 : 0.78;
+  const metalness = variant === "metal" ? 0.45 : 0.2;
   return (
-    <group position={[p.x, 0, p.z]}>
+    <group position={[p.x, 0, p.z]} rotation={[p.tilt ?? 0, p.rotY ?? 0, (p.tilt ?? 0) * 0.5]}>
       <mesh position={[0, p.height / 2, 0]}>
         <boxGeometry args={[p.w, p.height, p.d]} />
-        <meshStandardMaterial color={isClear ? "#cdd9e3" : "#33495b"} roughness={0.74} metalness={0.2} />
+        <meshStandardMaterial color={sideColor} roughness={roughness} metalness={metalness} />
       </mesh>
       <mesh position={[0, p.height + 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[p.w * 0.94, p.d * 0.94]} />
-        <meshStandardMaterial color={isClear ? "#f5fbff" : "#dfeff7"} roughness={0.7} />
+        <meshStandardMaterial color={topColor} roughness={roughness} />
       </mesh>
     </group>
   );

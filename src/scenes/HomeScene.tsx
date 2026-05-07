@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Sky, Stars, useAnimations, useGLTF, useTexture } from "@react-three/drei";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh } from "three";
 import { LoopOnce, RepeatWrapping, SRGBColorSpace } from "three";
 import { SkeletonUtils } from "three-stdlib";
@@ -13,6 +13,7 @@ import { fitObjectToHeight, tintCharacterMaterials } from "../entities/fitObject
 import { STAGE_PLACEMENTS } from "../entities/stagePlacements";
 import { AudioToggle } from "../features/audio/AudioToggle";
 import { assetUrl } from "../shared/assets";
+import { HomeBackdropLayer, HomeHudLayer, HomeMenuLayer } from "./home/HomeLayers";
 
 function StartIcon() {
   return (
@@ -642,6 +643,8 @@ export function HomeScene({
   const currentWeatherCode = useBattleStore((state) => state.currentWeatherCode);
   const locationEnabled = useBattleStore((state) => state.locationEnabled);
   const [isMissionCollapsed, setMissionCollapsed] = useState(false);
+  const missionPreviewRef = useRef<HTMLElement>(null);
+  const [menuTopPx, setMenuTopPx] = useState<number | null>(null);
 
   const selectedEnemy = weatherEnemies.find((enemy) => enemy.id === selectedEnemyId) ?? weatherEnemies[0];
   const weapon = findWeapon(selectedWeaponId);
@@ -679,14 +682,37 @@ export function HomeScene({
   }
 
   const difficultyName = selectedDifficulty <= 1
-    ? "EASY"
+    ? "やさしい"
     : selectedDifficulty === 2
-    ? "NORMAL"
+    ? "ふつう"
     : selectedDifficulty === 3
-    ? "TOUGH"
+    ? "手強い"
     : selectedDifficulty === 4
-    ? "HARD"
-    : "EXTREME";
+    ? "苛烈"
+    : "極限";
+
+  useLayoutEffect(() => {
+    if (isMissionCollapsed) {
+      setMenuTopPx(null);
+      return;
+    }
+    const el = missionPreviewRef.current;
+    if (!el) {
+      return;
+    }
+    function update() {
+      if (!el) return;
+      setMenuTopPx(el.getBoundingClientRect().top);
+    }
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [isMissionCollapsed]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -729,73 +755,91 @@ export function HomeScene({
 
   return (
     <main className="homeShell sceneEnter">
-      <Canvas
-        camera={{ position: [-1.8, 4.6, 7.0], fov: 50 }}
-        onCreated={({ camera }) => camera.lookAt(0, 1.0, 0)}
-        dpr={[1, 1.5]}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
-      >
-        <HomeStage
-          accent={character.accentColor}
-          stage={stage}
-          ringColor={stage.ringColor}
-          weatherCode={locationEnabled ? currentWeatherCode : null}
-          characterId={selectedCharacterId}
-        />
-      </Canvas>
+      <HomeBackdropLayer>
+        <Canvas
+          camera={{ position: [-1.8, 4.6, 7.0], fov: 50 }}
+          onCreated={({ camera }) => camera.lookAt(0, 1.0, 0)}
+          dpr={[1, 1.5]}
+          gl={{ antialias: true, powerPreference: "high-performance" }}
+        >
+          <HomeStage
+            accent={character.accentColor}
+            stage={stage}
+            ringColor={stage.ringColor}
+            weatherCode={locationEnabled ? currentWeatherCode : null}
+            characterId={selectedCharacterId}
+          />
+        </Canvas>
 
-      <div className="screenFrame" aria-hidden="true" />
-      <header className="homeHeader">
-        <div className="homeHeaderLeft">
-          <GpsToggle />
-        </div>
-        <div className="homeHeaderActions">
-          <AudioToggle />
-        </div>
-      </header>
+        <div className="screenFrame" aria-hidden="true" />
+      </HomeBackdropLayer>
 
-      <section className="titleBlock">
-        <h1 className="titleMain" data-text="ウェザー・バスターズ"><span>ウェザー・バスターズ</span></h1>
-        <strong className="titleSub" data-text="CLEAR THE SKY"><span>CLEAR THE SKY</span></strong>
-        <span className="titleTag">荒れた天候を撃ち抜き、空を晴らせ</span>
-      </section>
+      <HomeHudLayer>
+        <header className="homeHeader">
+          <div className="homeHeaderLeft">
+            <GpsToggle />
+          </div>
+          <div className="homeHeaderActions">
+            <AudioToggle />
+          </div>
+        </header>
 
-      <nav className="mainMenu" aria-label="メインメニュー">
-        <button className="primaryMenuButton menuItem" type="button" onClick={onStart}>
-          <span className="menuIcon"><StartIcon /></span>
-          <span className="menuLabel">ゲーム開始</span>
-          <span className="menuKey">Enter</span>
-        </button>
-        <button className="menuItem" type="button" onClick={onOpenStory}>
-          <span className="menuIcon"><StoryIcon /></span>
-          <span className="menuLabel">ストーリー</span>
-          <span className="menuKey">T</span>
-        </button>
-        <button className="menuItem" type="button" onClick={onOpenEnemyGrid}>
-          <span className="menuIcon"><GridIcon /></span>
-          <span className="menuLabel">天候性侵害体図鑑</span>
-          <span className="menuKey">G</span>
-        </button>
-        <button className="menuItem" type="button" onClick={onOpenCharacterGrid}>
-          <span className="menuIcon"><CharacterIcon /></span>
-          <span className="menuLabel">バスター図鑑</span>
-          <span className="menuKey">C</span>
-        </button>
-        <button className="menuItem" type="button" onClick={() => onOpenLoadout("weapon")}>
-          <span className="menuIcon"><LoadoutIcon /></span>
-          <span className="menuLabel">装備図鑑</span>
-          <span className="menuKey">L</span>
-        </button>
-        <button className="menuItem" type="button" onClick={onOpenSettings}>
-          <span className="menuIcon"><GearIcon /></span>
-          <span className="menuLabel">設定</span>
-          <span className="menuKey">S</span>
-        </button>
-      </nav>
+        <section className="titleBlock">
+          <h1 className="titleMain" data-text="ウェザー・バスターズ"><span>ウェザー・バスターズ</span></h1>
+          <strong className="titleSub" data-text="CLEAR THE SKY"><span>CLEAR THE SKY</span></strong>
+          <span className="titleTag">荒れた天候を撃ち抜き、空を晴らせ</span>
+        </section>
 
-      <aside className={`missionPreview ${isMissionCollapsed ? "collapsed" : ""}`}>
+        <blockquote className="pilotLog">
+          <span className="pilotLogCallSign" style={{ color: character.accentColor }}>{character.callSign} / {character.codename}</span>
+          <em>「{character.flavor}」</em>
+        </blockquote>
+      </HomeHudLayer>
+
+      <HomeMenuLayer>
+        <nav
+          className="mainMenu"
+          aria-label="メインメニュー"
+          style={menuTopPx !== null ? { top: `${menuTopPx}px` } : undefined}
+        >
+          <button className="primaryMenuButton menuItem" type="button" onClick={onStart}>
+            <span className="menuIcon"><StartIcon /></span>
+            <span className="menuLabel">ゲーム開始</span>
+            <span className="menuKey">Enter</span>
+          </button>
+          <button className="menuItem" type="button" onClick={onOpenStory}>
+            <span className="menuIcon"><StoryIcon /></span>
+            <span className="menuLabel">ストーリー</span>
+            <span className="menuKey">T</span>
+          </button>
+          <button className="menuItem" type="button" onClick={onOpenEnemyGrid}>
+            <span className="menuIcon"><GridIcon /></span>
+            <span className="menuLabel">天候性侵害体図鑑</span>
+            <span className="menuKey">G</span>
+          </button>
+          <button className="menuItem" type="button" onClick={onOpenCharacterGrid}>
+            <span className="menuIcon"><CharacterIcon /></span>
+            <span className="menuLabel">バスター図鑑</span>
+            <span className="menuKey">C</span>
+          </button>
+          <button className="menuItem" type="button" onClick={() => onOpenLoadout("weapon")}>
+            <span className="menuIcon"><LoadoutIcon /></span>
+            <span className="menuLabel">装備図鑑</span>
+            <span className="menuKey">L</span>
+          </button>
+          <button className="menuItem" type="button" onClick={onOpenSettings}>
+            <span className="menuIcon"><GearIcon /></span>
+            <span className="menuLabel">設定</span>
+            <span className="menuKey">S</span>
+          </button>
+        </nav>
+
+        <aside
+          ref={missionPreviewRef}
+          className={`missionPreview ${isMissionCollapsed ? "collapsed" : ""}`}
+        >
         <div className="missionPreviewHeader">
-          <span>MISSION PREVIEW</span>
+          <span>出撃ブリーフィング</span>
           <button
             type="button"
             className="missionCollapseButton"
@@ -810,7 +854,7 @@ export function HomeScene({
         <div className="missionCycler">
           <button type="button" className="cyclerArrow" aria-label="前のバスター" onClick={() => cycleCharacter(-1)}>◀</button>
           <button type="button" className="cyclerLabel cyclerDetailButton" onClick={() => onOpenLoadout("character")}>
-            <small>BUSTER</small>
+            <small>バスター</small>
             <strong>{character.codename}</strong>
             <em>{character.callSign}</em>
           </button>
@@ -820,9 +864,9 @@ export function HomeScene({
         <div className="missionCycler">
           <button type="button" className="cyclerArrow" aria-label="前の武器" onClick={() => cycleWeapon(-1)}>◀</button>
           <button type="button" className="cyclerLabel cyclerDetailButton" onClick={() => onOpenLoadout("weapon")}>
-            <small>WEAPON</small>
+            <small>武器</small>
             <strong>{weapon.name}</strong>
-            <em>DMG {weapon.damage}</em>
+            <em>攻撃力 {weapon.damage}</em>
             {weapon.specialtyAgainst.includes(selectedEnemy.id) ? (
               <b className="weaponSpecialtyBadge">×{weapon.specialtyMultiplier.toFixed(2)} 弱点特効</b>
             ) : null}
@@ -835,7 +879,7 @@ export function HomeScene({
           <div className="cyclerLabel">
             <small>戦域</small>
             <strong>{stage.name}</strong>
-            <button type="button" className="stageDetailLink" onClick={() => onOpenLoadout("stage")}>DETAIL</button>
+            <button type="button" className="stageDetailLink" onClick={() => onOpenLoadout("stage")}>詳細</button>
           </div>
           <button type="button" className="cyclerArrow" aria-label="次の戦域" onClick={() => cycleStage(1)}>▶</button>
         </div>
@@ -867,7 +911,7 @@ export function HomeScene({
           <div className="cyclerLabel">
             <small>難易度</small>
             <strong>{difficultyName}</strong>
-            <em>LEVEL {selectedDifficulty}</em>
+            <em>レベル {selectedDifficulty}</em>
           </div>
           <button type="button" className="cyclerArrow" aria-label="難易度を上げる" onClick={() => cycleDifficulty(1)} disabled={selectedDifficulty >= 5}>▶</button>
         </div>
@@ -887,12 +931,8 @@ export function HomeScene({
 
         <button type="button" className="primaryMenuButton missionStartButton" onClick={onStart}>ゲーム開始</button>
         </div>
-      </aside>
-
-      <blockquote className="pilotLog">
-        <span className="pilotLogCallSign" style={{ color: character.accentColor }}>{character.callSign} / {character.codename}</span>
-        <em>「{character.flavor}」</em>
-      </blockquote>
+        </aside>
+      </HomeMenuLayer>
 
     </main>
   );

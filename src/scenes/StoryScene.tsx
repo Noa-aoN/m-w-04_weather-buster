@@ -19,7 +19,7 @@ const chapters = [
   {
     eyebrow: "CHAPTER 04",
     title: "ノアと、長い雨",
-    body: "若いバスター、ノアには、長く止まなかった雨の記憶がある。理由を多く語ることはない。ただ、湿度系侵害体の観測ログだけは誰よりも読み込み、梅雨の兆候を見逃さない。クリアスカイガンを構える時、彼は決まって短くつぶやく。「長い雨は、ここで止める」。",
+    body: "若いバスター、ノアには、長く止まなかった雨の記憶がある。理由を多く語ることはない。ただ、湿度系侵害体の観測ログだけは誰よりも読み込み、梅雨の兆候を見逃さない。クリアスカイガンを構える時、彼は決まって短くつぶやく。「梅雨を、ゆるさない」。",
   },
   {
     eyebrow: "CHAPTER 05",
@@ -55,8 +55,8 @@ export function StoryScene({ onBack }: { onBack: () => void }) {
       <header className="screenHeader">
         <div className="screenHeaderInfo">
           <span>PROJECT: WEATHER BUSTER</span>
-          <h1>STORY</h1>
-          <small>導入ストーリー</small>
+          <h1>ストーリー</h1>
+          <small>導入</small>
           <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
         </div>
       </header>
@@ -71,7 +71,7 @@ export function StoryScene({ onBack }: { onBack: () => void }) {
         ))}
       </section>
 
-      <footer className="gridFooter">STORY / Press H to back</footer>
+      <footer className="gridFooter">Hキーまたは ESC で戻る</footer>
     </main>
   );
 }
