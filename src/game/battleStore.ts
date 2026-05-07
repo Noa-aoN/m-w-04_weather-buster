@@ -1,9 +1,11 @@
 import { create } from "zustand";
 import {
+  bossMinionConfig,
   difficultyModifiers,
   findCharacter,
   findStage,
   findWeapon,
+  findMinionType,
   items,
   stages,
   weapons,
@@ -23,6 +25,7 @@ import type {
   CharacterId,
   DifficultyLevel,
   ItemId,
+  Minion,
   StageId,
   Weapon,
   WeaponId,
@@ -37,7 +40,7 @@ const {
   ENEMY_TICK_DAMAGE_BASE,
   SHIELD_REGEN_PER_SECOND,
 } = COMBAT_CONSTANTS;
-// Default loadout: ノア / ウェザーガン / 実験場 / 豪雨 / 難易度3
+// Default loadout: ノア / ウェザーガン / 天候研究所 / 豪雨 / 難易度3
 const DEFAULT_ENEMY_INDEX = 1;        // weatherEnemies[1] = heavyRain
 const DEFAULT_WEAPON_INDEX = 0;       // weapons[0] = weatherGun
 const DEFAULT_CHARACTER_ID: CharacterId = "noa";
@@ -124,6 +127,13 @@ type BattleState = {
   enemyChargeStartedAt: number;
   enemyChargeFiresAt: number;
   lastSpecialFiredAt: number;
+  staggerUntil: number;
+  staggerThresholdsHit: number[];
+  lastStaggerAt: number;
+  minions: Minion[];
+  minionThresholdsSpawned: number[];
+  lastMinionDefeatAt: number;
+  lastMinionSpawnAt: number;
   slowUntil: number;
   isDashing: boolean;
   seedCount: number;
@@ -163,6 +173,9 @@ type BattleState = {
   applyKnockback: (vx: number, vz: number) => void;
   consumeKnockback: () => { vx: number; vz: number };
   beginEnemyCharge: (firesAt: number) => void;
+  damageMinion: (id: number, amount: number) => boolean;
+  shootMinion: (minionId: number) => void;
+  recordMinionAttack: (id: number, now: number) => void;
   recordClear: (entry: { enemyId: WeatherEnemyId; difficulty: DifficultyLevel; rank: string }) => void;
 };
 
@@ -203,9 +216,94 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   enemyChargeStartedAt: 0,
   enemyChargeFiresAt: 0,
   lastSpecialFiredAt: 0,
+  staggerUntil: 0,
+  staggerThresholdsHit: [] as number[],
+  lastStaggerAt: 0,
+  minions: [] as Minion[],
+  minionThresholdsSpawned: [] as number[],
+  lastMinionDefeatAt: 0,
+  lastMinionSpawnAt: 0,
   slowUntil: 0,
   isDashing: false,
 });
+
+let minionIdCounter = 1;
+
+function spawnMinionsForRatio(
+  enemyId: WeatherEnemyId,
+  prevRatio: number,
+  nextRatio: number,
+  alreadySpawned: number[],
+  liveMinions: Minion[],
+  difficulty: DifficultyLevel,
+  now: number,
+): { minions: Minion[]; thresholds: number[]; additionsCount: number } | null {
+  const config = bossMinionConfig[enemyId];
+  if (!config) return null;
+  const cap = config.maxByDifficulty[difficulty];
+  if (cap <= 0) return null;
+  // `alreadySpawned.length` counts events that have *consumed* a threshold —
+  // either a real spawn or a hit-the-cap skip. Either way, it represents the
+  // number of summon events we've fired for this battle. Stop once we hit
+  // the difficulty's total event budget.
+  const totalCap = config.maxTotalSpawnsByDifficulty[difficulty];
+  if (alreadySpawned.length >= totalCap) return null;
+  const type = findMinionType(config.type);
+  const additions: Minion[] = [];
+  const thresholds = [...alreadySpawned];
+  for (const ratio of config.spawnAtRatios) {
+    if (thresholds.includes(ratio)) continue;
+    if (thresholds.length >= totalCap) break;
+    if (prevRatio > ratio && nextRatio <= ratio) {
+      thresholds.push(ratio);
+      if (liveMinions.length + additions.length >= cap) continue;
+      const usedSlots = new Set([...liveMinions, ...additions].map((m) => m.slot));
+      let slot = 0;
+      while (usedSlots.has(slot) && slot < cap + 4) slot += 1;
+      additions.push({
+        id: minionIdCounter++,
+        typeId: type.id,
+        hp: type.maxHp,
+        maxHp: type.maxHp,
+        spawnedAt: now,
+        slot,
+        lastAttackAt: now,
+      });
+    }
+  }
+  if (additions.length === 0 && thresholds.length === alreadySpawned.length) {
+    return null;
+  }
+  return { minions: [...liveMinions, ...additions], thresholds, additionsCount: additions.length };
+}
+
+// HP ratios that trigger the boss stagger phase. First the boss flinches at
+// 75% (early warning), then again at 40% (panic). Each threshold fires once.
+const STAGGER_THRESHOLDS = [0.75, 0.4] as const;
+const STAGGER_DURATION_MS = 3000;
+
+function nextStaggerPatch(
+  prevHp: number,
+  nextHp: number,
+  enemyMaxHp: number,
+  alreadyHit: number[],
+  now: number,
+): { staggerUntil: number; staggerThresholdsHit: number[]; lastStaggerAt: number } | null {
+  if (nextHp <= 0 || enemyMaxHp <= 0) return null;
+  const prevRatio = prevHp / enemyMaxHp;
+  const nextRatio = nextHp / enemyMaxHp;
+  for (const threshold of STAGGER_THRESHOLDS) {
+    if (alreadyHit.includes(threshold)) continue;
+    if (prevRatio > threshold && nextRatio <= threshold) {
+      return {
+        staggerUntil: now + STAGGER_DURATION_MS,
+        staggerThresholdsHit: [...alreadyHit, threshold],
+        lastStaggerAt: now,
+      };
+    }
+  }
+  return null;
+}
 
 const seedFields = (snapshot: SeedSnapshot) => ({
   seedCount: snapshot.count,
@@ -378,22 +476,56 @@ export const useBattleStore = create<BattleState>((set, get) => {
         },
         now,
       });
+      // Boss takes reduced damage while minions are alive. Stacks
+      // multiplicatively so 3 minions ≈ 22% damage reduction at 0.92.
+      const minionDmgMul = state.minions.length > 0
+        ? Math.pow(findMinionType(state.minions[0].typeId).bossDamageReceivedMul, state.minions.length)
+        : 1;
+      const adjustedDamage = patch.damage * minionDmgMul;
+      const adjustedEnemyHp = Math.max(state.enemyHp - adjustedDamage, 0);
+      const becomesClear = adjustedEnemyHp === 0 && state.enemyHp > 0;
+      const staggerPatch = nextStaggerPatch(
+        state.enemyHp,
+        adjustedEnemyHp,
+        state.enemyMaxHp,
+        state.staggerThresholdsHit,
+        now,
+      );
+      const prevRatio = state.enemyHp / Math.max(state.enemyMaxHp, 1);
+      const nextRatio = adjustedEnemyHp / Math.max(state.enemyMaxHp, 1);
+      const minionPatch = spawnMinionsForRatio(
+        state.selectedEnemyId,
+        prevRatio,
+        nextRatio,
+        state.minionThresholdsSpawned,
+        state.minions,
+        state.selectedDifficulty,
+        now,
+      );
       set({
         ammo: isMelee ? state.ammo : state.ammo - 1,
         shotsFired: state.shotsFired + 1,
         shotsHit: state.shotsHit + (didHit ? 1 : 0),
-        enemyHp: patch.enemyHp,
+        enemyHp: adjustedEnemyHp,
         pressureGauge: patch.pressureGauge,
-        status: patch.enemyHp === 0 ? "clear" : state.status,
+        status: adjustedEnemyHp === 0 ? "clear" : state.status,
         lastShotAt: now,
         lastShotHit: didHit,
         lastShotCritical: patch.effectiveCritical,
-        lastShotDamage: patch.damage,
+        lastShotDamage: adjustedDamage,
         lastBlockedAt: patch.blocked ? now : state.lastBlockedAt,
-        lastDefeatAt: patch.becomesClear ? Date.now() : state.lastDefeatAt,
+        lastDefeatAt: becomesClear ? Date.now() : state.lastDefeatAt,
         combo: patch.combo,
         comboBest: patch.comboBest,
         lastComboAt: patch.lastComboAt,
+        ...(staggerPatch ?? {}),
+        ...(minionPatch
+          ? {
+              minions: minionPatch.minions,
+              minionThresholdsSpawned: minionPatch.thresholds,
+              ...(minionPatch.additionsCount > 0 ? { lastMinionSpawnAt: now } : {}),
+            }
+          : {}),
       });
       // Reload is now mandatory — the player must explicitly press R or
       // right-click. Empty mag → bumps lastEmptyClickAt elsewhere to fire
@@ -475,7 +607,18 @@ export const useBattleStore = create<BattleState>((set, get) => {
       const nextShieldEnergy = state.shieldActive
         ? state.shieldEnergy
         : Math.min(100, state.shieldEnergy + SHIELD_REGEN_PER_SECOND);
-      set({ elapsedSeconds: state.elapsedSeconds + 1, shieldEnergy: nextShieldEnergy });
+      // While minions are screening for it, the boss recovers ~0.5% maxHp per
+      // minion per second. Pressures the player to clear minions instead of
+      // ignoring them. Cap at maxHp.
+      const minionRegen = state.minions.length * state.enemyMaxHp * 0.005;
+      const nextEnemyHp = state.minions.length > 0 && state.enemyHp > 0
+        ? Math.min(state.enemyMaxHp, state.enemyHp + minionRegen)
+        : state.enemyHp;
+      set({
+        elapsedSeconds: state.elapsedSeconds + 1,
+        shieldEnergy: nextShieldEnergy,
+        enemyHp: nextEnemyHp,
+      });
     },
     triggerSkill: () => {
       const state = get();
@@ -487,11 +630,33 @@ export const useBattleStore = create<BattleState>((set, get) => {
       const specialty = weapon.specialtyAgainst.includes(state.selectedEnemyId)
         ? weapon.specialtyMultiplier
         : 1;
+      const minionDmgMul = state.minions.length > 0
+        ? Math.pow(findMinionType(state.minions[0].typeId).bossDamageReceivedMul, state.minions.length)
+        : 1;
       const burst = Math.floor(
-        state.enemyMaxHp * weapon.skillBurstRatio * specialty * character.damageMultiplier,
+        state.enemyMaxHp * weapon.skillBurstRatio * specialty * character.damageMultiplier * minionDmgMul,
       );
       const nextHp = Math.max(state.enemyHp - burst, 0);
       const becomesClear = nextHp === 0 && state.enemyHp > 0;
+      const now = performance.now();
+      const staggerPatch = nextStaggerPatch(
+        state.enemyHp,
+        nextHp,
+        state.enemyMaxHp,
+        state.staggerThresholdsHit,
+        now,
+      );
+      const prevRatio = state.enemyHp / Math.max(state.enemyMaxHp, 1);
+      const nextRatio = nextHp / Math.max(state.enemyMaxHp, 1);
+      const minionPatch = spawnMinionsForRatio(
+        state.selectedEnemyId,
+        prevRatio,
+        nextRatio,
+        state.minionThresholdsSpawned,
+        state.minions,
+        state.selectedDifficulty,
+        now,
+      );
       set({
         enemyHp: nextHp,
         pressureGauge: 0,
@@ -500,6 +665,14 @@ export const useBattleStore = create<BattleState>((set, get) => {
         status: nextHp === 0 ? "clear" : state.status,
         lastSkillAt: Date.now(),
         lastDefeatAt: becomesClear ? Date.now() : state.lastDefeatAt,
+        ...(staggerPatch ?? {}),
+        ...(minionPatch
+          ? {
+              minions: minionPatch.minions,
+              minionThresholdsSpawned: minionPatch.thresholds,
+              ...(minionPatch.additionsCount > 0 ? { lastMinionSpawnAt: now } : {}),
+            }
+          : {}),
       });
     },
     useItem: (id) => {
@@ -588,6 +761,60 @@ export const useBattleStore = create<BattleState>((set, get) => {
         return;
       }
       set({ enemyChargeStartedAt: performance.now(), enemyChargeFiresAt: firesAt });
+    },
+    damageMinion: (id, amount) => {
+      const state = get();
+      const minion = state.minions.find((m) => m.id === id);
+      if (!minion) return false;
+      const nextHp = Math.max(0, minion.hp - amount);
+      const dead = nextHp === 0;
+      const minions = dead
+        ? state.minions.filter((m) => m.id !== id)
+        : state.minions.map((m) => (m.id === id ? { ...m, hp: nextHp } : m));
+      set({
+        minions,
+        lastMinionDefeatAt: dead ? performance.now() : state.lastMinionDefeatAt,
+      });
+      return dead;
+    },
+    shootMinion: (minionId) => {
+      // Mirrors the bookkeeping side of `shoot` — ammo, accuracy stats, audio
+      // cue — but routes damage to a minion instead of the boss. Keeps the
+      // raycast-side code simple ("who got hit?") and lets shoot() stay
+      // boss-only.
+      const state = get();
+      if (state.status !== "battle") return;
+      const now = performance.now();
+      const weapon = findWeapon(state.selectedWeaponId);
+      const isMelee = weapon.id === "windBlade";
+      if ((!isMelee && state.ammo <= 0) || now < state.reloadingUntil) return;
+      const character = findCharacter(state.selectedCharacterId);
+      const damage = weapon.damage * character.damageMultiplier;
+      const minion = state.minions.find((m) => m.id === minionId);
+      if (!minion) return;
+      const nextHp = Math.max(0, minion.hp - damage);
+      const dead = nextHp === 0;
+      const minions = dead
+        ? state.minions.filter((m) => m.id !== minionId)
+        : state.minions.map((m) => (m.id === minionId ? { ...m, hp: nextHp } : m));
+      set({
+        ammo: isMelee ? state.ammo : state.ammo - 1,
+        shotsFired: state.shotsFired + 1,
+        shotsHit: state.shotsHit + 1,
+        minions,
+        lastMinionDefeatAt: dead ? now : state.lastMinionDefeatAt,
+        lastShotAt: now,
+        lastShotHit: true,
+        lastShotCritical: false,
+        lastShotDamage: damage,
+      });
+    },
+    recordMinionAttack: (id, now) => {
+      const state = get();
+      const minions = state.minions.map((m) =>
+        m.id === id ? { ...m, lastAttackAt: now } : m,
+      );
+      set({ minions });
     },
     recordClear: ({ enemyId, difficulty, rank }) => {
       const state = get();

@@ -27,7 +27,7 @@ function ResultPersonalBest({ enemyId, difficulty, rank, cleared }: {
   if (!isBest && !isFirst) return null;
   return (
     <span className="resultPersonalBest">
-      {isFirst ? "FIRST CLEAR" : "NEW BEST"}
+      {isFirst ? "初クリア" : "自己ベスト更新"}
     </span>
   );
 }
@@ -116,19 +116,19 @@ export function ResultScene({
       <header className="screenHeader">
         <div className="screenHeaderInfo">
           <span>PROJECT: WEATHER BUSTER</span>
-          <h1>{result.cleared ? "MISSION CLEAR" : "MISSION FAILED"}</h1>
-          <small>戦闘記録 / RESULT</small>
+          <h1>{result.cleared ? "作戦成功" : "作戦失敗"}</h1>
+          <small>戦闘記録</small>
         </div>
       </header>
 
       <section className="resultBlock">
         <p className="resultEyebrow">{enemy.name} — {result.cleared ? "撃破完了" : "撤収"}</p>
         <h2 className="resultHeadline">{result.cleared ? "CLEAR SKY!" : "WEATHER OVER"}</h2>
-        <span className="resultSub">BUSTER {character.codename} / {weapon.name} / {stage.name}</span>
+        <span className="resultSub">バスター {character.codename} / {weapon.name} / {stage.name}</span>
       </section>
 
       <section className={`resultRank rank--${result.rank.toLowerCase()}`}>
-        <span>RANK</span>
+        <span>ランク</span>
         <strong>{result.rank}</strong>
         <ResultPersonalBest enemyId={result.enemyId} difficulty={useBattleStore.getState().selectedDifficulty} rank={result.rank} cleared={result.cleared} />
         {result.cleared ? (

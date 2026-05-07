@@ -1,30 +1,15 @@
-import { Canvas, useFrame } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Mesh } from "three";
 import { CharacterModel } from "../entities/CharacterModel";
 import { WeaponModel } from "../entities/WeaponModel";
+import { ModalShell } from "../features/modal/ModalShell";
+import { CodexLayout } from "../features/modal/CodexLayout";
 import { characters, stages, weapons } from "../game/data";
 import { useBattleStore } from "../game/battleStore";
 import type { CharacterId, StageId, WeaponId } from "../game/types";
 import { assetUrl } from "../shared/assets";
-
-function useBackKey(onBack: () => void) {
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.target instanceof HTMLElement && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")) {
-        return;
-      }
-      const key = event.key.toLowerCase();
-      if (key === "h" || event.key === "Escape") {
-        event.preventDefault();
-        onBack();
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onBack]);
-}
 
 const WEAPON_ACCENT: Record<WeaponId, string> = {
   weatherGun: "#28d9ff",
@@ -34,45 +19,6 @@ const WEAPON_ACCENT: Record<WeaponId, string> = {
   frostlance: "#bce6ff",
   windBlade: "#fff0a2",
 };
-
-function WeaponSilhouette({ id }: { id: WeaponId }) {
-  const accent = WEAPON_ACCENT[id];
-  return (
-    <Canvas
-      camera={{ position: [0, 0.6, 3.0], fov: 36 }}
-      dpr={[1, 1.25]}
-      gl={{ antialias: false, powerPreference: "high-performance" }}
-    >
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[3, 4, 3]} intensity={1.8} color={accent} />
-      <pointLight position={[-2, 1, 1]} intensity={1.2} color="#27d9ff" />
-      <fog attach="fog" args={["#06121b", 5, 12]} />
-      <WeaponModel id={id} accent={accent} />
-    </Canvas>
-  );
-}
-
-const CHARACTER_ACCENT: Record<CharacterId, string> = {
-  noa: "#28d9ff",
-  saka: "#ffd84d",
-};
-
-function CharacterPortrait({ id }: { id: CharacterId }) {
-  const tint = CHARACTER_ACCENT[id];
-  return (
-    <Canvas
-      camera={{ position: [0, 0.4, 3.6], fov: 38 }}
-      dpr={[1, 1.25]}
-      gl={{ antialias: false, powerPreference: "high-performance" }}
-    >
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[3, 4, 3]} intensity={1.8} color={tint} />
-      <pointLight position={[-2, 1, 1]} intensity={1.2} color="#27d9ff" />
-      <fog attach="fog" args={["#06121b", 5, 12]} />
-      <CharacterModel id={id} accent={tint} />
-    </Canvas>
-  );
-}
 
 const STAGE_DECOR: Record<StageId, Array<{ url: string; x: number; z: number; scale: number; rotY?: number }>> = {
   lab: [
@@ -105,7 +51,7 @@ function StageDecorItem({ url, x, z, scale, rotY = 0 }: { url: string; x: number
   );
 }
 
-function StagePreview({ id }: { id: StageId }) {
+function StagePreviewScene({ id }: { id: StageId }) {
   const stage = useMemo(() => stages.find((s) => s.id === id) ?? stages[0], [id]);
   const lampRef = useRef<Mesh>(null);
   const decor = STAGE_DECOR[id] ?? [];
@@ -120,11 +66,7 @@ function StagePreview({ id }: { id: StageId }) {
   });
 
   return (
-    <Canvas
-      camera={{ position: [0, 1.8, 4.4], fov: 42 }}
-      dpr={[1, 1.25]}
-      gl={{ antialias: false, powerPreference: "high-performance" }}
-    >
+    <>
       <color attach="background" args={[stage.fogColor]} />
       <ambientLight intensity={0.6} color={stage.ambientColor} />
       <directionalLight position={[3, 5, 2]} intensity={1.5} color={stage.ringColor} />
@@ -148,239 +90,215 @@ function StagePreview({ id }: { id: StageId }) {
         <sphereGeometry args={[0.16, 16, 16]} />
         <meshStandardMaterial color={stage.ringColor} emissive={stage.ringColor} emissiveIntensity={1.4} toneMapped={false} />
       </mesh>
-    </Canvas>
+    </>
   );
 }
 
-function WeaponTab({
-  selectedId,
-  previewId,
-  setPreviewId,
-  selectWeapon,
-}: {
-  selectedId: WeaponId;
-  previewId: WeaponId;
-  setPreviewId: (id: WeaponId) => void;
-  selectWeapon: (id: WeaponId) => void;
-}) {
-  const previewWeapon = weapons.find((w) => w.id === previewId) ?? weapons[0];
-  return (
-    <div className="loadoutLayout">
-      <div className="weaponList">
-        {weapons.map((weapon, index) => (
-          <article
-            key={weapon.id}
-            className={`weaponCard ${weapon.id === selectedId ? "selected" : ""} ${weapon.id === previewId ? "active" : ""}`}
-          >
-            <button
-              type="button"
-              onMouseEnter={() => setPreviewId(weapon.id)}
-              onFocus={() => setPreviewId(weapon.id)}
-              onClick={() => {
-                setPreviewId(weapon.id);
-                selectWeapon(weapon.id);
-              }}
-            >
-              <span className="weaponIndex">{String(index + 1).padStart(2, "0")}</span>
-              <strong>{weapon.name}</strong>
-              <em>DMG {weapon.damage} / AMMO {weapon.maxAmmo}</em>
-              <p>{weapon.description}</p>
-            </button>
-          </article>
-        ))}
-      </div>
-
-      <aside className="weaponDetail tacticalPanel">
-        <div className="weaponDetailPreview">
-          <WeaponSilhouette id={previewWeapon.id} />
-        </div>
-        <h2>{previewWeapon.name}</h2>
-        <p className="weaponDescription">{previewWeapon.description}</p>
-        <dl className="weaponStats">
-          <div><dt>ダメージ</dt><dd>{previewWeapon.damage}</dd></div>
-          <div><dt>最大装弾数</dt><dd>{previewWeapon.maxAmmo}</dd></div>
-          <div><dt>連射間隔</dt><dd>{previewWeapon.fireRateMs}ms</dd></div>
-        </dl>
-        <div className="weaponSkill">
-          <span>武器スキル</span>
-          <strong>{previewWeapon.skillName}</strong>
-          <p>{previewWeapon.skillDescription}</p>
-        </div>
-        {previewWeapon.specialtyAgainst.length > 0 ? (
-          <div className="weaponSpecialty">
-            <span>特効</span>
-            <strong>x{previewWeapon.specialtyMultiplier.toFixed(2)}</strong>
-            <p>対象: {previewWeapon.specialtyAgainst.join(" / ")}</p>
-          </div>
-        ) : null}
-        <button
-          type="button"
-          className="primaryMenuButton"
-          disabled={selectedId === previewWeapon.id}
-          onClick={() => selectWeapon(previewWeapon.id)}
-        >
-          {selectedId === previewWeapon.id ? "装備中" : "この武器を装備"}
-        </button>
-      </aside>
-    </div>
-  );
-}
-
-function CharacterTab({
-  selectedId,
-  previewId,
-  setPreviewId,
-  selectCharacter,
-}: {
-  selectedId: CharacterId;
-  previewId: CharacterId;
-  setPreviewId: (id: CharacterId) => void;
-  selectCharacter: (id: CharacterId) => void;
-}) {
-  const previewCharacter = characters.find((c) => c.id === previewId) ?? characters[0];
-  return (
-    <div className="loadoutLayout">
-      <div className="weaponList">
-        {characters.map((character, index) => (
-          <article
-            key={character.id}
-            className={`weaponCard ${character.id === selectedId ? "selected" : ""} ${character.id === previewId ? "active" : ""}`}
-          >
-            <button
-              type="button"
-              onMouseEnter={() => setPreviewId(character.id)}
-              onFocus={() => setPreviewId(character.id)}
-              onClick={() => {
-                setPreviewId(character.id);
-                selectCharacter(character.id);
-              }}
-            >
-              <span className="weaponIndex">{String(index + 1).padStart(2, "0")}</span>
-              <strong>{character.codename} <em>{character.callSign}</em></strong>
-              <em>{character.role} / {character.passiveName}</em>
-              <p>{character.description}</p>
-            </button>
-          </article>
-        ))}
-      </div>
-
-      <aside className="weaponDetail tacticalPanel">
-        <div className="weaponDetailPreview">
-          <CharacterPortrait id={previewCharacter.id} />
-        </div>
-        <h2>{previewCharacter.codename} <em>/ {previewCharacter.callSign}</em></h2>
-        <p className="weaponDescription">{previewCharacter.description}</p>
-        <dl className="weaponStats">
-          <div><dt>与ダメージ</dt><dd>x{previewCharacter.damageMultiplier.toFixed(2)}</dd></div>
-          <div><dt>被ダメージ</dt><dd>x{previewCharacter.damageTakenMultiplier.toFixed(2)}</dd></div>
-          <div><dt>気圧蓄積</dt><dd>x{previewCharacter.gaugeGainMultiplier.toFixed(2)}</dd></div>
-        </dl>
-        <div className="weaponSkill">
-          <span>バスター固有スキル</span>
-          <strong>{previewCharacter.passiveName}</strong>
-          <p>{previewCharacter.passiveDescription}</p>
-        </div>
-        <button
-          type="button"
-          className="primaryMenuButton"
-          disabled={selectedId === previewCharacter.id}
-          onClick={() => selectCharacter(previewCharacter.id)}
-        >
-          {selectedId === previewCharacter.id ? "選択中" : "このバスターを選択"}
-        </button>
-      </aside>
-    </div>
-  );
-}
+const WEAPON_ACCENT_FALLBACK = "#28d9ff";
 
 export function WeaponScene({ onBack }: { onBack: () => void }) {
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
   const selectWeapon = useBattleStore((state) => state.selectWeapon);
-  const [previewWeapon, setPreviewWeapon] = useState<WeaponId>(selectedWeaponId);
-  useBackKey(onBack);
+  const [previewId, setPreviewId] = useState<WeaponId>(selectedWeaponId);
+  const previewWeapon = weapons.find((w) => w.id === previewId) ?? weapons[0];
 
   return (
-    <main className="loadoutShell sceneEnter">
-      <div className="gridBackdrop" aria-hidden="true" />
-      <header className="screenHeader">
-        <div className="screenHeaderInfo">
-          <span>PROJECT: WEATHER BUSTER</span>
-          <h1>WEAPON</h1>
-          <small>武装選択</small>
-          <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
-        </div>
-      </header>
-
-      <WeaponTab
-        selectedId={selectedWeaponId}
-        previewId={previewWeapon}
-        setPreviewId={setPreviewWeapon}
-        selectWeapon={selectWeapon}
+    <ModalShell
+      variant="codex"
+      eyebrow="PROJECT: WEATHER BUSTER"
+      title="ウェポン図鑑"
+      subtitle="ウェポンを選ぶ"
+      onBack={onBack}
+    >
+      <CodexLayout
+        entries={weapons.map((weapon, index) => ({
+          id: weapon.id,
+          index: String(index + 1).padStart(2, "0"),
+          name: weapon.name,
+          trait: `${weapon.damage} DMG / ${weapon.maxAmmo} AMMO`,
+        }))}
+        selectedId={previewId}
+        onSelect={(id) => setPreviewId(id)}
+        renderPreview={(id) => (
+          <>
+            <directionalLight position={[3, 4, 3]} intensity={2} color={WEAPON_ACCENT[id] ?? WEAPON_ACCENT_FALLBACK} />
+            <pointLight position={[-2, 1, 1]} intensity={1.4} color="#27d9ff" />
+            <WeaponModel id={id} accent={WEAPON_ACCENT[id] ?? WEAPON_ACCENT_FALLBACK} showHaloRings={false} />
+          </>
+        )}
+        cameraDistance={2.8}
+        cameraTarget={[0, 0, 0]}
+        detailHeader={(
+          <>
+            <span style={{ color: WEAPON_ACCENT[previewWeapon.id] ?? WEAPON_ACCENT_FALLBACK, letterSpacing: "0.18em", fontSize: 12 }}>
+              {previewWeapon.specialtyAgainst.length > 0
+                ? `特効 ×${previewWeapon.specialtyMultiplier.toFixed(2)} (${previewWeapon.specialtyAgainst.join(" / ")})`
+                : "汎用"}
+            </span>
+            <strong>{previewWeapon.name}</strong>
+            <em>{previewWeapon.skillName}</em>
+          </>
+        )}
+        detailBody={(
+          <>
+            <p>{previewWeapon.description}</p>
+            <dl>
+              <div><dt>攻撃力</dt><dd>{previewWeapon.damage}</dd></div>
+              <div><dt>装弾</dt><dd>{previewWeapon.maxAmmo}</dd></div>
+              <div><dt>連射間隔</dt><dd>{previewWeapon.fireRateMs}ms</dd></div>
+            </dl>
+            <p style={{ color: "#ddebf3" }}>{previewWeapon.skillDescription}</p>
+            <button
+              type="button"
+              className="primaryMenuButton codexDetailAction"
+              disabled={selectedWeaponId === previewWeapon.id}
+              onClick={() => selectWeapon(previewWeapon.id)}
+            >
+              {selectedWeaponId === previewWeapon.id ? "装備中" : "このウェポンを装備"}
+            </button>
+          </>
+        )}
       />
-    </main>
+    </ModalShell>
   );
 }
 
 export function PilotScene({ onBack }: { onBack: () => void }) {
   const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
   const selectCharacter = useBattleStore((state) => state.selectCharacter);
-  const [previewCharacter, setPreviewCharacter] = useState<CharacterId>(selectedCharacterId);
-  useBackKey(onBack);
+  const [previewId, setPreviewId] = useState<CharacterId>(selectedCharacterId);
+  const previewCharacter = characters.find((c) => c.id === previewId) ?? characters[0];
 
   return (
-    <main className="loadoutShell sceneEnter">
-      <div className="gridBackdrop" aria-hidden="true" />
-      <header className="screenHeader">
-        <div className="screenHeaderInfo">
-          <span>PROJECT: WEATHER BUSTER</span>
-          <h1>BUSTER</h1>
-          <small>バスター選択</small>
-          <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
-        </div>
-      </header>
-
-      <CharacterTab
-        selectedId={selectedCharacterId}
-        previewId={previewCharacter}
-        setPreviewId={setPreviewCharacter}
-        selectCharacter={selectCharacter}
+    <ModalShell
+      variant="codex"
+      eyebrow="PROJECT: WEATHER BUSTER"
+      title="バスター"
+      subtitle="バスターを選ぶ"
+      onBack={onBack}
+    >
+      <CodexLayout
+        entries={characters.map((character) => ({
+          id: character.id,
+          name: character.codename,
+          trait: `${character.callSign} / ${character.role}`,
+        }))}
+        selectedId={previewId}
+        onSelect={(id) => setPreviewId(id)}
+        renderPreview={(id) => {
+          const c = characters.find((char) => char.id === id) ?? characters[0];
+          return (
+            <>
+              <directionalLight position={[3, 4, 3]} intensity={2} color={c.accentColor} />
+              <pointLight position={[-2, 1, 1]} intensity={1.4} color="#27d9ff" />
+              <CharacterModel id={id} accent={c.accentColor} showHaloRings={false} />
+            </>
+          );
+        }}
+        cameraDistance={3.6}
+        cameraTarget={[0, 0.85, 0]}
+        cameraPosition={[0, 0.95, 3.6]}
+        fov={36}
+        detailHeader={(
+          <>
+            <span style={{ color: previewCharacter.accentColor, letterSpacing: "0.18em", fontSize: 12 }}>
+              {previewCharacter.callSign} / {previewCharacter.role}
+            </span>
+            <strong>{previewCharacter.codename}</strong>
+            <em>{previewCharacter.passiveName}</em>
+          </>
+        )}
+        detailBody={(
+          <>
+            <p>{previewCharacter.description}</p>
+            <q className="characterFlavor" style={{ color: previewCharacter.accentColor }}>
+              {previewCharacter.flavor}
+            </q>
+            <dl>
+              <div><dt>与ダメージ</dt><dd>×{previewCharacter.damageMultiplier.toFixed(2)}</dd></div>
+              <div><dt>被ダメージ</dt><dd>×{previewCharacter.damageTakenMultiplier.toFixed(2)}</dd></div>
+              <div><dt>気圧蓄積</dt><dd>×{previewCharacter.gaugeGainMultiplier.toFixed(2)}</dd></div>
+              <div><dt>移動速度</dt><dd>×{previewCharacter.moveSpeedMultiplier.toFixed(2)}</dd></div>
+            </dl>
+            <button
+              type="button"
+              className="primaryMenuButton codexDetailAction"
+              disabled={selectedCharacterId === previewId}
+              onClick={() => selectCharacter(previewId)}
+            >
+              {selectedCharacterId === previewId ? "選択中" : "このバスターを選択"}
+            </button>
+          </>
+        )}
       />
-    </main>
+    </ModalShell>
   );
 }
 
 export function StageScene({ onBack }: { onBack: () => void }) {
   const selectedStageId = useBattleStore((state) => state.selectedStageId);
-  const stage = stages.find((candidate) => candidate.id === selectedStageId) ?? stages[0];
-  useBackKey(onBack);
+  const selectStage = useBattleStore((state) => state.selectStage);
+  const [previewId, setPreviewId] = useState<StageId>(selectedStageId);
+  const stage = stages.find((candidate) => candidate.id === previewId) ?? stages[0];
 
   return (
-    <main className="loadoutShell sceneEnter">
-      <div className="gridBackdrop" aria-hidden="true" />
-      <header className="screenHeader">
-        <div className="screenHeaderInfo">
-          <span>PROJECT: WEATHER BUSTER</span>
-          <h1>STAGE</h1>
-          <small>戦域詳細</small>
-          <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
-        </div>
-      </header>
-
-      <section className="stageDetailLayout">
-        <div className="stageDetailPreview tacticalPanel">
-          <StagePreview id={stage.id} />
-        </div>
-        <aside className="stageDetailPanel tacticalPanel">
-          <span>{stage.id.toUpperCase()}</span>
-          <h2>{stage.name}</h2>
-          <p className="weaponDescription">{stage.description}</p>
-          <dl className="weaponStats">
-            <div><dt>環境光</dt><dd style={{ color: stage.ambientColor }}>{stage.ambientColor}</dd></div>
-            <div><dt>リング</dt><dd style={{ color: stage.ringColor }}>{stage.ringColor}</dd></div>
-            <div><dt>霧</dt><dd style={{ color: stage.fogColor }}>{stage.fogColor}</dd></div>
-          </dl>
-        </aside>
-      </section>
-    </main>
+    <ModalShell
+      variant="codex"
+      eyebrow="PROJECT: WEATHER BUSTER"
+      title="ステージ図鑑"
+      subtitle="ステージを選ぶ"
+      onBack={onBack}
+    >
+      <CodexLayout
+        entries={stages.map((s, index) => ({
+          id: s.id,
+          index: String(index + 1).padStart(2, "0"),
+          name: s.name,
+          trait: s.id.toUpperCase(),
+        }))}
+        selectedId={previewId}
+        onSelect={(id) => setPreviewId(id)}
+        renderPreview={(id) => <StagePreviewScene id={id} />}
+        cameraDistance={6.2}
+        cameraTarget={[0, 0.4, 0]}
+        cameraPosition={[0, 2.0, 6.2]}
+        fov={42}
+        detailHeader={(
+          <>
+            <span style={{ color: stage.ringColor, letterSpacing: "0.18em", fontSize: 12 }}>
+              {stage.id.toUpperCase()}
+            </span>
+            <strong>{stage.name}</strong>
+          </>
+        )}
+        detailBody={(
+          <>
+            <p>{stage.description}</p>
+            <dl>
+              <div>
+                <dt>広さ</dt>
+                <dd>{Math.round(stage.arena.x * 2)}×{Math.round(stage.arena.zBack - stage.arena.zFront)} m</dd>
+              </div>
+              <div>
+                <dt>視界</dt>
+                <dd>{stage.skyTurbidity <= 5 ? "良好" : stage.skyTurbidity <= 10 ? "標準" : "霞"}</dd>
+              </div>
+              <div>
+                <dt>地形</dt>
+                <dd>{stage.id === "lab" ? "対称・平坦" : stage.id === "ruins" ? "瓦礫・遮蔽" : "起伏あり"}</dd>
+              </div>
+            </dl>
+            <button
+              type="button"
+              className="primaryMenuButton codexDetailAction"
+              disabled={selectedStageId === previewId}
+              onClick={() => selectStage(previewId)}
+            >
+              {selectedStageId === previewId ? "選択中" : "このステージを選択"}
+            </button>
+          </>
+        )}
+      />
+    </ModalShell>
   );
 }

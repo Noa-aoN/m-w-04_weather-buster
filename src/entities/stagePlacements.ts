@@ -36,6 +36,12 @@ export type RaisedPlatform = {
   height: number;
   w: number;
   d: number;
+  /** Optional Y rotation (radians). */
+  rotY?: number;
+  /** Optional X-axis tilt (radians); makes the block look fallen / uneven. */
+  tilt?: number;
+  /** Color preset; defaults to the original highland snow tone. */
+  variant?: "snow" | "ruin" | "metal";
 };
 
 export type StagePlacement = {
@@ -184,6 +190,18 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
         seed: 137,
       },
     ],
+    // Crumbled concrete slabs scattered across the ruined city — uneven heights
+    // and slight tilts make the terrain feel collapsed rather than flat-paved.
+    platforms: [
+      { x: -10, z: 2, height: 1.3, w: 4.4, d: 3.0, rotY: 0.35, tilt: 0.12, variant: "ruin" },
+      { x: 8, z: 4, height: 0.7, w: 5.2, d: 4.0, rotY: -0.4, tilt: 0.08, variant: "ruin" },
+      { x: -3, z: -4, height: 1.6, w: 3.6, d: 3.6, rotY: 0.2, tilt: 0.18, variant: "ruin" },
+      { x: 5, z: -8, height: 0.9, w: 4.8, d: 3.2, rotY: -0.6, tilt: 0.1, variant: "ruin" },
+      { x: -7, z: -12, height: 1.1, w: 3.2, d: 2.8, rotY: 0.6, tilt: 0.15, variant: "ruin" },
+      { x: 12, z: -2, height: 0.5, w: 2.4, d: 2.4, rotY: 0.9, tilt: 0.22, variant: "ruin" },
+      { x: 0, z: 4, height: 0.4, w: 3.0, d: 2.2, rotY: -0.2, tilt: 0.05, variant: "ruin" },
+      { x: -14, z: 8, height: 0.8, w: 3.6, d: 2.6, rotY: -0.5, tilt: 0.14, variant: "ruin" },
+    ],
   },
   highland: {
     floor: { size: 58, metalness: 0.24, roughness: 0.62, clearColor: "#e6f4ff", texture: "highland", textureRepeat: 10 },
@@ -265,6 +283,14 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { x: -7, z: 4, height: 0.6, w: 4.5, d: 3.6 },
       { x: 8, z: -2, height: 0.9, w: 5, d: 4 },
       { x: 0, z: 11, height: 1.2, w: 6, d: 4.5 },
+      // Snow-covered rocky outcrops at varied altitudes
+      { x: -12, z: 8, height: 1.6, w: 3.8, d: 3.2, rotY: 0.4, tilt: 0.08 },
+      { x: 13, z: 10, height: 1.1, w: 4.2, d: 3.0, rotY: -0.3, tilt: 0.05 },
+      { x: -4, z: -2, height: 0.4, w: 3.0, d: 2.4, rotY: 0.2 },
+      { x: 4, z: 6, height: 0.5, w: 2.6, d: 2.2, rotY: -0.5, tilt: 0.06 },
+      { x: -10, z: -4, height: 1.9, w: 3.4, d: 3.0, rotY: 0.7, tilt: 0.1 },
+      { x: 11, z: -8, height: 0.8, w: 3.0, d: 2.8, rotY: -0.6, tilt: 0.04 },
+      { x: 6, z: -14, height: 1.4, w: 4.0, d: 3.4, rotY: 0.3, tilt: 0.07 },
     ],
   },
 };

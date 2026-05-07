@@ -63,7 +63,6 @@ export function App() {
     scene = (
       <BattleScene
         onBack={returnToHome}
-        onOpenEnemyGrid={() => setView("enemyGrid")}
         onShowResult={() => setView("result")}
       />
     );

@@ -3,13 +3,17 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import { Object3D, Raycaster, Vector3 } from "three";
 import { useBattleStore } from "../../game/battleStore";
+import { COMBAT_CONSTANTS } from "../../game/combatRules";
 import {
   difficultyModifiers,
   enemyAttackPatterns,
+  findCharacter,
+  findMinionType,
   findStage,
   findWeapon,
   weatherEnemies,
 } from "../../game/data";
+import { findMinionByObject, getMinionRoot, getMinionWorldPosition } from "../../entities/MinionField";
 import { setLockTarget } from "./lockControls";
 import { useKeyboardInput } from "./useKeyboardInput";
 
@@ -154,7 +158,8 @@ export function PlayerController({
     const dash = keys.has("shift") ? DASH_MULTIPLIER : 1;
     const slowed = performance.now() < state.slowUntil;
     const slowMul = slowed ? 0.55 : 1;
-    const speed = MOVE_SPEED * dash * slowMul * delta;
+    const character = findCharacter(state.selectedCharacterId);
+    const speed = MOVE_SPEED * character.moveSpeedMultiplier * dash * slowMul * delta;
 
     camera.getWorldDirection(forward.current);
     forward.current.y = 0;
@@ -209,10 +214,24 @@ export function PlayerController({
     const now = performance.now();
       const enemy = weatherEnemies.find((candidate) => candidate.id === state.selectedEnemyId);
       const pattern = enemy ? enemyAttackPatterns[enemy.id] : null;
-      if (enemy && pattern && now >= nextLightningAt.current) {
+      // While the boss is staggered, push the next attack windows out so they
+      // don't fire on resume. A small grace (200ms) keeps a clear pocket of
+      // peace before normal patterns return.
+      const staggered = now < state.staggerUntil;
+      if (staggered) {
+        const resumeAt = state.staggerUntil + 200;
+        if (nextLightningAt.current < resumeAt) nextLightningAt.current = resumeAt;
+        if (nextSpecialAt.current !== 0 && nextSpecialAt.current < resumeAt) {
+          nextSpecialAt.current = resumeAt;
+        }
+      }
+      if (!staggered && enemy && pattern && now >= nextLightningAt.current) {
       const diffMod = difficultyModifiers[state.selectedDifficulty];
-      const interval = pattern.intervalMs * diffMod.attackInterval;
-      const damage = pattern.damage * diffMod.attackDamage;
+      const minionAttackMul = state.minions.length > 0
+        ? findMinionType(state.minions[0].typeId).bossAttackIntervalMul
+        : 1;
+      const interval = pattern.intervalMs * diffMod.attackInterval * minionAttackMul;
+      const damage = pattern.damage * diffMod.attackDamage * COMBAT_CONSTANTS.ENEMY_REGULAR_ATTACK_RATIO;
       const half = (arena.zBack - arena.zFront) / 2;
       const center = (arena.zBack + arena.zFront) / 2;
       const targetX = pattern.followsPlayer
@@ -253,15 +272,25 @@ export function PlayerController({
       // Initialize on first frame after battle start (gives ~10s grace)
       nextSpecialAt.current = now + getSpecialDelay(enemy.id);
     }
+    // While minions are alive the boss only fires its regular ranged volley
+    // — specials (multi-marker burst) are suppressed so the player has a
+    // clear "kill the minions first, then the boss reopens" rhythm. Push
+    // the next special timer out so it doesn't fire the moment the last
+    // minion dies.
+    const minionsAlive = state.minions.length > 0;
+    if (minionsAlive && nextSpecialAt.current !== 0) {
+      const minimum = now + 4000;
+      if (nextSpecialAt.current < minimum) nextSpecialAt.current = minimum;
+    }
     // Pre-fire charge window (1.2s before special)
     const CHARGE_LEAD_MS = 1200;
-    if (enemy && pattern && nextSpecialAt.current !== 0) {
+    if (!staggered && !minionsAlive && enemy && pattern && nextSpecialAt.current !== 0) {
       const leadStart = nextSpecialAt.current - CHARGE_LEAD_MS;
       if (now >= leadStart && state.enemyChargeFiresAt !== nextSpecialAt.current) {
         state.beginEnemyCharge(nextSpecialAt.current);
       }
     }
-    if (enemy && pattern && now >= nextSpecialAt.current && nextSpecialAt.current !== 0) {
+    if (!staggered && !minionsAlive && enemy && pattern && now >= nextSpecialAt.current && nextSpecialAt.current !== 0) {
       const diffMod = difficultyModifiers[state.selectedDifficulty];
       const burstCount = getSpecialBurstCount(enemy.id);
       if (burstCount > 0) {
@@ -332,6 +361,47 @@ export function PlayerController({
       camera.position.z = Math.max(arena.zFront, Math.min(arena.zBack, camera.position.z));
     }
 
+    // Minion attacks — each minion fires its own ranged marker on its own
+    // cadence, originating from the minion's world position so it reads as
+    // "they are shooting from over there" rather than from the boss.
+    if (!staggered && state.minions.length > 0) {
+      for (const minion of state.minions) {
+        const type = findMinionType(minion.typeId);
+        if (now - minion.lastAttackAt < type.attackIntervalMs) continue;
+        const minionPos = getMinionWorldPosition(minion.id);
+        if (!minionPos) continue;
+        // Range gate: minions only fire when at a real ranged distance from
+        // the player. Threshold halved so they sit closer in and still keep
+        // shooting — they shouldn't be a melee threat, just a constant
+        // peppering pressure from mid-range.
+        const dx = minionPos.x - camera.position.x;
+        const dz = minionPos.z - camera.position.z;
+        const distToPlayer = Math.sqrt(dx * dx + dz * dz);
+        if (distToPlayer < 2.5) continue;
+        state.recordMinionAttack(minion.id, now);
+        const targetX = camera.position.x + (Math.random() - 0.5) * 3;
+        const targetZ = camera.position.z + (Math.random() - 0.5) * 3;
+        const clampedX = Math.max(-arena.x, Math.min(arena.x, targetX));
+        const clampedZ = Math.max(arena.zFront, Math.min(arena.zBack, targetZ));
+        state.spawnLightning({
+          id: now + Math.random() + minion.id * 0.0001,
+          x: clampedX,
+          z: clampedZ,
+          triggersAt: now + type.attackWarningMs,
+          spawnAt: now,
+          fromX: minionPos.x,
+          fromY: minionPos.y + 0.2,
+          fromZ: minionPos.z,
+          radius: type.attackRadius,
+          damage: type.attackDamage,
+          color: "#cfe9f4",
+          trailGlow: 0.8,
+          kind: "arc",
+          enemyId: enemy?.id ?? "cloudy",
+        });
+      }
+    }
+
     // Schedule periodic enemy barrier
     if (enemy && pattern && pattern.barrierIntervalMs > 0 && pattern.barrierDurationMs > 0) {
       const sinceStart = now - (battleStartedAtRef.current ?? now);
@@ -386,9 +456,22 @@ export function PlayerController({
       }
       raycaster.current.set(camera.position, dir);
       const target = enemyRef.current;
-      const hits = target ? raycaster.current.intersectObject(target, true) : [];
-      const didHit = hits.length > 0;
-      const critical = didHit && hits.some((hit) => {
+      const enemyHits = target ? raycaster.current.intersectObject(target, true) : [];
+      const minionRoot = getMinionRoot();
+      const minionHits = minionRoot ? raycaster.current.intersectObject(minionRoot, true) : [];
+      const closestEnemy = enemyHits[0];
+      const closestMinion = minionHits[0];
+      // Closer object wins. If a minion is in front of the boss the player
+      // gets to chip it down first; otherwise the boss takes the shot.
+      if (closestMinion && (!closestEnemy || closestMinion.distance < closestEnemy.distance)) {
+        const minionId = findMinionByObject(closestMinion.object);
+        if (minionId !== null) {
+          store.shootMinion(minionId);
+          return;
+        }
+      }
+      const didHit = enemyHits.length > 0;
+      const critical = didHit && enemyHits.some((hit) => {
         let node: Object3D | null = hit.object;
         while (node) {
           if (node.userData && node.userData.isCore === true) {

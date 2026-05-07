@@ -8,17 +8,18 @@ import { fitObjectToSize } from "./fitObject";
 
 type WeaponModelType = "fbx" | "gltf";
 
-// Quaternius "Sci-Fi Gun Pack" (CC0) FBX. Bounding box inspection shows
-// barrel along +Z (longest axis ~ Z, with the muzzle on +Z by Quaternius
-// authoring convention). [0, PI, 0] flips +Z to -Z = camera forward.
+// Quaternius "Sci-Fi Gun Pack" (CC0) FBX. Models are authored with barrel
+// along +Z. Y 180° to flip forward. Scale Z inverted to fix roll.
 export const WEAPON_MODEL: Record<WeaponId, { url: string; type: WeaponModelType; rotation: [number, number, number] }> = {
   weatherGun: { url: assetUrl("/models/scifi-guns-q/Rifle.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
   clearSkyGun: { url: assetUrl("/models/scifi-guns-q/LongPistol.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
   rainySeasonKiller: { url: assetUrl("/models/scifi-guns-q/Lightning Gun.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
   stormwallRifle: { url: assetUrl("/models/scifi-guns-q/Sniper rifle.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
   frostlance: { url: assetUrl("/models/scifi-guns-q/Ray Gun.fbx"), type: "fbx", rotation: [0, Math.PI, 0] },
-  windBlade: { url: assetUrl("/models/prototype-kit/weapon-sword.glb"), type: "gltf", rotation: [0, Math.PI / 2, -Math.PI / 7] },
+  windBlade: { url: assetUrl("/models/custom-weapons/wind-blade.glb"), type: "gltf", rotation: [0, Math.PI / 2, -Math.PI / 7] },
 };
+
+export const weaponModelScale = (id: WeaponId) => (id === "windBlade" ? [1, 1, 1] : [1, 1, -1]) as [number, number, number];
 
 export const WEAPON_MODEL_URL = Object.fromEntries(
   Object.entries(WEAPON_MODEL).map(([id, model]) => [id, model.url]),
@@ -53,7 +54,17 @@ export function WeaponObject({ id, targetSize }: { id: WeaponId; targetSize: num
     : <FbxWeaponObject url={model.url} targetSize={targetSize} />;
 }
 
-export function WeaponModel({ id, accent }: { id: WeaponId; accent: string }) {
+export function WeaponModel({
+  id,
+  accent,
+  showHaloRings = true,
+}: {
+  id: WeaponId;
+  accent: string;
+  /** Loadout-grid card showcase wants the accent rings under the weapon, but
+   *  the codex preview is cleaner without them. */
+  showHaloRings?: boolean;
+}) {
   const groupRef = useRef<Group>(null);
   const targetSize = id === "windBlade" ? 2.6 : 1.6;
 
@@ -71,19 +82,23 @@ export function WeaponModel({ id, accent }: { id: WeaponId; accent: string }) {
       <group ref={groupRef} rotation={weaponModelRotation(id)}>
         <WeaponObject id={id} targetSize={targetSize} />
       </group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.55, 0]}>
-        <ringGeometry args={[0.7, 0.86, 64]} />
-        <meshStandardMaterial
-          color={accent}
-          emissive={accent}
-          emissiveIntensity={0.6}
-          toneMapped={false}
-        />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.55, 0]}>
-        <ringGeometry args={[1.05, 1.1, 64]} />
-        <meshBasicMaterial color={accent} transparent opacity={0.28} toneMapped={false} />
-      </mesh>
+      {showHaloRings ? (
+        <>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.55, 0]}>
+            <ringGeometry args={[0.7, 0.86, 64]} />
+            <meshStandardMaterial
+              color={accent}
+              emissive={accent}
+              emissiveIntensity={0.6}
+              toneMapped={false}
+            />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.55, 0]}>
+            <ringGeometry args={[1.05, 1.1, 64]} />
+            <meshBasicMaterial color={accent} transparent opacity={0.28} toneMapped={false} />
+          </mesh>
+        </>
+      ) : null}
     </group>
   );
 }

@@ -16,9 +16,13 @@ import {
   playMiss,
   playReload,
   playSlash,
+  playMinionSummon,
   playShoot,
   playShieldBlock,
   playSkill,
+  playStaggerBreak,
+  playUiClick,
+  playUiPico,
   setBgmEnabled,
   setBgmScene,
   setMasterVolume,
@@ -53,6 +57,35 @@ export function AudioBridge() {
       setBgmEnabled(false);
     }
   }, [bgmEnabled]);
+
+  useEffect(() => {
+    function onUiClick(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+      const interactive = target.closest("button, [role='radio'], [role='switch']");
+      if (!interactive) {
+        return;
+      }
+      if (interactive instanceof HTMLButtonElement && interactive.disabled) {
+        return;
+      }
+      if (interactive.getAttribute("aria-disabled") === "true") {
+        return;
+      }
+      if (interactive.closest("[data-no-ui-sound]")) {
+        return;
+      }
+      if (interactive.classList.contains("primaryMenuButton")) {
+        playUiPico();
+        return;
+      }
+      playUiClick();
+    }
+    window.addEventListener("click", onUiClick, true);
+    return () => window.removeEventListener("click", onUiClick, true);
+  }, []);
 
   useEffect(() => {
     const onInteract = () => {
@@ -113,6 +146,15 @@ export function AudioBridge() {
       }
       if (state.lastSkillAt !== prev.lastSkillAt && state.lastSkillAt !== 0) {
         playSkill();
+      }
+      if (state.lastStaggerAt !== prev.lastStaggerAt && state.lastStaggerAt !== 0) {
+        playStaggerBreak();
+      }
+      if (state.lastMinionDefeatAt !== prev.lastMinionDefeatAt && state.lastMinionDefeatAt !== 0) {
+        playEnemyStagger(true);
+      }
+      if (state.lastMinionSpawnAt !== prev.lastMinionSpawnAt && state.lastMinionSpawnAt !== 0) {
+        playMinionSummon();
       }
       if (state.lastItemAt !== prev.lastItemAt && state.lastItemAt !== 0) {
         playItem();

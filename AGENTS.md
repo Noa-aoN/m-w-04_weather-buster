@@ -1,124 +1,82 @@
-# AGENTS.md / 作業ルール
+# AGENTS.md
 
-このファイルは、Codex / Claude などの AI エージェントがこのリポジトリで作業するときに参照する「ローカルな作業ルール」です。
-ワークスペース直上の `CLAUDE.md` の方針（コミットメッセージ書式、AI 痕跡禁止、port 規則、絵文字禁止 等）はこのアプリにも適用されます。ここに書くのはそれを補う、このアプリ固有の判断基準です。
+このファイルは、AI コーディングエージェント(Codex / Claude など)がこのリポジトリで作業するときに参照する、最小限の作業ルールです。
 
-## ゲーム全体の方向性
+## 方向性
 
-- 「ウェザーバスター 〜CLEAR THE SKY〜」 / 異常気象モンスターを倒して空を晴らす 3D アリーナシューター
-- ローポリ + 表情付きの「かわいい / ポップ」寄りの画作り。Quaternius / Kenney 系の CC0 アセットを使う
-- 「ゲームが始まったらワクワク」「敵を倒した瞬間が爽快」を最優先で守る。BGM / SFX / フラッシュ / シェイク / コンボ表示のどれかを削る判断をするときは、この優先度に従う
+- 「ウェザー・バスターズ 〜CLEAR THE SKY〜」はローポリ調の 3D アリーナアクション。**ゲーム開始時のワクワク** と **撃破時の爽快感** を最優先で守る。
+- 演出・SFX・HUD のいずれかを削るときは、上の二つの優先度を基準に判断する。
 
-## 触ってよい範囲 / 触る前に止まる範囲
+## 触ってよい範囲
 
-- `src/` 配下、`public/audio/`、`public/models/`、`docs/` は自走で良い
-- `package.json` の依存追加は本当に必要な場合のみ。テスト用 (vitest 等) は OK
-- `pnpm-lock.yaml` を勝手に書き換える別ツールの導入は禁止（pnpm で完結）
-- `public/` 直下の素体 GLB / FBX を別パックに丸ごと差し替える場合は止まる（ライセンス再確認）
+- `src/`、`public/audio/`、`public/models/`、`docs/`:自走で OK。
+- `package.json` の依存追加:本当に必要な場合のみ。pnpm に統一(`pnpm-lock.yaml` を別ツールで書き換えない)。
+- `public/` 直下のサードパーティ素材を別パックへ丸ごと差し替える場合は、ライセンスを再確認するために一度止まる。
 
 ## 検証コマンド
 
-変更後は必ず実行する。
+変更後は必ず実行:
 
-```
+```sh
 pnpm typecheck
-pnpm build
 pnpm test
-pnpm test:watch    # 反復編集中のみ
+pnpm build
 ```
 
-dev サーバの確認は `pnpm dev`（port 3040 / strictPort）。`3040` が他で埋まっていたら **自分側を 3041 等に逃がす**。CLAUDE.md にある通り。
+dev サーバ:`pnpm dev`(port 3040 / strictPort)。3040 が埋まっていたら自分側を 3041 等に逃がす。
 
-## 開発専用 URL クエリ
+## 戦闘ロジックを触るとき
 
-- `?debug=motion` (or `?debug=1`): 右上に AI フェーズ・敵距離・barrier / reload 残時間・combo / ammo / HP を表示するオーバーレイが出る。`isDebugEnabled()` は判定を 1 度キャッシュするので本番ではオーバーヘッドゼロ
-- `?preview=weapon`: 武器単体プレビュー画面に切替。OrbitControls + 銃口位置の赤い目印 + ボタンで武器切替。「銃の向き」「サイズ」「シルエット」を実機で確認したい時に使う
+ピュア関数は `src/game/combatRules.ts` に集約。
 
-## 戦闘ルールを変えるとき
-
-純粋関数は `src/game/combatRules.ts` に集約。ここを変えたら **必ず `pnpm test` を通す**（25 ケース以上のリグレッションテストが守る）。
-
-新しい計算ロジックは:
-1. `combatRules.ts` に純粋関数を足す
-2. `combatRules.test.ts` にテストを足す
+1. `combatRules.ts` に純粋関数を追加
+2. `combatRules.test.ts` にテスト追加
 3. `battleStore.ts` から呼ぶ
 
 の順で進める。store にロジックを直書きしない。
 
-## 戦闘ストア (`src/game/battleStore.ts`) を触るとき
+## 戦闘ストア(`src/game/battleStore.ts`)
 
-- フィールド追加は `BattleState` 型・`baseLoadout()` の初期化・該当の `set()` の 3 箇所すべてを揃えて更新する。`baseLoadout` から漏れると、battle リスタート時に前回値が残ってバグになる
-- ガード節を消さない:
-  - `shoot()`: `status !== "battle" || ammo <= 0 || now < reloadingUntil` の早期 return
-  - `reload()`: `now < reloadingUntil` / `ammo >= maxAmmo` の早期 return
-  - `tick()` / `takeDamageTick()` / `takeMarkerDamage()`: pause 中に止めるための `isPointerLocked` 条件
-- localStorage は `weatherbuster-seeds-v1` キーのみ書き込み。スキーマを変えたら旧キーを no-op で migrate する
+- フィールド追加は **`BattleState` 型 / `baseLoadout()` の初期化 / 該当 `set()`** の 3 箇所すべてを揃える(`baseLoadout` から漏れるとリスタート時に前回値が残るバグになる)。
+- `shoot()` / `reload()` / `tick()` 系のガード節(`status` / `ammo` / `reloadingUntil` / `isPointerLocked`)は消さない。
+- localStorage は `weatherbuster-seeds-v1` キーのみ。スキーマ変更時は旧キーを no-op で migrate。
 
-## 敵 AI を触るとき
+## 敵 AI(`src/entities/EnemyAi.tsx`)
 
-`BattleScene.EnemyMotion` (移行先: `src/entities/EnemyAi.ts`) は `AiPhase` を中心に動く。新しいフェーズを足すなら必ず次の 4 箇所を一緒に更新する:
+新しい `AiPhase` を足すなら必ず 4 箇所を同時に更新:
 
-1. `AiPhase` 型に名前を追加
-2. `phaseDurations` にデュレーション
-3. `next` の遷移マップに「どこから来てどこへ抜けるか」
-4. `lerpRate` の分岐に「このフェーズではどれくらい速く動くか」
+1. `AiPhase` 型
+2. `phaseDurations`
+3. `next` 遷移マップ
+4. `lerpRate` 分岐
 
-足したフェーズで `phaseRef` の追加状態（dodgeDir / zigPhase 等）が必要なら `phaseRef.current` の初期化と「フェーズ開始時の再初期化」も忘れない。
+被弾系の `hitFlinch` は early-return せず、最終位置にジッターを足す形を踏襲する(early-return すると AI が止まる原因になりやすい)。
 
-被弾系の挙動 (`hitFlinch`) は **早期 return しない**。AI が止まる原因は基本これなので、新しい一時状態を入れるときも「return せず最終位置にジッターを足す」スタイルを踏襲する。
+## エフェクト / SFX 追加
 
-## 武器モデルを差し替えるとき
+新しい状態には対で:
 
-`src/entities/WeaponModel.tsx` の `WEAPON_MODEL` を変える前に、必ず **bounding box の longest axis を確認する**。
+1. ストアに timestamp / flag を 1 つ追加
+2. `AudioBridge` で subscribe して `audio.ts` の `playXxx` を呼ぶ
+3. 必要なら HUD コンポーネントを足す
 
-- Quaternius FBX 銃は **barrel が +X 軸方向** なので `rotation: [0, Math.PI / 2, 0]`
-- 他パックは未検証 / 違う可能性あり。新規モデルは差し替え前に Node から FBXLoader / GLTFLoader でロードしてサイズを測る
-
-```ts
-// 動作確認の最小スクリプト
-import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
-import { Box3, Vector3 } from "three";
-// loader.parse(buf, "") → Box3.setFromObject → getSize で longest を判定
-```
-
-barrel が +Z なら `[0, Math.PI, 0]`、+X なら `[0, Math.PI / 2, 0]`。
-
-## キャラクター素体を触るとき
-
-- アクセントティント (`tintCharacterMaterials`) の intensity は `0.05〜0.10` の範囲が無難。0.2 を超えると素体の色が破綻する
-- `metalness` / `roughness` は **触らない**（Quaternius の素体感を維持するため）
-
-## エフェクト / SFX 追加のルール
-
-- 視覚と音は対で考える。`shoot` / `playShoot` のように、新しい状態には必ず:
-  1. ストアの timestamp / flag を 1 つ追加
-  2. AudioBridge で subscribe して音を鳴らす
-  3. 必要なら HUD コンポーネントを足す
-- `audio.ts` の `playXxx` は SFX 用。BGM は `setBgmScene` で 4 シーン (title/battle/victory/defeat) を切り替える
-- 新しい BGM シーンを足すなら BgmScene 型・`SCENE_TRACK` の 4 トラック (bass/lead/pad/drums)・AudioBridge の status 監視の 3 点を更新
-
-## 部品配置 / ステージ
-
-- 部品は `src/entities/` 内の薄いコンポーネント、配置は `data.ts` 等のデータで持つ（移行中）
-- 「家具を増やしたい」が **配置データ 1〜2 行** で済む状態を維持する
-- 1 部品の粒度は「単体で意味が通る最小単位」。雲のパフ・目・口を 1 個ずつ部品化するのではなく、`HeavyRainModel` のように敵 1 体分でまとめる
+BGM は `setBgmScene` で 4 シーン(title / battle / victory / defeat)を切り替える。
 
 ## 違和感の調査順序
 
-1. **まず原因にあたる**。即値調整（半径・速度・角度）に逃げる前に、座標 / 当たり判定 / フェーズ遷移のどこで決まっているかをログ or デバッグオーバーレイで見る
-2. それでも分からなければ最小再現を作る (Node + three の小さいスクリプトで OK)
-3. **数値変更は最後**。変えたら必ず spec と AGENTS.md にメモを残す
+1. まず原因を特定する。即値調整(半径・速度・角度)に逃げない。
+2. デバッグオーバーレイ(`?debug=motion`)や `?preview=weapon` を活用する。
+3. 数値変更は最後。変えたら spec / README に反映する。
 
-## ドキュメントの置き場
+## ドキュメント
 
-- `docs/spec.md`: 公開向けの仕様 / 設計判断
-- `docs/notes/`: gitignore 対象の個人用ログ
-- `AGENTS.md` (このファイル): 次のセッションが思い出すための作業ルール
-- 機能を増やしたら spec と AGENTS.md の両方を更新するか、最低限どちらに何を書くかを決めてからコミットする
+- `README.md`:公開向け
+- `docs/spec.md`:仕様 / 設計判断
+- `docs/notes/`:gitignore 対象の個人メモ
+- `AGENTS.md`(このファイル):次セッション用の最低限ルール
 
-## PR の出し方
+## ブランチ運用
 
 - `develop` で実装 → squash で `main` に PR
-- マージ後は `develop` を `origin/main` に追従させる
-- CI なし。`pnpm typecheck && pnpm build` (将来的には `pnpm test` も) を手元で通したら緑扱い
-- 1 PR = 1 主題。リファクタとロジック変更を同じ PR に混ぜない
+- 1 PR = 1 主題。リファクタとロジック変更を混ぜない
+- `pnpm typecheck && pnpm test && pnpm build` を手元で通してから push

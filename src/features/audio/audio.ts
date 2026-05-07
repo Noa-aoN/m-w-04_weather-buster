@@ -372,6 +372,45 @@ export function playEnemyStagger(critical = false) {
   noiseBurst({ duration: 0.08, volume: critical ? 0.18 : 0.1, filter: 4200 });
 }
 
+export function playMinionSummon() {
+  // Dark cloud roll — a low sub-bass thump followed by a filtered noise
+  // crackle, then a higher airy whoosh layered on top.
+  tone({ freq: 48, duration: 0.7, type: "sine", volume: 0.42, attack: 0.04, release: 0.7 });
+  tone({ freq: 96, duration: 0.5, type: "triangle", volume: 0.22, attack: 0.04, release: 0.5, delay: 0.05 });
+  noiseBurst({ duration: 0.6, volume: 0.34, filter: 380 });
+  noiseBurst({ duration: 0.4, volume: 0.18, filter: 1800, delay: 0.1 });
+  // Eerie rising whisper
+  const ctx = ensureContext();
+  if (!ctx || !masterGain) return;
+  const start = ctx.currentTime + 0.04;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(180, start);
+  osc.frequency.exponentialRampToValueAtTime(540, start + 0.85);
+  g.gain.setValueAtTime(0, start);
+  g.gain.linearRampToValueAtTime(0.16, start + 0.18);
+  g.gain.linearRampToValueAtTime(0, start + 0.95);
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 1200;
+  osc.connect(lp);
+  lp.connect(g);
+  g.connect(masterGain);
+  osc.start(start);
+  osc.stop(start + 1.05);
+}
+
+export function playStaggerBreak() {
+  // "Glass break" cue — descending crash + low boom. Used when the boss
+  // crosses an HP threshold and goes into the ~1.5s freeze.
+  tone({ freq: 1800, duration: 0.06, type: "triangle", volume: 0.22, attack: 0.001, release: 0.12 });
+  tone({ freq: 980, duration: 0.08, type: "sawtooth", volume: 0.18, attack: 0.001, release: 0.16, delay: 0.03 });
+  tone({ freq: 220, duration: 0.42, type: "sine", volume: 0.32, attack: 0.001, release: 0.45, delay: 0.04 });
+  noiseBurst({ duration: 0.18, volume: 0.28, filter: 5400 });
+  noiseBurst({ duration: 0.32, volume: 0.18, filter: 1200, delay: 0.04 });
+}
+
 export function playClear() {
   if (sampleBuffers.size > 0) {
     playRandomSample("clear", 0.85);
@@ -418,10 +457,17 @@ export function playDefeat() {
 
 export function playUiClick() {
   if (sampleBuffers.size > 0) {
-    playRandomSample("uiClick", 0.5);
+    playRandomSample("uiClick", 0.32);
     return;
   }
   tone({ freq: 880, duration: 0.04, type: "triangle", volume: 0.1, release: 0.06 });
+}
+
+export function playUiPico() {
+  // Bright two-step beep for primary CTAs (start battle, confirm dialog).
+  // Synth so it stays consistent across browsers without extra samples.
+  tone({ freq: 1480, duration: 0.05, type: "triangle", volume: 0.18, attack: 0.001, release: 0.07 });
+  tone({ freq: 2100, duration: 0.06, type: "sine", volume: 0.13, attack: 0.001, release: 0.08, delay: 0.06 });
 }
 
 export function playReload() {
