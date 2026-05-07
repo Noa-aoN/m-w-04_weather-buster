@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { findWeapon } from "../../../game/data";
 import { useBattleStore } from "../../../game/battleStore";
 import { BattleEffectsLayer } from "./BattleHudLayers";
-import { ItemToast, SkillReadyToast } from "./BattleToasts";
+import { ContactToast, ItemToast, SkillReadyToast } from "./BattleToasts";
 import type { BattleStatus } from "../../../game/types";
 
 function SkillFlash() {
@@ -232,7 +232,7 @@ function MinionSummonOverlay() {
     <>
       <div className="minionSummonVignette" key={`v-${show}`} aria-hidden="true" />
       <div className="minionSummonBanner" key={`b-${show}`} aria-hidden="true">
-        <span>暗雲、湧き上がる</span>
+        <span>暗雲が眷属を呼ぶ</span>
         <small>子分が召喚された</small>
       </div>
     </>
@@ -555,6 +555,7 @@ export function BattleEffectsOverlay({
       <SlowIndicator />
       <DashOverlay />
       <ItemToast />
+      <ContactToast />
 
       {status === "battle" ? (
         <div className="escHint" aria-live="polite">

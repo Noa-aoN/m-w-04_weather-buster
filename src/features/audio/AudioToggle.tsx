@@ -44,6 +44,12 @@ export function AudioToggle() {
       if (event.target instanceof HTMLElement && event.target.tagName === "INPUT") {
         return;
       }
+      // Audio shortcuts (M / , / .) only react outside of an active battle —
+      // otherwise the player can mute themselves by mashing a generic key.
+      const status = useBattleStore.getState().status;
+      if (status === "battle") {
+        return;
+      }
       if (event.key === "m" || event.key === "M") {
         const next = !(useBattleStore.getState().sfxEnabled || useBattleStore.getState().bgmEnabled);
         useBattleStore.getState().setSfxEnabled(next);

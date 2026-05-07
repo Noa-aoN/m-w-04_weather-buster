@@ -14,6 +14,7 @@ import { FovController, PlayerBackAvatar, PlayerShield, PlayerWeapon } from "../
 import { StageTerrain } from "../entities/StageTerrain";
 import { RainStreaks, SnowDrift, ThunderstormStrikes } from "../entities/WeatherFx";
 import { BattleHud } from "../features/hud/BattleHud";
+import { SceneLoader } from "../features/loader/SceneLoader";
 import { PlayerController } from "../features/player/PlayerController";
 import { stages, weatherEnemies } from "../game/data";
 import { useBattleStore } from "../game/battleStore";
@@ -89,9 +90,9 @@ function ExperimentField({
 
   return (
     <>
-      <color attach="background" args={[isClear ? "#cdebff" : stage.fogColor]} />
+      <color attach="background" args={[isClear ? "#dff3ff" : stage.fogColor]} />
       {isClear ? (
-        <Sky sunPosition={[2, 1.6, 3]} turbidity={1.4} rayleigh={0.55} mieCoefficient={0.008} />
+        <Sky sunPosition={[2, 1.8, 3]} turbidity={1.0} rayleigh={0.4} mieCoefficient={0.005} />
       ) : (
         <Sky
           sunPosition={[2, 0.4, 1.6]}
@@ -101,15 +102,15 @@ function ExperimentField({
         />
       )}
       <Stars radius={80} depth={35} count={1000} factor={4} saturation={0} fade />
-      <ambientLight intensity={isClear ? 2.4 : 0.65} color={isClear ? "#ffffff" : ambientColor} />
+      <ambientLight intensity={isClear ? 2.9 : 0.65} color={isClear ? "#ffffff" : ambientColor} />
       <directionalLight
         position={[4, 8, 3]}
-        intensity={isClear ? 5.6 : 1.85}
+        intensity={isClear ? 6.6 : 1.85}
         color={isClear ? "#fffae0" : stage.ringColor}
       />
-      <hemisphereLight args={[isClear ? "#fffbe8" : "#bdeeff", isClear ? "#cce8ff" : "#1c2a36", isClear ? 1.1 : 0.55]} />
+      <hemisphereLight args={[isClear ? "#fffbe8" : "#bdeeff", isClear ? "#dceffd" : "#1c2a36", isClear ? 1.35 : 0.55]} />
       <pointLight position={[0, 1.4, -3]} intensity={isClear ? 0.6 : 3.2} color={isClear ? "#fffbe8" : enemy.coreColor} />
-      <fog attach="fog" args={[isClear ? "#eaf6ff" : stage.fogColor, isClear ? 18 : 8, isClear ? fogFar + 28 : fogFar]} />
+      <fog attach="fog" args={[isClear ? "#f4faff" : stage.fogColor, isClear ? 26 : 8, isClear ? fogFar + 50 : fogFar]} />
 
       {/* Suspense isolation: while a stage GLTF / texture / character FBX is
           loading, only this subtree renders null. The Canvas-level default
@@ -135,6 +136,8 @@ function ExperimentField({
         enemyPositionRef={enemyPositionRef}
         baseZ={baseZ}
         arenaX={stage.arena.x}
+        arenaZFront={stage.arena.zFront}
+        arenaZBack={stage.arena.zBack}
         difficulty={selectedDifficulty}
       />
 
@@ -180,6 +183,7 @@ export function BattleScene({
 
   return (
     <main className="gameShell sceneEnter">
+      <SceneLoader label="出撃データ転送中…" />
       <Canvas
         camera={{ position: [0, 2.15, 7.1], fov: initialFov }}
         dpr={[1, 1.5]}

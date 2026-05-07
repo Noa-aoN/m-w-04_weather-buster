@@ -5,15 +5,17 @@ import { Object3D, Raycaster, Vector3 } from "three";
 import { useBattleStore } from "../../game/battleStore";
 import { COMBAT_CONSTANTS } from "../../game/combatRules";
 import {
+  CONTACT_RADIUS,
   difficultyModifiers,
   enemyAttackPatterns,
+  enemyContactReactions,
   findCharacter,
   findMinionType,
   findStage,
   findWeapon,
   weatherEnemies,
 } from "../../game/data";
-import { findMinionByObject, getMinionRoot, getMinionWorldPosition } from "../../entities/MinionField";
+import { findMinionByObject, getMinionRoot, getMinionWorldPosition } from "../../entities/minionRegistry";
 import { setLockTarget } from "./lockControls";
 import { useKeyboardInput } from "./useKeyboardInput";
 
@@ -84,6 +86,7 @@ export function PlayerController({
   const nextSpecialAt = useRef(0);
   const battleStartedAtRef = useRef<number | null>(null);
   const bobPhaseRef = useRef(0);
+  const lastContactAt = useRef(0);
 
   useEffect(() => {
     setLockTarget(gl.domElement);
@@ -214,6 +217,44 @@ export function PlayerController({
     const now = performance.now();
       const enemy = weatherEnemies.find((candidate) => candidate.id === state.selectedEnemyId);
       const pattern = enemy ? enemyAttackPatterns[enemy.id] : null;
+
+      // Body-contact reaction — when the player walks into the boss the
+      // store applies a per-enemy damage + knockback (and optional slow).
+      // Cooldown prevents spam while still in range.
+      if (enemy) {
+        const ePos = enemyPositionRef.current;
+        const dx = camera.position.x - ePos.x;
+        const dz = camera.position.z - ePos.z;
+        const distSq = dx * dx + dz * dz;
+        if (distSq < CONTACT_RADIUS * CONTACT_RADIUS) {
+          const reaction = enemyContactReactions[enemy.id];
+          if (reaction && now - lastContactAt.current > reaction.cooldownMs) {
+            lastContactAt.current = now;
+            state.takeMarkerDamage(reaction.damage);
+            const dist = Math.max(Math.sqrt(distSq), 0.0001);
+            state.applyKnockback(
+              (dx / dist) * reaction.knockback * 6,
+              (dz / dist) * reaction.knockback * 6,
+            );
+            // Toast lives at least until cooldown ends OR the slow expires,
+            // whichever is later — so the player sees the status while it
+            // still affects them.
+            const toastUntil = Math.max(
+              now + reaction.cooldownMs,
+              reaction.slowMs ? now + reaction.slowMs : 0,
+            );
+            const stateUpdate: { slowUntil?: number; lastContactAt: number; contactEnemyId: typeof enemy.id; contactToastUntil: number } = {
+              lastContactAt: now,
+              contactEnemyId: enemy.id,
+              contactToastUntil: toastUntil,
+            };
+            if (reaction.slowMs) {
+              stateUpdate.slowUntil = now + reaction.slowMs;
+            }
+            useBattleStore.setState(stateUpdate);
+          }
+        }
+      }
       // While the boss is staggered, push the next attack windows out so they
       // don't fire on resume. A small grace (200ms) keeps a clear pocket of
       // peace before normal patterns return.

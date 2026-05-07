@@ -7,40 +7,7 @@ import { findMinionType, weatherEnemies } from "../game/data";
 import { useBattleStore } from "../game/battleStore";
 import type { Minion } from "../game/types";
 import { WeatherEnemyModel } from "./WeatherEnemyModel";
-
-// External lookup: PlayerController raycasts against a flat group registered
-// here so a single Object3D.intersect call covers every minion. Keeping the
-// registry on the module itself (instead of context) means MinionField can
-// expose just one `<group>` and the rest of the scene stays untouched.
-const minionGroupsByMinionId = new Map<number, Group>();
-
-export function getMinionRoot(): Group | null {
-  return rootRef;
-}
-
-// Read the latest world position of a specific minion's group. PlayerController
-// uses this so projectile origins line up with the minion that fired them
-// instead of the boss.
-const MINION_TMP = new Vector3();
-export function getMinionWorldPosition(minionId: number): Vector3 | null {
-  const group = minionGroupsByMinionId.get(minionId);
-  if (!group) return null;
-  group.getWorldPosition(MINION_TMP);
-  return MINION_TMP;
-}
-
-let rootRef: Group | null = null;
-
-export function findMinionByObject(node: { userData?: { minionId?: number } }): number | null {
-  let cursor: { userData?: { minionId?: number }; parent?: { userData?: { minionId?: number }; parent?: unknown } | null } | null = node;
-  while (cursor) {
-    if (cursor.userData && typeof cursor.userData.minionId === "number") {
-      return cursor.userData.minionId;
-    }
-    cursor = (cursor as { parent?: typeof cursor | null }).parent ?? null;
-  }
-  return null;
-}
+import { minionGroupsByMinionId, setMinionRoot } from "./minionRegistry";
 
 // Slot offsets — left / right / behind, biased forward (toward the player)
 // so minions sit roughly half-way between the boss and the player and act as
@@ -235,11 +202,9 @@ export function MinionField({
   const [deathEvents, setDeathEvents] = useState<DeathEvent[]>([]);
 
   useEffect(() => {
-    rootRef = groupRef.current;
+    setMinionRoot(groupRef.current);
     return () => {
-      if (rootRef === groupRef.current) {
-        rootRef = null;
-      }
+      setMinionRoot(null);
     };
   }, []);
 

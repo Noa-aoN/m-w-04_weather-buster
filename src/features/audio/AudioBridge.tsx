@@ -77,6 +77,9 @@ export function AudioBridge() {
       if (interactive.closest("[data-no-ui-sound]")) {
         return;
       }
+      // Two-class mapping (current setup):
+      //   pico  : primary CTAs (`.primaryMenuButton`, dialog confirms)
+      //   click : everything else
       if (interactive.classList.contains("primaryMenuButton")) {
         playUiPico();
         return;

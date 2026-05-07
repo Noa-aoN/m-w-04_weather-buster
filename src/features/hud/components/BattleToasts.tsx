@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { findItem } from "../../../game/data";
+import { enemyContactReactions, findItem, weatherEnemies } from "../../../game/data";
 import { useBattleStore } from "../../../game/battleStore";
 import type { ItemId } from "../../../game/types";
 
@@ -48,6 +48,49 @@ export function SkillReadyToast({ pressureGauge, weaponSkillName }: { pressureGa
         <small>ウェポンスキル 発動可能</small>
         <strong>{weaponSkillName}</strong>
       </div>
+    </div>
+  );
+}
+
+export function ContactToast() {
+  const lastContactAt = useBattleStore((state) => state.lastContactAt);
+  const contactEnemyId = useBattleStore((state) => state.contactEnemyId);
+  const contactToastUntil = useBattleStore((state) => state.contactToastUntil);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (contactToastUntil === 0) return;
+    const id = window.setInterval(() => setTick((value) => value + 1), 100);
+    return () => window.clearInterval(id);
+  }, [contactToastUntil]);
+  // tick is consumed below via performance.now(); reading it here keeps the
+  // effect dependency honest without a lint suppression.
+  void tick;
+  const now = performance.now();
+  if (!contactEnemyId || contactToastUntil === 0 || now >= contactToastUntil || lastContactAt === 0) {
+    return null;
+  }
+  const enemy = weatherEnemies.find((e) => e.id === contactEnemyId);
+  const reaction = enemyContactReactions[contactEnemyId];
+  if (!enemy || !reaction) return null;
+  const remainingMs = Math.max(0, contactToastUntil - now);
+  const remainingSec = (remainingMs / 1000).toFixed(1);
+  const effects: string[] = [];
+  effects.push(`接触ダメージ ${reaction.damage}`);
+  if (reaction.knockback >= 4) effects.push("強ノックバック");
+  else if (reaction.knockback >= 2) effects.push("ノックバック");
+  if (reaction.slowMs) effects.push("移動鈍化");
+  return (
+    <div
+      className="contactToast"
+      style={{ ["--toast-accent" as string]: enemy.accentColor }}
+      aria-hidden="true"
+    >
+      <span className="contactToastIcon">{enemy.icon}</span>
+      <div className="contactToastBody">
+        <small>{enemy.name} に接触</small>
+        <strong>{effects.join(" / ")}</strong>
+      </div>
+      <span className="contactToastTimer">{remainingSec}s</span>
     </div>
   );
 }

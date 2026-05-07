@@ -135,6 +135,10 @@ type BattleState = {
   lastMinionDefeatAt: number;
   lastMinionSpawnAt: number;
   slowUntil: number;
+  /** Body-contact reaction state — drives the contact toast on the HUD. */
+  lastContactAt: number;
+  contactEnemyId: WeatherEnemyId | null;
+  contactToastUntil: number;
   isDashing: boolean;
   seedCount: number;
   seedHistory: Array<{ enemyId: WeatherEnemyId; difficulty: DifficultyLevel; rank: string; at: number }>;
@@ -224,6 +228,9 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   lastMinionDefeatAt: 0,
   lastMinionSpawnAt: 0,
   slowUntil: 0,
+  lastContactAt: 0,
+  contactEnemyId: null as WeatherEnemyId | null,
+  contactToastUntil: 0,
   isDashing: false,
 });
 

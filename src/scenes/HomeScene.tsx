@@ -1,5 +1,6 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Sky, Stars, useAnimations, useGLTF, useTexture } from "@react-three/drei";
+import { SceneLoader } from "../features/loader/SceneLoader";
 import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh } from "three";
 import { LoopOnce, RepeatWrapping, SRGBColorSpace } from "three";
@@ -873,6 +874,7 @@ export function HomeScene({
 
   return (
     <main className="homeShell sceneEnter">
+      <SceneLoader />
       <HomeBackdropLayer>
         <Canvas
           camera={{ position: [-1.8, 4.6, 7.0], fov: 50 }}

@@ -795,6 +795,69 @@ canvas {
   transition: width 0.18s ease-out;
 }
 
+/* Home loading overlay: shown while initial GLB / texture / FBX assets are
+   streaming. Centred over the homeShell, fades after progress reaches 100%. */
+.homeLoader {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 14px;
+  background: linear-gradient(180deg, rgba(2, 14, 22, 0.94), rgba(6, 24, 36, 0.94));
+  color: #cfeaf3;
+  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
+  pointer-events: all;
+  transition: opacity 0.36s ease;
+}
+
+.homeLoader.is-fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.homeLoaderIcon {
+  width: clamp(56px, 8vw, 96px);
+  height: clamp(56px, 8vw, 96px);
+  color: #28d9ff;
+  filter: drop-shadow(0 0 12px rgba(40, 217, 255, 0.85));
+  animation: homeLoaderSpin 2.4s linear infinite;
+}
+
+.homeLoaderText {
+  margin: 0;
+  font-size: clamp(13px, 0.9vw, 16px);
+  letter-spacing: 0.32em;
+  color: #b1d8e4;
+}
+
+.homeLoaderBar {
+  width: clamp(160px, 22vw, 280px);
+  height: 4px;
+  border: 1px solid rgba(40, 217, 255, 0.45);
+  background: rgba(4, 18, 28, 0.8);
+}
+
+.homeLoaderBar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #28d9ff, #7af1ff);
+  box-shadow: 0 0 12px rgba(40, 217, 255, 0.65);
+  transition: width 0.18s ease-out;
+}
+
+.homeLoaderProgress {
+  color: #ffd84d;
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  font-weight: 800;
+}
+
+@keyframes homeLoaderSpin {
+  to { transform: rotate(360deg); }
+}
+
 .heroTelemetry {
   position: absolute;
   z-index: 5;
@@ -2801,8 +2864,22 @@ canvas {
   color: #cee0e9;
   line-height: 1.55;
   font-size: clamp(12px, 0.85vw, 14px);
-  display: grid;
-  gap: 8px;
+  /* Flex-column with equal gap between rows; the action button is the last
+     child and uses `margin-top: auto` to anchor itself at the bottom of
+     the panel regardless of how much description / stats / skill content
+     sits above. */
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 1.6vh, 20px);
+  min-height: 100%;
+}
+
+.codexDetailBody .codexDetailAction {
+  margin-top: auto;
+}
+
+.codexDetailBody > p {
+  margin: 0;
 }
 
 .codexDetailBody dl {
@@ -2824,6 +2901,95 @@ canvas {
   letter-spacing: 0.12em;
 }
 
+/* Weapon detail blocks — both 種別 (general / specialty) and スキル use the
+   same panel language: left accent border + tinted background + label /
+   name / optional secondary value. Keeps the codex visually consistent. */
+.weaponDetailKind,
+.weaponDetailSkill {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 4px;
+  padding: 10px 12px;
+  border-left: 2px solid;
+}
+
+.weaponDetailKindLabel,
+.weaponDetailSkillLabel {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  font-weight: 800;
+}
+
+.weaponDetailKindName,
+.weaponDetailSkillName {
+  font-size: 15px !important;
+  font-weight: 800;
+}
+
+.weaponDetailKindMul {
+  font-style: normal;
+  font-family: "Kenney Future", "Bebas Neue", "Oswald", sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.weaponDetailSkillDesc,
+.weaponDetailKind > p {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  color: #cfeaf3;
+  line-height: 1.5;
+}
+
+/* 種別 — colour shifts based on whether the weapon is specialty. General is
+   neutral cyan; specialty borrows the warning-orange palette. */
+.weaponDetailKind[data-kind="general"] {
+  border-left-color: rgba(40, 217, 255, 0.7);
+  background: rgba(8, 26, 38, 0.55);
+}
+
+.weaponDetailKind[data-kind="general"] .weaponDetailKindLabel {
+  color: #28d9ff;
+}
+
+.weaponDetailKind[data-kind="general"] .weaponDetailKindName {
+  color: #f4fbff;
+}
+
+.weaponDetailKind[data-kind="specialty"] {
+  border-left-color: rgba(255, 156, 80, 0.85);
+  background: linear-gradient(90deg, rgba(60, 30, 8, 0.55), rgba(48, 18, 22, 0.45));
+}
+
+.weaponDetailKind[data-kind="specialty"] .weaponDetailKindLabel {
+  color: #ffd476;
+}
+
+.weaponDetailKind[data-kind="specialty"] .weaponDetailKindName {
+  color: #fff2d8;
+}
+
+.weaponDetailKind[data-kind="specialty"] .weaponDetailKindMul {
+  color: #ff9658;
+  text-shadow: 0 0 8px rgba(255, 150, 88, 0.6);
+}
+
+/* スキル — yellow side accent. */
+.weaponDetailSkill {
+  border-left-color: rgba(255, 218, 75, 0.7);
+  background: rgba(34, 28, 6, 0.32);
+}
+
+.weaponDetailSkillLabel {
+  color: #ffd84d;
+}
+
+.weaponDetailSkillName {
+  color: #fff7c2;
+}
+
 .codexDetailBody dd {
   margin: 4px 0 0;
   color: #f7fbff;
@@ -2832,7 +2998,10 @@ canvas {
 }
 
 .codexDetailAction {
-  align-self: end;
+  /* Stretch to full panel width — matches the description / stats / skill
+     blocks above so the action reads as part of the same column. */
+  align-self: stretch;
+  width: 100%;
   min-height: 40px;
   padding: 0 18px;
   font-weight: 800;
@@ -3660,8 +3829,12 @@ canvas {
 
 .comboCounter {
   position: absolute;
-  top: 28%;
-  right: 6%;
+  /* Top-centre, comfortably below the boss HP bar so it never overlaps the
+     score / mission panels on the right or the radar / player status on
+     the left. */
+  top: clamp(108px, 14vh, 160px);
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 5;
   pointer-events: none;
   display: grid;
@@ -3697,9 +3870,9 @@ canvas {
 }
 
 @keyframes comboPop {
-  0% { transform: scale(0.6); opacity: 0; }
-  60% { transform: scale(1.15); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+  0% { transform: translateX(-50%) scale(0.6); opacity: 0; }
+  60% { transform: translateX(-50%) scale(1.15); opacity: 1; }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
 }
 
 .comboCounter--good { background: linear-gradient(135deg, rgba(120, 200, 255, 0.32), rgba(40, 120, 200, 0.22)); border-color: rgba(120, 200, 255, 0.7); }
@@ -3709,8 +3882,8 @@ canvas {
 .comboCounter--insane { background: linear-gradient(135deg, rgba(220, 80, 220, 0.45), rgba(255, 70, 130, 0.35)); border-color: rgba(255, 200, 255, 1); box-shadow: 0 0 38px rgba(220, 100, 220, 0.85); animation: comboInsanePulse 0.7s ease-in-out infinite alternate, comboPop 0.4s cubic-bezier(0.18, 0.9, 0.3, 1); }
 
 @keyframes comboInsanePulse {
-  0% { box-shadow: 0 0 22px rgba(220, 100, 220, 0.5); transform: scale(1); }
-  100% { box-shadow: 0 0 48px rgba(255, 130, 220, 1); transform: scale(1.06); }
+  0% { box-shadow: 0 0 22px rgba(220, 100, 220, 0.5); transform: translateX(-50%) scale(1); }
+  100% { box-shadow: 0 0 48px rgba(255, 130, 220, 1); transform: translateX(-50%) scale(1.06); }
 }
 
 .screenShake {
@@ -3997,6 +4170,76 @@ canvas {
   0% { opacity: 0; transform: scale(0.6) rotate(0deg); }
   20% { opacity: 0.9; }
   100% { opacity: 0; transform: scale(1.3) rotate(35deg); }
+}
+
+/* Contact reaction status toast — anchored bottom-left above the player
+   status panel so it sits in the same column as the player's HP / gauge.
+   Border + accent glow follow the offending enemy's accentColor. */
+.contactToast {
+  --toast-accent: #ff7596;
+  position: absolute;
+  left: 26px;
+  bottom: clamp(220px, 30vh, 320px);
+  z-index: 6;
+  display: inline-grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 10px;
+  width: clamp(260px, 28vw, 360px);
+  border: 1px solid var(--toast-accent);
+  background: linear-gradient(135deg, rgba(8, 16, 24, 0.85), rgba(36, 14, 22, 0.92));
+  box-shadow: 0 0 20px color-mix(in oklab, var(--toast-accent) 50%, transparent),
+              inset 0 0 16px color-mix(in oklab, var(--toast-accent) 18%, transparent);
+  pointer-events: none;
+  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
+  letter-spacing: 0.06em;
+  animation: contactToastEnter 0.36s cubic-bezier(0.18, 0.9, 0.3, 1);
+}
+
+@keyframes contactToastEnter {
+  0% { opacity: 0; transform: translateX(-12px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.contactToastIcon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--toast-accent);
+  font-size: 24px;
+  text-shadow: 0 0 10px color-mix(in oklab, var(--toast-accent) 80%, transparent);
+}
+
+.contactToastBody {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.contactToastBody small {
+  color: color-mix(in oklab, var(--toast-accent) 75%, #fff 25%);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+}
+
+.contactToastBody strong {
+  color: #fff5f8;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contactToastTimer {
+  color: var(--toast-accent);
+  font-family: "Kenney Future", "Bebas Neue", "Oswald", sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 10px color-mix(in oklab, var(--toast-accent) 80%, transparent);
 }
 
 .itemToast {

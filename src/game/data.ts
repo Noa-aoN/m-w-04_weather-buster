@@ -126,8 +126,8 @@ export const weapons: Weapon[] = [
     maxAmmo: 32,
     fireRateMs: 90,
     skillName: "天候連射",
-    skillDescription: "短時間だけ連射力が跳ね上がり、敵HPを段階的に削る。",
-    skillBurstRatio: 0.18,
+    skillDescription: "敵HPの 22% を 8 連射で素早く削る。",
+    skillBurstRatio: 0.22,
     skillBurstShots: 8,
     description: "標準支給の基本ウェポン。連射と取り回しのバランスに優れる。",
     specialtyAgainst: [],
@@ -140,7 +140,7 @@ export const weapons: Weapon[] = [
     maxAmmo: 22,
     fireRateMs: 140,
     skillName: "晴天バースト",
-    skillDescription: "圧縮した低気圧弾を一発、高威力で撃ち込む。",
+    skillDescription: "圧縮した低気圧弾を 5 発、敵HPの 32% を一気に削る。",
     skillBurstRatio: 0.32,
     skillBurstShots: 5,
     description: "扱いやすい中口径ウェポン。スキルの一撃で局面をひっくり返せる。",
@@ -150,58 +150,58 @@ export const weapons: Weapon[] = [
   {
     id: "rainySeasonKiller",
     name: "梅雨キラー",
-    damage: 32,
+    damage: 22,
     maxAmmo: 9,
     fireRateMs: 220,
     skillName: "湿度排除",
-    skillDescription: "湿度を撃ち抜く高出力弾。湿気系の天侵体に追加ダメージ。",
-    skillBurstRatio: 0.42,
+    skillDescription: "敵HPの 28% を 3 発で削る。湿気系の天侵体には特効で +35%。",
+    skillBurstRatio: 0.28,
     skillBurstShots: 3,
-    description: "高威力・低連射の重ウェポン。湿度系の天侵体に圧倒的な火力で刺さる。",
+    description: "湿度系特化の重ウェポン。特効対象の梅雨・豪雨にだけ強く、それ以外には控えめ。",
     specialtyAgainst: ["rainySeason", "heavyRain"],
-    specialtyMultiplier: 1.45,
+    specialtyMultiplier: 1.35,
   },
   {
     id: "stormwallRifle",
     name: "雷除けライフル",
-    damage: 18,
+    damage: 14,
     maxAmmo: 14,
     fireRateMs: 130,
     skillName: "電界反射",
-    skillDescription: "対落雷の追加ダメージに加え、発動中は被ダメージを軽減。",
-    skillBurstRatio: 0.28,
+    skillDescription: "敵HPの 26% を 4 発で削る。落雷には特効で +40%。",
+    skillBurstRatio: 0.26,
     skillBurstShots: 4,
-    description: "対落雷特化のライフル。電界を編んで雷を逸らす盾も兼ねる。",
+    description: "対落雷特化のライフル。落雷以外には威力が抑えめ。",
     specialtyAgainst: ["thunderstorm"],
-    specialtyMultiplier: 1.55,
+    specialtyMultiplier: 1.4,
   },
   {
     id: "frostlance",
     name: "凍結カノン",
-    damage: 26,
+    damage: 18,
     maxAmmo: 10,
     fireRateMs: 200,
     skillName: "凍結弾",
-    skillDescription: "冷気で対象を凍らせ、吹雪・竜巻系に追加ダメージ。",
-    skillBurstRatio: 0.36,
+    skillDescription: "敵HPの 26% を 4 発で凍結。吹雪・竜巻には特効で +30%。",
+    skillBurstRatio: 0.26,
     skillBurstShots: 4,
-    description: "対吹雪・竜巻特化のカノン。冷気で荒れる空気を瞬時に凍らせる。",
+    description: "対吹雪・竜巻特化の重カノン。それ以外には威力が控えめ。",
     specialtyAgainst: ["blizzard", "tornado"],
-    specialtyMultiplier: 1.4,
+    specialtyMultiplier: 1.3,
   },
   {
     id: "windBlade",
     name: "風切ブレード",
-    damage: 48,
+    damage: 36,
     maxAmmo: 999,
     fireRateMs: 360,
     skillName: "風向反転",
-    skillDescription: "風向を斬って竜巻の進路を逸らす。竜巻・台風に追加ダメージ。",
-    skillBurstRatio: 0.46,
+    skillDescription: "敵HPの 28% を 3 連斬で削る。竜巻・台風には特効で +35%。",
+    skillBurstRatio: 0.28,
     skillBurstShots: 3,
-    description: "弾を持たない長柄ブレード。間合いに踏み込んだ直接斬撃だけが当たる、玄人向け。",
+    description: "弾を持たない近接ブレード。竜巻・台風以外には威力が抑えめで、玄人向け。",
     specialtyAgainst: ["tornado", "typhoon"],
-    specialtyMultiplier: 1.5,
+    specialtyMultiplier: 1.35,
   },
 ];
 
@@ -254,22 +254,22 @@ export const characters: Character[] = [
     moveSpeedMultiplier: 1.1,
     accentColor: "#28d9ff",
     description: "気象観測局所属のバスター。長く続いた雨の記憶を胸に、湿度系天侵体の観測と制圧に強いこだわりを持つ。軽装の機動力で間合いを支配する。",
-    flavor: "梅雨を、ゆるさない。",
+    flavor: "梅雨を、ゆるさない",
   },
   {
     id: "saka",
     codename: "サカ",
     callSign: "SAKA",
     role: "重装アタッカー",
-    passiveName: "気圧収束",
-    passiveDescription: "与ダメ +30% / 被ダメ -15% / 気圧ゲージ +30% / 移動 -20%",
+    passiveName: "重装気圧",
+    passiveDescription: "与ダメ +30% / 被ダメ -15% / 移動 -20%",
     damageMultiplier: 1.3,
     damageTakenMultiplier: 0.85,
-    gaugeGainMultiplier: 1.3,
+    gaugeGainMultiplier: 1.0,
     moveSpeedMultiplier: 0.8,
     accentColor: "#ffd84d",
-    description: "気圧操作を専門とする重装アタッカー。装甲スーツの代償に機動性を捨て、圧倒的な火力と粘り強さで短期決戦を仕掛ける。",
-    flavor: "雷一発で、空に風穴開けてやる。",
+    description: "装甲スーツを纏った重装アタッカー。機動性は捨て、圧倒的な火力と粘り強さで短期決戦を仕掛ける。にんじん片手に踏み込む独自スタイル。",
+    flavor: "にんじん齧って、撃ち抜くぜ",
   },
 ];
 
@@ -355,7 +355,7 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
   cloudy: {
     intervalMs: 4500,
     warningMs: 1800,
-    damage: 24,
+    damage: 28,
     radius: 1.6,
     projectileColor: "#cfe9f4",
     arcHeight: 3.6,
@@ -371,7 +371,7 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
   heavyRain: {
     intervalMs: 1100,
     warningMs: 700,
-    damage: 30,
+    damage: 35,
     radius: 1.4,
     projectileColor: "#5ee7ff",
     arcHeight: 0,
@@ -387,7 +387,7 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
   thunderstorm: {
     intervalMs: 2200,
     warningMs: 1500,
-    damage: 95,
+    damage: 110,
     radius: 1.6,
     projectileColor: "#fff2a6",
     arcHeight: 0,
@@ -403,7 +403,7 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
   tornado: {
     intervalMs: 1700,
     warningMs: 1100,
-    damage: 60,
+    damage: 70,
     radius: 1.5,
     projectileColor: "#8df0ff",
     arcHeight: 2.4,
@@ -419,7 +419,7 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
   rainySeason: {
     intervalMs: 2900,
     warningMs: 1700,
-    damage: 64,
+    damage: 74,
     radius: 2.1,
     projectileColor: "#8dffd8",
     arcHeight: 3.4,
@@ -435,7 +435,7 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
   blizzard: {
     intervalMs: 2500,
     warningMs: 1400,
-    damage: 72,
+    damage: 84,
     radius: 1.7,
     projectileColor: "#dff8ff",
     arcHeight: 3.0,
@@ -451,7 +451,7 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
   typhoon: {
     intervalMs: 1500,
     warningMs: 1000,
-    damage: 96,
+    damage: 112,
     radius: 2.0,
     projectileColor: "#f9fbff",
     arcHeight: 0,
@@ -508,6 +508,29 @@ export const bossMinionConfig: Partial<Record<WeatherEnemyId, BossMinionConfig>>
 };
 
 export const findMinionType = (id: MinionTypeId): MinionType => minionTypes[id];
+
+// Contact reaction: triggered when the player walks into a boss's body.
+// Per-enemy so the impact reads as in-character with that weather (rainy
+// types soak / slow, blizzard freezes briefly, tornado throws hard, etc.).
+// `cooldownMs` prevents spam while still touching.
+export type EnemyContactReaction = {
+  damage: number;
+  knockback: number;
+  slowMs?: number;
+  cooldownMs: number;
+};
+
+export const enemyContactReactions: Record<WeatherEnemyId, EnemyContactReaction> = {
+  cloudy: { damage: 15, knockback: 1.4, cooldownMs: 800 },
+  heavyRain: { damage: 30, knockback: 2.5, slowMs: 700, cooldownMs: 700 },
+  thunderstorm: { damage: 45, knockback: 2.0, cooldownMs: 1000 },
+  tornado: { damage: 22, knockback: 5.0, cooldownMs: 500 },
+  rainySeason: { damage: 28, knockback: 1.6, slowMs: 1600, cooldownMs: 700 },
+  blizzard: { damage: 35, knockback: 2.4, slowMs: 600, cooldownMs: 800 },
+  typhoon: { damage: 50, knockback: 4.0, slowMs: 900, cooldownMs: 600 },
+};
+
+export const CONTACT_RADIUS = 2.4;
 
 export const initialWeapon: Weapon = weapons[1];
 

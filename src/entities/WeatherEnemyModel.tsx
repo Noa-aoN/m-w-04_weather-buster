@@ -242,7 +242,13 @@ function TornadoModel({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean })
   return (
     <>
       <RexBody url={REX_BODY_URL.tornado!} accent={enemy.accentColor} />
-      {!clear ? <Vortex enemy={enemy} clear={clear} layers={3} /> : null}
+      {/* Tornado's swirl is intentionally tighter and more transparent than
+          the typhoon's, so the core (RexBody) reads first. */}
+      {!clear ? (
+        <group scale={[0.55, 0.55, 0.55]}>
+          <Vortex enemy={enemy} clear={clear} layers={3} />
+        </group>
+      ) : null}
     </>
   );
 }
@@ -348,7 +354,7 @@ const CORE_OVERRIDE: Partial<Record<WeatherEnemy["id"], { y: number; scale?: num
   heavyRain: { y: 0.9 },
   thunderstorm: { y: 0.9 },
   rainySeason: { y: 0.9 },
-  tornado: { y: 0.7, scale: 0.45 },
+  tornado: { y: 0.42, scale: 0.5 },
   blizzard: { y: 0.9 },
 };
 

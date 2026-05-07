@@ -6,7 +6,7 @@ import { CharacterModel } from "../entities/CharacterModel";
 import { WeaponModel } from "../entities/WeaponModel";
 import { ModalShell } from "../features/modal/ModalShell";
 import { CodexLayout } from "../features/modal/CodexLayout";
-import { characters, stages, weapons } from "../game/data";
+import { characters, stages, weapons, weatherEnemies } from "../game/data";
 import { useBattleStore } from "../game/battleStore";
 import type { CharacterId, StageId, WeaponId } from "../game/types";
 import { assetUrl } from "../shared/assets";
@@ -129,35 +129,46 @@ export function WeaponScene({ onBack }: { onBack: () => void }) {
         cameraDistance={2.8}
         cameraTarget={[0, 0, 0]}
         detailHeader={(
-          <>
-            <span style={{ color: WEAPON_ACCENT[previewWeapon.id] ?? WEAPON_ACCENT_FALLBACK, letterSpacing: "0.18em", fontSize: 12 }}>
-              {previewWeapon.specialtyAgainst.length > 0
-                ? `特効 ×${previewWeapon.specialtyMultiplier.toFixed(2)} (${previewWeapon.specialtyAgainst.join(" / ")})`
-                : "汎用"}
-            </span>
-            <strong>{previewWeapon.name}</strong>
-            <em>{previewWeapon.skillName}</em>
-          </>
+          <strong>{previewWeapon.name}</strong>
         )}
-        detailBody={(
-          <>
-            <p>{previewWeapon.description}</p>
-            <dl>
-              <div><dt>攻撃力</dt><dd>{previewWeapon.damage}</dd></div>
-              <div><dt>装弾</dt><dd>{previewWeapon.maxAmmo}</dd></div>
-              <div><dt>連射間隔</dt><dd>{previewWeapon.fireRateMs}ms</dd></div>
-            </dl>
-            <p style={{ color: "#ddebf3" }}>{previewWeapon.skillDescription}</p>
-            <button
-              type="button"
-              className="primaryMenuButton codexDetailAction"
-              disabled={selectedWeaponId === previewWeapon.id}
-              onClick={() => selectWeapon(previewWeapon.id)}
-            >
-              {selectedWeaponId === previewWeapon.id ? "装備中" : "このウェポンを装備"}
-            </button>
-          </>
-        )}
+        detailBody={(() => {
+          const isSpecialty = previewWeapon.specialtyAgainst.length > 0;
+          const targetNames = previewWeapon.specialtyAgainst
+            .map((id) => weatherEnemies.find((e) => e.id === id)?.name ?? id)
+            .join(" / ");
+          return (
+            <>
+              <p>{previewWeapon.description}</p>
+              <dl>
+                <div><dt>攻撃力</dt><dd>{previewWeapon.damage}</dd></div>
+                <div><dt>装弾</dt><dd>{previewWeapon.maxAmmo}</dd></div>
+                <div><dt>連射間隔</dt><dd>{previewWeapon.fireRateMs}ms</dd></div>
+              </dl>
+              <div className="weaponDetailKind" data-kind={isSpecialty ? "specialty" : "general"}>
+                <span className="weaponDetailKindLabel">種別</span>
+                <strong className="weaponDetailKindName">
+                  {isSpecialty ? `特効: ${targetNames}` : "汎用"}
+                </strong>
+                {isSpecialty ? (
+                  <em className="weaponDetailKindMul">(×{previewWeapon.specialtyMultiplier.toFixed(2)})</em>
+                ) : null}
+              </div>
+              <div className="weaponDetailSkill">
+                <span className="weaponDetailSkillLabel">スキル</span>
+                <strong className="weaponDetailSkillName">{previewWeapon.skillName}</strong>
+                <p className="weaponDetailSkillDesc">{previewWeapon.skillDescription}</p>
+              </div>
+              <button
+                type="button"
+                className="primaryMenuButton codexDetailAction"
+                disabled={selectedWeaponId === previewWeapon.id}
+                onClick={() => selectWeapon(previewWeapon.id)}
+              >
+                {selectedWeaponId === previewWeapon.id ? "装備中" : "このウェポンを装備"}
+              </button>
+            </>
+          );
+        })()}
       />
     </ModalShell>
   );
