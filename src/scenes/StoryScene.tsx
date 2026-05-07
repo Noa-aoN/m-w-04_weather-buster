@@ -1,77 +1,86 @@
-import { useEffect } from "react";
+import { ModalShell } from "../features/modal/ModalShell";
+import { PaginatedLayout } from "../features/modal/PaginatedLayout";
 
 const chapters = [
   {
-    eyebrow: "CHAPTER 01",
+    eyebrow: "REPORT 01",
     title: "空が、敵になった日",
-    body: "西暦 20XX 年。気候の変動が極限に達し、雨や雷や雪は ただの天気 をやめた。それは意思を持ち、人を狙い、街を呑むようになった。気象観測局は、これを「天候性侵害体（てんこうせいしんがいたい）」と呼ぶ。普通の傘や避難勧告では、もう間に合わない。",
+    paragraphs: [
+      "西暦 20XX 年。気候の変動が極限に達した夏、雨や雷や雪は「ただの天気」であることをやめた。",
+      "湿った空気は意思を持ち、雷雲は標的を選び、吹雪は街を一晩で呑み込む。気象観測局はこれを「天候性侵害体（てんこうせいしんがいたい）」――略して 天侵体 と呼ぶことに決めた。",
+      "傘でも、避難勧告でも、もう間に合わない。空を撃ち落とす手段が、人類には必要になった。",
+    ],
   },
   {
-    eyebrow: "CHAPTER 02",
-    title: "気象兵器と CLEAR THE SKY 計画",
-    body: "観測局は、敵の天候を逆手に取る兵器群を開発した。湿度を撃ち抜く「梅雨キラー」、電界を反射する「雷除けライフル」、低気圧を圧縮する「クリアスカイガン」。撃破した瞬間、その地点だけ青空が戻る。市民はそれを CLEAR SKY と呼んで、雨上がりよりも明るく笑った。",
+    eyebrow: "REPORT 02",
+    title: "気象兵器と『CLEAR THE SKY』計画",
+    paragraphs: [
+      "観測局は、敵の天候を逆手に取る兵器群を秘密裏に開発した。湿度を撃ち抜く「梅雨キラー」、電界を反射する「雷除けライフル」、低気圧を一点に圧縮する「クリアスカイガン」――どれも気象現象そのものを弾と見立てた、ありえない発想の塊だ。",
+      "撃破された天侵体は、空に薄い裂け目を残して消える。その地点だけ、まるで時間が巻き戻ったように青空が戻ってくる。",
+      "市民はそれを「CLEAR SKY」と呼んで、雨上がりよりも明るく笑った。",
+    ],
   },
   {
-    eyebrow: "CHAPTER 03",
+    eyebrow: "REPORT 03",
     title: "ウェザー・バスター",
-    body: "兵器を扱えるのは、気象耐圧スーツに適合した一握りの観測員だけ。彼らは ウェザー・バスター と呼ばれ、空を晴らすことだけを任務とする。風に流されず、雷に焼かれず、雨に視界を奪われない。それが、彼らがプロである所以だ。",
+    paragraphs: [
+      "気象兵器を扱えるのは、気象耐圧スーツに適合した一握りの観測員だけ。秒速 60m の暴風に弾かれず、10 万ボルトの落雷に焼かれず、視界を奪う豪雨の中で照準を切らさない――そのために訓練された人間は、世界に数十人しかいない。",
+      "彼らは ウェザー・バスター と呼ばれる。任務はひとつ。空を、晴らすこと。",
+      "民間に向けて発表されることはほとんどないが、青空が戻った街角の上空には、いつも彼らの姿があった。",
+    ],
   },
   {
-    eyebrow: "CHAPTER 04",
+    eyebrow: "REPORT 04",
     title: "ノアと、長い雨",
-    body: "若いバスター、ノアには、長く止まなかった雨の記憶がある。理由を多く語ることはない。ただ、湿度系侵害体の観測ログだけは誰よりも読み込み、梅雨の兆候を見逃さない。クリアスカイガンを構える時、彼は決まって短くつぶやく。「梅雨を、ゆるさない」。",
+    paragraphs: [
+      "バスターの1人、ノアには、長く止まなかった雨の記憶がある。理由を多く語ることはない。",
+      "ただ、湿度系天侵体の観測ログだけは誰よりも読み込み、梅雨の兆候を見逃さない。誰も気づかない雲の薄さ、湿った風の匂い、機材が拾えない微弱な気圧の揺らぎ――そのすべてを、まるで自分の傷の痛みのように察知する。",
+      "クリアスカイガンを構える時、彼は決まって短くつぶやく。「梅雨を、ゆるさない」。",
+    ],
   },
   {
-    eyebrow: "CHAPTER 05",
+    eyebrow: "REPORT 05",
     title: "晴天の種子",
-    body: "侵害体を倒すと、空に薄く光る粒子が残る。観測局はこれを 晴天の種子 と名付けた。種子を一定数集めれば、地域の空は永続的に元の青さを取り戻す ―― それが、ウェザー・バスターズ計画の最終ゴールだ。今日の青空は、明日の青空のための一歩でしかない。",
+    paragraphs: [
+      "天侵体を倒した後の空には、薄く光る粒子が舞う。観測局はこれを「晴天の種子」と名付けた。",
+      "粒子は短時間で大気に溶けてしまうが、一定量が積もった地域では、季節を超えて天候が緩やかに安定していくことが確認されている。観測されたデータは、控えめな数字だが希望に近い。",
+      "種子を集めきれば、その空はもう壊れない。それが、ウェザー・バスターズ計画の最終ゴールだ。今日の青空は、明日の青空のための一歩でしかない。",
+    ],
   },
   {
-    eyebrow: "CHAPTER 06",
+    eyebrow: "REPORT 06",
     title: "そして、台風が来る",
-    body: "豪雨・落雷・竜巻 ―― 三つの脅威を併せ持つ複合型侵害体「台風」が観測された。単独では討伐困難。それでもウェザー・バスターは出撃する。空が敵になったその日から、誰かは必ず、空を取り戻しに行かねばならない。",
+    paragraphs: [
+      "豪雨・落雷・竜巻――三つの脅威を併せ持つ複合型天侵体「台風」の発生が確認された。",
+      "観測史上、単独での討伐成功例はゼロ。気象兵器を全弾撃ち込んでも、芯の低気圧に届かないと言われている。",
+      "それでも、ウェザー・バスターは出撃する。空が敵になったその日から、誰かは必ず、空を取り戻しに行かねばならない。",
+    ],
   },
 ];
 
 export function StoryScene({ onBack }: { onBack: () => void }) {
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.target instanceof HTMLElement && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")) {
-        return;
-      }
-      const key = event.key.toLowerCase();
-      if (key === "h" || key === "escape" || event.key === "Escape") {
-        event.preventDefault();
-        onBack();
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onBack]);
-
   return (
-    <main className="storyShell sceneEnter">
-      <div className="gridBackdrop" aria-hidden="true" />
-      <header className="screenHeader">
-        <div className="screenHeaderInfo">
-          <span>PROJECT: WEATHER BUSTER</span>
-          <h1>ストーリー</h1>
-          <small>導入</small>
-          <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
-        </div>
-      </header>
-
-      <section className="storyLayout">
-        {chapters.map((chapter) => (
-          <article key={chapter.eyebrow} className="storyChapter tacticalPanel">
-            <span className="storyEyebrow">{chapter.eyebrow}</span>
-            <h2>{chapter.title}</h2>
-            <p>{chapter.body}</p>
-          </article>
-        ))}
-      </section>
-
-      <footer className="gridFooter">Hキーまたは ESC で戻る</footer>
-    </main>
+    <ModalShell
+      variant="paginated"
+      eyebrow="PROJECT: WEATHER BUSTER"
+      title="世界レポート"
+      subtitle="導入 / ← →キーで前後ページ"
+      onBack={onBack}
+    >
+      <PaginatedLayout
+        pages={chapters.map((chapter) => ({
+          id: chapter.eyebrow,
+          eyebrow: chapter.eyebrow,
+          title: chapter.title,
+          body: (
+            <>
+              {chapter.paragraphs.map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
+            </>
+          ),
+        }))}
+      />
+    </ModalShell>
   );
 }

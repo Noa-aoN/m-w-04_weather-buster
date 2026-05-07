@@ -83,6 +83,8 @@ export type Character = {
   damageMultiplier: number;
   damageTakenMultiplier: number;
   gaugeGainMultiplier: number;
+  /** Walk / dash speed multiplier applied to the player's base move speed. */
+  moveSpeedMultiplier: number;
   accentColor: string;
   description: string;
   flavor: string;
@@ -105,6 +107,55 @@ export type Stage = {
     zFront: number;
     zBack: number;
   };
+};
+
+export type MinionTypeId = "stratus";
+
+// Reusable minion shape: visuals are inherited from `baseEnemyId` so we can
+// later swap the model just by changing one field, and stats/attack pattern
+// live in MinionType so a new minion species (e.g. icyShard) only requires
+// adding a config entry — no engine changes.
+export type MinionType = {
+  id: MinionTypeId;
+  baseEnemyId: WeatherEnemyId;
+  maxHp: number;
+  attackIntervalMs: number;
+  attackWarningMs: number;
+  attackDamage: number;
+  attackRadius: number;
+  scale: number;
+  // Vertical hover band relative to its assigned position.
+  hoverY: number;
+  hoverAmp: number;
+  // Boss debuff while at least one minion is alive.
+  bossDamageReceivedMul: number;
+  bossAttackIntervalMul: number;
+  bossStandoffBonus: number;
+};
+
+export type BossMinionConfig = {
+  type: MinionTypeId;
+  // HP ratios at which a fresh minion spawns. Each ratio fires once per battle.
+  spawnAtRatios: number[];
+  // Cap on simultaneous minions per difficulty level (1..5). Levels with cap 0
+  // skip the system entirely.
+  maxByDifficulty: Record<DifficultyLevel, number>;
+  // Cap on total summon events per battle, also per-difficulty. Lets a low
+  // difficulty fire only the first 1-2 of `spawnAtRatios` even if more
+  // thresholds get crossed later.
+  maxTotalSpawnsByDifficulty: Record<DifficultyLevel, number>;
+};
+
+export type Minion = {
+  id: number;
+  typeId: MinionTypeId;
+  hp: number;
+  maxHp: number;
+  spawnedAt: number;
+  // Slot offset around the boss. Used by the renderer to place the minion in
+  // a stable triangle/arc rather than randomly each frame.
+  slot: number;
+  lastAttackAt: number;
 };
 
 export type BattleResult = {

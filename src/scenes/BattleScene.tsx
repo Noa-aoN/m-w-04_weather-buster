@@ -6,7 +6,10 @@ import { Color, Euler, Vector3 } from "three";
 import { BulletTrails } from "../entities/BulletTrails";
 import { EnemyFigure } from "../entities/EnemyFigure";
 import { EnemyMotion, ENEMY_SCALE } from "../entities/EnemyAi";
+import { BossShatterBurst } from "../entities/BossShatterBurst";
 import { LightningWarnings } from "../entities/LightningWarnings";
+import { MinionField } from "../entities/MinionField";
+import { MinionSpawnBurst } from "../entities/MinionSpawnBurst";
 import { FovController, PlayerBackAvatar, PlayerShield, PlayerWeapon } from "../entities/PlayerView";
 import { StageTerrain } from "../entities/StageTerrain";
 import { RainStreaks, SnowDrift, ThunderstormStrikes } from "../entities/WeatherFx";
@@ -86,9 +89,9 @@ function ExperimentField({
 
   return (
     <>
-      <color attach="background" args={[isClear ? "#a3dcf2" : stage.fogColor]} />
+      <color attach="background" args={[isClear ? "#cdebff" : stage.fogColor]} />
       {isClear ? (
-        <Sky sunPosition={[2, 1.4, 3]} turbidity={2} rayleigh={0.7} mieCoefficient={0.012} />
+        <Sky sunPosition={[2, 1.6, 3]} turbidity={1.4} rayleigh={0.55} mieCoefficient={0.008} />
       ) : (
         <Sky
           sunPosition={[2, 0.4, 1.6]}
@@ -98,15 +101,15 @@ function ExperimentField({
         />
       )}
       <Stars radius={80} depth={35} count={1000} factor={4} saturation={0} fade />
-      <ambientLight intensity={isClear ? 1.95 : 0.65} color={isClear ? "#ffffff" : ambientColor} />
+      <ambientLight intensity={isClear ? 2.4 : 0.65} color={isClear ? "#ffffff" : ambientColor} />
       <directionalLight
         position={[4, 8, 3]}
-        intensity={isClear ? 4.6 : 1.85}
+        intensity={isClear ? 5.6 : 1.85}
         color={isClear ? "#fffae0" : stage.ringColor}
       />
-      <hemisphereLight args={[isClear ? "#fff5d8" : "#bdeeff", isClear ? "#bcdbf3" : "#1c2a36", isClear ? 0.85 : 0.55]} />
+      <hemisphereLight args={[isClear ? "#fffbe8" : "#bdeeff", isClear ? "#cce8ff" : "#1c2a36", isClear ? 1.1 : 0.55]} />
       <pointLight position={[0, 1.4, -3]} intensity={isClear ? 0.6 : 3.2} color={isClear ? "#fffbe8" : enemy.coreColor} />
-      <fog attach="fog" args={[isClear ? "#dff1ff" : stage.fogColor, isClear ? 14 : 8, isClear ? fogFar + 18 : fogFar]} />
+      <fog attach="fog" args={[isClear ? "#eaf6ff" : stage.fogColor, isClear ? 18 : 8, isClear ? fogFar + 28 : fogFar]} />
 
       {/* Suspense isolation: while a stage GLTF / texture / character FBX is
           loading, only this subtree renders null. The Canvas-level default
@@ -144,6 +147,9 @@ function ExperimentField({
         : null}
 
       <LightningWarnings />
+      <MinionField enemyPositionRef={enemyPositionRef} />
+      <MinionSpawnBurst enemyPositionRef={enemyPositionRef} />
+      <BossShatterBurst enemyPositionRef={enemyPositionRef} />
       <BulletTrails />
       <PlayerShield />
       <Suspense fallback={null}>
@@ -158,11 +164,9 @@ function ExperimentField({
 
 export function BattleScene({
   onBack,
-  onOpenEnemyGrid,
   onShowResult,
 }: {
   onBack: () => void;
-  onOpenEnemyGrid: () => void;
   onShowResult: () => void;
 }) {
   const enemyGroupRef = useRef<Group>(null);
@@ -193,7 +197,7 @@ export function BattleScene({
         <PlayerController enemyRef={enemyGroupRef} enemyPositionRef={enemyPositionRef} />
       </Canvas>
 
-      <BattleHud onBack={onBack} onOpenEnemyGrid={onOpenEnemyGrid} onShowResult={onShowResult} />
+      <BattleHud onBack={onBack} onShowResult={onShowResult} />
     </main>
   );
 }

@@ -16,10 +16,13 @@ import {
   playMiss,
   playReload,
   playSlash,
+  playMinionSummon,
   playShoot,
   playShieldBlock,
   playSkill,
+  playStaggerBreak,
   playUiClick,
+  playUiPico,
   setBgmEnabled,
   setBgmScene,
   setMasterVolume,
@@ -72,6 +75,10 @@ export function AudioBridge() {
         return;
       }
       if (interactive.closest("[data-no-ui-sound]")) {
+        return;
+      }
+      if (interactive.classList.contains("primaryMenuButton")) {
+        playUiPico();
         return;
       }
       playUiClick();
@@ -139,6 +146,15 @@ export function AudioBridge() {
       }
       if (state.lastSkillAt !== prev.lastSkillAt && state.lastSkillAt !== 0) {
         playSkill();
+      }
+      if (state.lastStaggerAt !== prev.lastStaggerAt && state.lastStaggerAt !== 0) {
+        playStaggerBreak();
+      }
+      if (state.lastMinionDefeatAt !== prev.lastMinionDefeatAt && state.lastMinionDefeatAt !== 0) {
+        playEnemyStagger(true);
+      }
+      if (state.lastMinionSpawnAt !== prev.lastMinionSpawnAt && state.lastMinionSpawnAt !== 0) {
+        playMinionSummon();
       }
       if (state.lastItemAt !== prev.lastItemAt && state.lastItemAt !== 0) {
         playItem();

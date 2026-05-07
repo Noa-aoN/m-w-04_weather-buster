@@ -1,6 +1,17 @@
+import { useEffect, useState } from "react";
 import { findCharacter, findStage, findWeapon, weatherEnemies } from "../../game/data";
 import { useBattleStore } from "../../game/battleStore";
 import { calculateSunnyScore } from "../../game/score";
+
+function useIsStaggered(staggerUntil: number) {
+  const [now, setNow] = useState(() => performance.now());
+  useEffect(() => {
+    if (now >= staggerUntil) return;
+    const id = window.setInterval(() => setNow(performance.now()), 100);
+    return () => window.clearInterval(id);
+  }, [staggerUntil, now]);
+  return now < staggerUntil;
+}
 import { BattleHudLayer, BattleMenuLayer } from "./components/BattleHudLayers";
 import { BattleEffectsOverlay } from "./components/BattleEffectsOverlay";
 import {
@@ -29,11 +40,9 @@ function formatTime(totalSeconds: number) {
 
 export function BattleHud({
   onBack,
-  onOpenEnemyGrid,
   onShowResult,
 }: {
   onBack: () => void;
-  onOpenEnemyGrid: () => void;
   onShowResult: () => void;
 }) {
   const status = useBattleStore((state) => state.status);
@@ -55,6 +64,7 @@ export function BattleHud({
   const elapsedSeconds = useBattleStore((state) => state.elapsedSeconds);
   const crosshairColor = useBattleStore((state) => state.crosshairColor);
   const decoyUntil = useBattleStore((state) => state.decoyUntil);
+  const staggerUntil = useBattleStore((state) => state.staggerUntil);
   const start = useBattleStore((state) => state.start);
 
   const enemy = weatherEnemies.find((candidate) => candidate.id === selectedEnemyId) ?? weatherEnemies[0];
@@ -66,6 +76,7 @@ export function BattleHud({
   const enemyHpRatio = Math.max(enemyHp / Math.max(enemyMaxHp, 1), 0);
   const playerHpRatio = Math.max(playerHp / Math.max(playerMaxHp, 1), 0);
   const decoyActive = Date.now() < decoyUntil;
+  const isStaggered = useIsStaggered(staggerUntil);
   const score = calculateSunnyScore({
     enemyMaxHp,
     remainingEnemyHp: enemyHp,
@@ -84,10 +95,6 @@ export function BattleHud({
   return (
     <div className={`battleHud ${status === "battle" && isPointerLocked ? "battleHud--engaged" : ""}`}>
       <BattleHudLayer>
-        <header className="battleBrand">
-          <button type="button" onClick={onBack}>WEATHER BUSTER</button>
-        </header>
-
         <PlayerStatusPanel
           characterCodename={character.codename}
           decoyActive={decoyActive}
@@ -99,7 +106,7 @@ export function BattleHud({
           shieldEnergy={shieldEnergy}
         />
 
-        <BossStatusBar enemyName={enemy.name} hpRatio={enemyHpRatio} />
+        <BossStatusBar enemyName={enemy.name} hpRatio={enemyHpRatio} staggered={isStaggered} />
 
         <ScorePanel elapsedLabel={formatTime(elapsedSeconds)} score={score} />
 
@@ -109,8 +116,6 @@ export function BattleHud({
           passiveName={character.passiveName}
           stageName={stage.name}
         />
-
-        <button className="enemyBookButton" type="button" onClick={onOpenEnemyGrid}>天候性侵害体図鑑</button>
 
         <RadarPanel enemyTrait={enemy.trait} stageName={stage.name} />
 

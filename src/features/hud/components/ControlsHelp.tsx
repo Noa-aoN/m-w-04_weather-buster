@@ -4,19 +4,20 @@ const primaryHints: Array<[string, string]> = [
 ];
 
 const controlHints: Array<[string, string]> = [
-  ["W A S D", "移動"],
+  ["W・A・S・D", "移動 (↑・←・↓・→)"],
   ["マウス", "視点"],
   ["B", "気象シールド"],
   ["スペース", "ジャンプ"],
   ["シフト", "ダッシュ"],
   ["R", "リロード"],
-  ["Q", "武器スキル"],
+  ["Q", "ウェポンスキル"],
   ["ESC", "ポーズ"],
 ];
 
 export function ControlsHelp() {
   return (
     <div className="controlsHelpWrap">
+      <p className="controlsHelpHeading">操作方法</p>
       <dl className="controlsHelp controlsHelp--primary">
         {primaryHints.map(([key, label]) => (
           <div key={key}>

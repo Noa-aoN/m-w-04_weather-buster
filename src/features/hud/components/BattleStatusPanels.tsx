@@ -35,10 +35,19 @@ export function PlayerStatusPanel({
   );
 }
 
-export function BossStatusBar({ enemyName, hpRatio }: { enemyName: string; hpRatio: number }) {
+export function BossStatusBar({
+  enemyName,
+  hpRatio,
+  staggered,
+}: {
+  enemyName: string;
+  hpRatio: number;
+  staggered: boolean;
+}) {
   return (
-    <div className="bossBar">
+    <div className={`bossBar ${staggered ? "bossBar--staggered" : ""}`}>
       <strong>{enemyName}</strong>
+      {staggered ? <span className="bossBarStagger">硬直</span> : null}
       <div><i style={{ width: `${Math.max(0, Math.min(1, hpRatio)) * 100}%` }} /></div>
     </div>
   );
@@ -79,7 +88,7 @@ export function RadarPanel({ enemyTrait, stageName }: { enemyTrait: string; stag
   return (
     <HudPanel className="radarPanel">
       <div className="radarCircle"><i /><b /></div>
-      <p>戦域: {stageName}</p>
+      <p>ステージ: {stageName}</p>
       <p>敵性質: {enemyTrait}</p>
     </HudPanel>
   );
@@ -139,7 +148,7 @@ export function SkillStatusPanel({
 }) {
   return (
     <HudPanel className={`skillStatus ${ready ? "skillStatus--ready" : ""}`}>
-      <HudStatRow label="武器スキル" value={skillName} />
+      <HudStatRow label="ウェポンスキル" value={skillName} />
       <HudMeter tone="yellow" value={gauge} />
       <small>{ready ? "Q で発動可能" : description}</small>
     </HudPanel>

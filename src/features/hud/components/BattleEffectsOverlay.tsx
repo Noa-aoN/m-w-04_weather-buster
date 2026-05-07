@@ -218,6 +218,57 @@ function ClearSkyBurst() {
   );
 }
 
+function MinionSummonOverlay() {
+  const lastMinionSpawnAt = useBattleStore((state) => state.lastMinionSpawnAt);
+  const [show, setShow] = useState(0);
+  useEffect(() => {
+    if (lastMinionSpawnAt === 0) return;
+    setShow(lastMinionSpawnAt);
+    const t = window.setTimeout(() => setShow(0), 1700);
+    return () => window.clearTimeout(t);
+  }, [lastMinionSpawnAt]);
+  if (show === 0) return null;
+  return (
+    <>
+      <div className="minionSummonVignette" key={`v-${show}`} aria-hidden="true" />
+      <div className="minionSummonBanner" key={`b-${show}`} aria-hidden="true">
+        <span>暗雲、湧き上がる</span>
+        <small>子分が召喚された</small>
+      </div>
+    </>
+  );
+}
+
+function StaggerBurst() {
+  const lastStaggerAt = useBattleStore((state) => state.lastStaggerAt);
+  const staggerUntil = useBattleStore((state) => state.staggerUntil);
+  const [activeKey, setActiveKey] = useState(0);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (lastStaggerAt === 0) return;
+    setActiveKey(lastStaggerAt);
+  }, [lastStaggerAt]);
+  useEffect(() => {
+    if (activeKey === 0) return;
+    const id = window.setInterval(() => setTick((value) => value + 1), 120);
+    return () => window.clearInterval(id);
+  }, [activeKey]);
+  const now = performance.now();
+  const isActive = activeKey !== 0 && now < staggerUntil;
+  if (!isActive) {
+    return null;
+  }
+  return (
+    <>
+      <div className="staggerFlash" key={`flash-${activeKey}`} aria-hidden="true" />
+      <div className={`staggerBanner ${tick % 2 === 0 ? "on" : ""}`} aria-hidden="true">
+        <span>硬直</span>
+        <small>核を狙え</small>
+      </div>
+    </>
+  );
+}
+
 function DamageFlash() {
   const playerHp = useBattleStore((state) => state.playerHp);
   const prev = useRef(playerHp);
@@ -490,6 +541,8 @@ export function BattleEffectsOverlay({
       <LowHpVignette />
       <BattleStartFlash />
       <ClearSkyBurst />
+      <StaggerBurst />
+      <MinionSummonOverlay />
       <BossIntro enemyName={enemyName} enemyTrait={enemyTrait} threat={enemyThreat} />
       <DamageFlash />
       <HealFlash />

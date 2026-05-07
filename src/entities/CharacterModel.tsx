@@ -33,10 +33,13 @@ export function CharacterModel({
   id,
   accent,
   preferredAction = "idle",
+  showHaloRings = true,
 }: {
   id: CharacterId;
   accent: string;
   preferredAction?: "idle" | "walk" | "run" | "punch" | "jump";
+  /** Codex preview wants a clean silhouette without the accent ring. */
+  showHaloRings?: boolean;
 }) {
   const groupRef = useRef<Group>(null);
   const innerRef = useRef<Group>(null);
@@ -96,14 +99,18 @@ export function CharacterModel({
           <primitive object={fitted} />
         </group>
       </group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
-        <ringGeometry args={[0.78, 1, 64]} />
-        <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.55} toneMapped={false} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
-        <ringGeometry args={[1.3, 1.36, 64]} />
-        <meshBasicMaterial color={accent} transparent opacity={0.32} toneMapped={false} />
-      </mesh>
+      {showHaloRings ? (
+        <>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+            <ringGeometry args={[0.78, 1, 64]} />
+            <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.55} toneMapped={false} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+            <ringGeometry args={[1.3, 1.36, 64]} />
+            <meshBasicMaterial color={accent} transparent opacity={0.32} toneMapped={false} />
+          </mesh>
+        </>
+      ) : null}
     </group>
   );
 }

@@ -45,7 +45,7 @@ export function SkillReadyToast({ pressureGauge, weaponSkillName }: { pressureGa
     <div className="skillReadyToast" key={show.at} aria-hidden="true">
       <span className="skillReadyKey">Q</span>
       <div className="skillReadyBody">
-        <small>武器スキル 発動可能</small>
+        <small>ウェポンスキル 発動可能</small>
         <strong>{weaponSkillName}</strong>
       </div>
     </div>

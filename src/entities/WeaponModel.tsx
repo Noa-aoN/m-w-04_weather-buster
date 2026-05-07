@@ -54,7 +54,17 @@ export function WeaponObject({ id, targetSize }: { id: WeaponId; targetSize: num
     : <FbxWeaponObject url={model.url} targetSize={targetSize} />;
 }
 
-export function WeaponModel({ id, accent }: { id: WeaponId; accent: string }) {
+export function WeaponModel({
+  id,
+  accent,
+  showHaloRings = true,
+}: {
+  id: WeaponId;
+  accent: string;
+  /** Loadout-grid card showcase wants the accent rings under the weapon, but
+   *  the codex preview is cleaner without them. */
+  showHaloRings?: boolean;
+}) {
   const groupRef = useRef<Group>(null);
   const targetSize = id === "windBlade" ? 2.6 : 1.6;
 
@@ -72,19 +82,23 @@ export function WeaponModel({ id, accent }: { id: WeaponId; accent: string }) {
       <group ref={groupRef} rotation={weaponModelRotation(id)}>
         <WeaponObject id={id} targetSize={targetSize} />
       </group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.55, 0]}>
-        <ringGeometry args={[0.7, 0.86, 64]} />
-        <meshStandardMaterial
-          color={accent}
-          emissive={accent}
-          emissiveIntensity={0.6}
-          toneMapped={false}
-        />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.55, 0]}>
-        <ringGeometry args={[1.05, 1.1, 64]} />
-        <meshBasicMaterial color={accent} transparent opacity={0.28} toneMapped={false} />
-      </mesh>
+      {showHaloRings ? (
+        <>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.55, 0]}>
+            <ringGeometry args={[0.7, 0.86, 64]} />
+            <meshStandardMaterial
+              color={accent}
+              emissive={accent}
+              emissiveIntensity={0.6}
+              toneMapped={false}
+            />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.55, 0]}>
+            <ringGeometry args={[1.05, 1.1, 64]} />
+            <meshBasicMaterial color={accent} transparent opacity={0.28} toneMapped={false} />
+          </mesh>
+        </>
+      ) : null}
     </group>
   );
 }

@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import { useBattleStore } from "../game/battleStore";
+import { ModalShell } from "../features/modal/ModalShell";
 
 const crosshairPresets: Array<{ id: string; label: string; color: string }> = [
   { id: "white", label: "WHITE", color: "#ffffff" },
@@ -25,33 +25,14 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
   const masterVolume = useBattleStore((state) => state.masterVolume);
   const setMasterVolume = useBattleStore((state) => state.setMasterVolume);
 
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.target instanceof HTMLElement && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")) {
-        return;
-      }
-      const key = event.key.toLowerCase();
-      if (key === "h" || event.key === "Escape") {
-        event.preventDefault();
-        onBack();
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onBack]);
-
   return (
-    <main className="settingsShell sceneEnter">
-      <div className="gridBackdrop" aria-hidden="true" />
-      <header className="screenHeader">
-        <div className="screenHeaderInfo">
-          <span>PROJECT: WEATHER BUSTER</span>
-          <h1>設定</h1>
-          <small>操作とHUDの調整</small>
-          <button type="button" className="screenBack screenInlineBack" onClick={onBack}>戻る (ESC)</button>
-        </div>
-      </header>
-
+    <ModalShell
+      variant="settings"
+      eyebrow="PROJECT: WEATHER BUSTER"
+      title="設定"
+      subtitle="操作とHUDの調整"
+      onBack={onBack}
+    >
       <section className="settingsLayout">
         <article className="settingRow tacticalPanel">
           <header>
@@ -209,6 +190,6 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
           </div>
         </article>
       </section>
-    </main>
+    </ModalShell>
   );
 }

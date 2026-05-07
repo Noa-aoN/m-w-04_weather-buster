@@ -22,7 +22,9 @@ export const COMBAT_CONSTANTS = {
   STABILIZER_GAUGE_GAIN: 60,
   DECOY_DURATION_MS: 5000,
   DECOY_DAMAGE_RATIO: 0.4,
-  CORE_DAMAGE_MULTIPLIER: 2.4,
+  CORE_DAMAGE_MULTIPLIER: 3.0,
+  // Non-core hits do reduced damage so aiming for the glowing core matters.
+  BODY_DAMAGE_MULTIPLIER: 0.55,
   SHIELD_DAMAGE_RATIO: 0.28,
   SHIELD_DRAIN_PER_BLOCK: 18,
   SHIELD_REGEN_PER_SECOND: 9,
@@ -126,7 +128,10 @@ export function applyShot({
     ? computeOutgoingDamage(weapon, enemyId, character.damageMultiplier)
     : 0;
   const blockMul = blocked ? COMBAT_CONSTANTS.BARRIER_DAMAGE_MUL : 1;
-  const damage = (critical ? baseDamage * COMBAT_CONSTANTS.CORE_DAMAGE_MULTIPLIER : baseDamage) * blockMul;
+  const zoneMul = critical
+    ? COMBAT_CONSTANTS.CORE_DAMAGE_MULTIPLIER
+    : COMBAT_CONSTANTS.BODY_DAMAGE_MULTIPLIER;
+  const damage = baseDamage * zoneMul * blockMul;
   const enemyHp = Math.max(state.enemyHp - damage, 0);
   const baseGauge = didHit
     ? (critical ? COMBAT_CONSTANTS.CRITICAL_GAUGE_GAIN : COMBAT_CONSTANTS.HIT_GAUGE_GAIN)

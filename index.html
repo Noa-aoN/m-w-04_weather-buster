@@ -16,6 +16,20 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <title>ウェザー・バスターズ 〜CLEAR THE SKY〜</title>
+    <style>
+      /* Inline pre-paint baseline — prevents any body scrollbar from ever
+         showing during initial load before styles.css is parsed. The first
+         paint of the R3F canvas measures its parent, and a phantom
+         scrollbar would bake a permanent black stripe into that size. */
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #061019;
+        overflow: hidden;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

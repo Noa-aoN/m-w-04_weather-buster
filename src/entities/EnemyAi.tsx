@@ -2,7 +2,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useRef } from "react";
 import type { Group, Vector3 } from "three";
 import { useBattleStore } from "../game/battleStore";
-import { difficultyModifiers } from "../game/data";
+import { difficultyModifiers, findMinionType } from "../game/data";
 import { isDebugEnabled, writeDebug } from "../features/debug/debugBus";
 import type { DifficultyLevel, WeatherEnemy } from "../game/types";
 
@@ -117,6 +117,17 @@ export function EnemyMotion({
       enemyPositionRef.current.copy(node.position);
       return;
     }
+    // Stagger: hold position, jitter scale at ~6Hz so the silhouette visibly
+    // pulses for the player. AI phase timer pauses so it picks up cleanly.
+    const staggerUntil = useBattleStore.getState().staggerUntil;
+    const nowMs = performance.now();
+    const isStaggered = nowMs < staggerUntil;
+    if (isStaggered) {
+      const blink = 1 + Math.sin(nowMs * 0.04) * 0.06;
+      node.scale.setScalar(ENEMY_SCALE * revealScale * blink);
+      enemyPositionRef.current.copy(node.position);
+      return;
+    }
     node.scale.setScalar(ENEMY_SCALE * revealScale * breath * (1 + hitFlinch * 0.07));
 
     const aggression = difficultyModifiers[difficulty].movementAggression;
@@ -163,6 +174,15 @@ export function EnemyMotion({
         };
         phase.mode = next[phase.mode];
       }
+      // Force pure flee while minions are alive — the boss lets them screen
+      // and bolts to the back of the arena. Anything that closes the gap
+      // (approach / circle / telegraph / idle) is overridden to evade so
+      // there's a long stretch of un-pressured shooting time once the player
+      // commits to clearing minions.
+      const minionsAlive = useBattleStore.getState().minions.length > 0;
+      if (minionsAlive && phase.mode !== "evade" && phase.mode !== "retreat") {
+        phase.mode = "evade";
+      }
       if (phase.mode === "circle") {
         phase.orbitDir = Math.random() < 0.5 ? 1 : -1;
       }
@@ -174,10 +194,25 @@ export function EnemyMotion({
       }
     }
 
-    const orbitRadius = enemy.id === "tornado" || enemy.id === "blizzard" ? 6.6 + aggression * 1.2
+    // While minions are alive the boss hangs back — adds a flat radius bonus
+    // pulled from the minion type so a future minion species can change the
+    // boss's behaviour just by tweaking its config.
+    const storeSnap = useBattleStore.getState();
+    const liveMinions = storeSnap.minions;
+    const minionStandoff = liveMinions.length > 0
+      ? findMinionType(liveMinions[0].typeId).bossStandoffBonus
+      : 0;
+    // Brief recoil window: for ~3s after a minion spawns the boss adds an
+    // extra standoff bonus on top of the persistent flee. Reads as "boss
+    // jumps backward as the minions appear".
+    const sinceSpawn = storeSnap.lastMinionSpawnAt > 0
+      ? performance.now() - storeSnap.lastMinionSpawnAt
+      : Infinity;
+    const recoilBonus = sinceSpawn < 3000 ? 4 * (1 - sinceSpawn / 3000) : 0;
+    const orbitRadius = (enemy.id === "tornado" || enemy.id === "blizzard" ? 6.6 + aggression * 1.2
       : enemy.id === "typhoon" ? 7.4 + aggression * 1.4
       : enemy.id === "cloudy" ? 6.2
-      : 7.2 + aggression * 0.9;
+      : 7.2 + aggression * 0.9) + minionStandoff + recoilBonus;
 
     let targetX = 0;
     let targetZ = baseZ;

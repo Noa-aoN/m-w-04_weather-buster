@@ -1,12 +1,12 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Sky, Stars, useAnimations, useGLTF, useTexture } from "@react-three/drei";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh } from "three";
 import { LoopOnce, RepeatWrapping, SRGBColorSpace } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
 import { characters, findCharacter, findStage, findWeapon, stages, weapons, weatherEnemies } from "../game/data";
-import { useGeolocationWeather, weatherCodeLabel } from "../features/weather/useGeolocationWeather";
+import { useGeolocationWeather } from "../features/weather/useGeolocationWeather";
 import type { CharacterId, DifficultyLevel, LoadoutTab, Stage } from "../game/types";
 import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
 import { fitObjectToHeight, tintCharacterMaterials } from "../entities/fitObject";
@@ -63,6 +63,16 @@ function LoadoutIcon() {
   );
 }
 
+function StageIcon() {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M3 22 L11 12 L17 18 L24 8 L29 22 Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M3 26 L29 26" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="24" cy="9" r="1.6" fill="currentColor" />
+    </svg>
+  );
+}
+
 function GearIcon() {
   return (
     <svg viewBox="0 0 32 32" aria-hidden="true">
@@ -78,24 +88,134 @@ function GearIcon() {
   );
 }
 
-function GpsToggle() {
-  const enabled = useBattleStore((state) => state.locationEnabled);
-  const setEnabled = useBattleStore((state) => state.setLocationEnabled);
-  const code = useBattleStore((state) => state.currentWeatherCode);
-  const enemyId = useBattleStore((state) => state.currentWeatherEnemyId);
-  const label = enabled ? (code === null ? "計測中" : weatherCodeLabel(code)) : "OFF";
+const HERO_TELEMETRY_LINES = [
+  "天候情報を観測中…",
+  "観測局 LINK OK",
+  "気圧スーツ起動 / 出撃準備中",
+  "天侵体スキャン / 待機",
+];
 
+const HeroTelemetry = forwardRef<HTMLDivElement>(function HeroTelemetry(_, ref) {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setIndex((value) => (value + 1) % HERO_TELEMETRY_LINES.length);
+    }, 2600);
+    return () => window.clearInterval(id);
+  }, []);
+  return (
+    <div ref={ref} className="heroTelemetry" aria-hidden="true">
+      <span className="heroTelemetryDot" />
+      <span className="heroTelemetryLine" key={index}>{HERO_TELEMETRY_LINES[index]}</span>
+    </div>
+  );
+});
+
+// Fixed-position SVG overlay that draws a thin dashed leader line from a
+// source HTML element toward the centre of the viewport, terminating in a
+// glowing dot. Used by both the pilot speech bubble and the SF telemetry
+// chip — each gestures toward the hero in the middle of the home stage.
+function LeaderLine({
+  sourceRef,
+  anchor,
+  accent,
+  lengthFactor = 1,
+  extendFraction = 0,
+}: {
+  sourceRef: { current: HTMLElement | null };
+  /** Which point of the source rect to start the line from. */
+  anchor: "top-right" | "top-center";
+  accent: string;
+  /** Scales the rendered line/terminus distance from start. 1 = full length
+   *  (after pullback), 0.5 = half. Direction is unchanged. */
+  lengthFactor?: number;
+  /** 0..1. Closes the gap between the default terminus and the centre by
+   *  this fraction of the gap. 0 = leave default pullback, 0.667 = close 2/3
+   *  of the remaining distance. */
+  extendFraction?: number;
+}) {
+  const [start, setStart] = useState<{ x: number; y: number } | null>(null);
+
+  useLayoutEffect(() => {
+    function measure() {
+      const node = sourceRef.current;
+      if (!node) return;
+      const rect = node.getBoundingClientRect();
+      const x = anchor === "top-center" ? (rect.left + rect.right) / 2 : rect.right;
+      const y = anchor === "top-center" ? rect.top : rect.top + 4;
+      setStart({ x, y });
+    }
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (sourceRef.current) ro.observe(sourceRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [sourceRef, anchor]);
+
+  if (!start) return null;
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1920;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 1080;
+  const centerX = vw / 2;
+  const centerY = vh / 2;
+  const dx = centerX - start.x;
+  const dy = centerY - start.y;
+  const distance = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+  // Pull terminator back from the centre so it doesn't sit on the hero.
+  // Lighter pull-back than before — line gets to extend a bit further.
+  const basePullback = Math.min(170, Math.max(80, distance * 0.16));
+  const pullback = basePullback * (1 - extendFraction);
+  const t = ((distance - pullback) / distance) * lengthFactor;
+  const endX = start.x + dx * t;
+  const endY = start.y + dy * t;
+
+  return (
+    <svg
+      className="pilotLogLeader"
+      aria-hidden="true"
+      preserveAspectRatio="none"
+      viewBox={`0 0 ${vw} ${vh}`}
+    >
+      <line
+        x1={start.x}
+        y1={start.y}
+        x2={endX}
+        y2={endY}
+        stroke={accent}
+        strokeOpacity="0.55"
+        strokeWidth="1"
+        strokeDasharray="5 5"
+      />
+      <circle
+        cx={endX}
+        cy={endY}
+        r="3.5"
+        fill={accent}
+        fillOpacity="0.85"
+      />
+    </svg>
+  );
+}
+
+function GpsToggle() {
+  // GPS-driven weather pull is paused for now — the chip stays visible as a
+  // disabled placeholder so the planned feature has a home in the layout
+  // when it comes back.
   return (
     <button
       type="button"
-      className={`gpsToggle ${enabled ? "on" : ""}`}
-      aria-pressed={enabled}
-      onClick={() => setEnabled(!enabled)}
+      className="gpsToggle is-disabled"
+      aria-disabled="true"
+      aria-pressed="false"
+      title="現在は無効化されています"
+      tabIndex={-1}
+      onClick={(event) => event.preventDefault()}
     >
       <span className="gpsDot" />
       <small>GPS</small>
-      <em>{label}</em>
-      {enabled && enemyId ? <b className="gpsEnemyHint">出撃候補</b> : null}
+      <em>準備中</em>
     </button>
   );
 }
@@ -642,8 +762,9 @@ export function HomeScene({
   const setDifficulty = useBattleStore((state) => state.setDifficulty);
   const currentWeatherCode = useBattleStore((state) => state.currentWeatherCode);
   const locationEnabled = useBattleStore((state) => state.locationEnabled);
-  const [isMissionCollapsed, setMissionCollapsed] = useState(false);
   const missionPreviewRef = useRef<HTMLElement>(null);
+  const bubbleRef = useRef<HTMLQuoteElement>(null);
+  const telemetryRef = useRef<HTMLDivElement>(null);
   const [menuTopPx, setMenuTopPx] = useState<number | null>(null);
 
   const selectedEnemy = weatherEnemies.find((enemy) => enemy.id === selectedEnemyId) ?? weatherEnemies[0];
@@ -692,14 +813,8 @@ export function HomeScene({
     : "極限";
 
   useLayoutEffect(() => {
-    if (isMissionCollapsed) {
-      setMenuTopPx(null);
-      return;
-    }
     const el = missionPreviewRef.current;
-    if (!el) {
-      return;
-    }
+    if (!el) return;
     function update() {
       if (!el) return;
       setMenuTopPx(el.getBoundingClientRect().top);
@@ -712,7 +827,7 @@ export function HomeScene({
       ro.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [isMissionCollapsed]);
+  }, []);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -735,6 +850,9 @@ export function HomeScene({
       } else if (key === "l") {
         event.preventDefault();
         onOpenLoadout("weapon");
+      } else if (key === "f") {
+        event.preventDefault();
+        onOpenLoadout("stage");
       } else if (key === "s") {
         event.preventDefault();
         onOpenSettings();
@@ -790,10 +908,8 @@ export function HomeScene({
           <span className="titleTag">荒れた天候を撃ち抜き、空を晴らせ</span>
         </section>
 
-        <blockquote className="pilotLog">
-          <span className="pilotLogCallSign" style={{ color: character.accentColor }}>{character.callSign} / {character.codename}</span>
-          <em>「{character.flavor}」</em>
-        </blockquote>
+        <HeroTelemetry ref={telemetryRef} />
+        <LeaderLine sourceRef={telemetryRef} anchor="top-center" accent={character.accentColor} lengthFactor={0.5} />
       </HomeHudLayer>
 
       <HomeMenuLayer>
@@ -809,7 +925,7 @@ export function HomeScene({
           </button>
           <button className="menuItem" type="button" onClick={onOpenStory}>
             <span className="menuIcon"><StoryIcon /></span>
-            <span className="menuLabel">ストーリー</span>
+            <span className="menuLabel">世界レポート</span>
             <span className="menuKey">T</span>
           </button>
           <button className="menuItem" type="button" onClick={onOpenEnemyGrid}>
@@ -824,31 +940,37 @@ export function HomeScene({
           </button>
           <button className="menuItem" type="button" onClick={() => onOpenLoadout("weapon")}>
             <span className="menuIcon"><LoadoutIcon /></span>
-            <span className="menuLabel">装備図鑑</span>
+            <span className="menuLabel">ウェポン図鑑</span>
             <span className="menuKey">L</span>
+          </button>
+          <button className="menuItem" type="button" onClick={() => onOpenLoadout("stage")}>
+            <span className="menuIcon"><StageIcon /></span>
+            <span className="menuLabel">ステージ図鑑</span>
+            <span className="menuKey">F</span>
           </button>
           <button className="menuItem" type="button" onClick={onOpenSettings}>
             <span className="menuIcon"><GearIcon /></span>
             <span className="menuLabel">設定</span>
             <span className="menuKey">S</span>
           </button>
+
+          <blockquote
+            ref={bubbleRef}
+            className="pilotLog pilotLog--bubble"
+            style={{ ["--bubble-accent" as string]: character.accentColor }}
+          >
+            <span className="pilotLogCallSign" style={{ color: character.accentColor }}>
+              {character.callSign} / {character.codename}
+            </span>
+            <em>「{character.flavor}」</em>
+          </blockquote>
         </nav>
 
-        <aside
-          ref={missionPreviewRef}
-          className={`missionPreview ${isMissionCollapsed ? "collapsed" : ""}`}
-        >
+        <LeaderLine sourceRef={bubbleRef} anchor="top-right" accent={character.accentColor} extendFraction={2 / 3} />
+
+        <aside ref={missionPreviewRef} className="missionPreview">
         <div className="missionPreviewHeader">
           <span>出撃ブリーフィング</span>
-          <button
-            type="button"
-            className="missionCollapseButton"
-            aria-label={isMissionCollapsed ? "ミッションプレビューを開く" : "ミッションプレビューを折りたたむ"}
-            aria-expanded={!isMissionCollapsed}
-            onClick={() => setMissionCollapsed((value) => !value)}
-          >
-            {isMissionCollapsed ? "▴" : "▾"}
-          </button>
         </div>
         <div className="missionPreviewBody">
         <div className="missionCycler">
@@ -862,32 +984,36 @@ export function HomeScene({
         </div>
 
         <div className="missionCycler">
-          <button type="button" className="cyclerArrow" aria-label="前の武器" onClick={() => cycleWeapon(-1)}>◀</button>
+          <button type="button" className="cyclerArrow" aria-label="前のウェポン" onClick={() => cycleWeapon(-1)}>◀</button>
           <button type="button" className="cyclerLabel cyclerDetailButton" onClick={() => onOpenLoadout("weapon")}>
-            <small>武器</small>
+            <small>ウェポン</small>
             <strong>{weapon.name}</strong>
-            <em>攻撃力 {weapon.damage}</em>
-            {weapon.specialtyAgainst.includes(selectedEnemy.id) ? (
-              <b className="weaponSpecialtyBadge">×{weapon.specialtyMultiplier.toFixed(2)} 弱点特効</b>
-            ) : null}
+            <em className="weaponDamageRow">
+              <span>攻撃力 {weapon.damage}</span>
+              {weapon.specialtyAgainst.includes(selectedEnemy.id) ? (
+                <b className="weaponSpecialtyBadge">×{weapon.specialtyMultiplier.toFixed(2)} 弱点特効</b>
+              ) : null}
+            </em>
           </button>
-          <button type="button" className="cyclerArrow" aria-label="次の武器" onClick={() => cycleWeapon(1)}>▶</button>
+          <button type="button" className="cyclerArrow" aria-label="次のウェポン" onClick={() => cycleWeapon(1)}>▶</button>
         </div>
 
         <div className="missionCycler">
-          <button type="button" className="cyclerArrow" aria-label="前の戦域" onClick={() => cycleStage(-1)}>◀</button>
+          <button type="button" className="cyclerArrow" aria-label="前のステージ" onClick={() => cycleStage(-1)}>◀</button>
           <div className="cyclerLabel">
-            <small>戦域</small>
-            <strong>{stage.name}</strong>
-            <button type="button" className="stageDetailLink" onClick={() => onOpenLoadout("stage")}>詳細</button>
+            <small>ステージ</small>
+            <strong className="stageNameRow">
+              <span>{stage.name}</span>
+              <button type="button" className="stageDetailLink" onClick={() => onOpenLoadout("stage")}>詳細</button>
+            </strong>
           </div>
-          <button type="button" className="cyclerArrow" aria-label="次の戦域" onClick={() => cycleStage(1)}>▶</button>
+          <button type="button" className="cyclerArrow" aria-label="次のステージ" onClick={() => cycleStage(1)}>▶</button>
         </div>
 
         <div className="missionCycler">
           <button type="button" className="cyclerArrow" aria-label="前の敵" onClick={() => cycleEnemy(-1)}>◀</button>
           <div className="cyclerLabel cyclerEnemy">
-            <small>敵</small>
+            <small>天候性侵害体</small>
             <strong>
               <span className="enemyMiniIcon" style={{ color: selectedEnemy.accentColor }}>{selectedEnemy.icon}</span>
               {selectedEnemy.name}
@@ -926,7 +1052,6 @@ export function HomeScene({
               {index < selectedDifficulty ? "■" : ""}
             </b>
           ))}
-          <em className="difficultyTag">{difficultyName}</em>
         </div>
 
         <button type="button" className="primaryMenuButton missionStartButton" onClick={onStart}>ゲーム開始</button>

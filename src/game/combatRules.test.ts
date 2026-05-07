@@ -77,7 +77,7 @@ const baseShotState = {
 };
 
 describe("applyShot", () => {
-  it("deals weapon-base damage on a normal hit", () => {
+  it("deals weapon-base damage with the body multiplier on a normal hit", () => {
     const patch = applyShot({
       didHit: true,
       critical: false,
@@ -87,9 +87,10 @@ describe("applyShot", () => {
       state: baseShotState,
       now: 1000,
     });
-    // weatherGun.damage(11) * specialty(1) * iris.damageMul(1.1) = 12.1
-    expect(patch.damage).toBeCloseTo(12.1, 5);
-    expect(patch.enemyHp).toBeCloseTo(240 - 12.1, 5);
+    // weatherGun.damage * specialty(1) * noa.damageMul(1.1) * body(0.55)
+    const expected = weatherGun.damage * 1 * noa.damageMultiplier * COMBAT_CONSTANTS.BODY_DAMAGE_MULTIPLIER;
+    expect(patch.damage).toBeCloseTo(expected, 5);
+    expect(patch.enemyHp).toBeCloseTo(240 - expected, 5);
     expect(patch.blocked).toBe(false);
     expect(patch.effectiveCritical).toBe(false);
     expect(patch.combo).toBe(1);
@@ -105,12 +106,21 @@ describe("applyShot", () => {
       state: baseShotState,
       now: 1000,
     });
-    expect(patch.damage).toBeCloseTo(12.1 * COMBAT_CONSTANTS.CORE_DAMAGE_MULTIPLIER, 5);
+    const expected = weatherGun.damage * noa.damageMultiplier * COMBAT_CONSTANTS.CORE_DAMAGE_MULTIPLIER;
+    expect(patch.damage).toBeCloseTo(expected, 5);
     expect(patch.effectiveCritical).toBe(true);
   });
 
+  it("body multiplier is much smaller than core multiplier", () => {
+    expect(COMBAT_CONSTANTS.BODY_DAMAGE_MULTIPLIER).toBeLessThan(
+      COMBAT_CONSTANTS.CORE_DAMAGE_MULTIPLIER,
+    );
+    // The intent is roughly 5x stronger on core; guard against accidental flips.
+    const ratio = COMBAT_CONSTANTS.CORE_DAMAGE_MULTIPLIER / COMBAT_CONSTANTS.BODY_DAMAGE_MULTIPLIER;
+    expect(ratio).toBeGreaterThan(3);
+  });
+
   it("applies the specialty multiplier when the weapon counters the enemy", () => {
-    // rainySeasonKiller has heavyRain in specialtyAgainst (x1.45) and damage 28
     const patch = applyShot({
       didHit: true,
       critical: false,
@@ -120,11 +130,13 @@ describe("applyShot", () => {
       state: { ...baseShotState, enemyHp: 1000 },
       now: 1000,
     });
-    // 28 * 1.45 * 1.1 = 44.66
-    expect(patch.damage).toBeCloseTo(28 * 1.45 * 1.1, 5);
+    // damage * specialty(1.45) * noa.damageMul(1.1) * body multiplier
+    const expected = rainKiller.damage * rainKiller.specialtyMultiplier
+      * noa.damageMultiplier * COMBAT_CONSTANTS.BODY_DAMAGE_MULTIPLIER;
+    expect(patch.damage).toBeCloseTo(expected, 5);
   });
 
-  it("blocks shots while the enemy barrier is up (damage x0.18, no crit)", () => {
+  it("blocks shots while the enemy barrier is up", () => {
     const patch = applyShot({
       didHit: true,
       critical: true,
@@ -134,8 +146,10 @@ describe("applyShot", () => {
       state: { ...baseShotState, enemyBarrierUntil: 2000 },
       now: 1000,
     });
-    // base 12.1 * crit 2.4 * barrier 0.18 = 5.227...
-    expect(patch.damage).toBeCloseTo(12.1 * 2.4 * COMBAT_CONSTANTS.BARRIER_DAMAGE_MUL, 5);
+    // weatherGun.damage * noa.dmgMul * crit core mul * barrier mul
+    const expected = weatherGun.damage * noa.damageMultiplier
+      * COMBAT_CONSTANTS.CORE_DAMAGE_MULTIPLIER * COMBAT_CONSTANTS.BARRIER_DAMAGE_MUL;
+    expect(patch.damage).toBeCloseTo(expected, 5);
     expect(patch.blocked).toBe(true);
     expect(patch.effectiveCritical).toBe(false);
   });
