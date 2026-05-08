@@ -2,7 +2,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useAnimations, useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh, PerspectiveCamera, PointLight } from "three";
-import { Vector3 } from "three";
+import { AdditiveBlending, Vector3 } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
 import { isDebugEnabled, writeDebug } from "../features/debug/debugBus";
@@ -18,6 +18,79 @@ import { WeaponObject, weaponModelRotation, weaponModelScale } from "./WeaponMod
 // through so consecutive clicks visibly differ.
 const SLASH_DURATION_MS = 320;
 const SLASH_VARIANTS = 4;
+
+/**
+ * Muzzle flash. Layered additive bloom in warm orange/yellow tones —
+ * matches the prior look the player preferred. Layers:
+ *  - hot white pin-prick core
+ *  - inner yellow energy bloom
+ *  - outer orange corona
+ *  - anamorphic horizontal + vertical lens streaks (4-point star)
+ *  - 45° diagonal streaks softening the star
+ *  - short forward plume cone
+ *  - warm point light
+ *
+ * Decoupled into its own component so a sprite-based flash (Kenney's
+ * particle pack etc.) can drop in here without touching the gun's
+ * transform / recoil math.
+ */
+function MuzzleFlash({
+  flashRef,
+  flashLightRef,
+}: {
+  flashRef: React.RefObject<Mesh | null>;
+  flashLightRef: React.RefObject<PointLight | null>;
+}) {
+  const FLASH_Z = -0.62;
+  return (
+    <>
+      {/* Hot pin-prick core — pure white, additive so it punches through. */}
+      <mesh position={[0, 0, FLASH_Z]}>
+        <sphereGeometry args={[0.05, 14, 14]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={1} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Inner yellow energy bloom. */}
+      <mesh ref={flashRef} position={[0, 0, FLASH_Z]}>
+        <sphereGeometry args={[0.16, 16, 16]} />
+        <meshBasicMaterial color="#ffe28a" transparent opacity={0.95} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Outer orange corona. */}
+      <mesh position={[0, 0, FLASH_Z]}>
+        <sphereGeometry args={[0.34, 14, 14]} />
+        <meshBasicMaterial color="#ff8a3a" transparent opacity={0.42} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Anamorphic horizontal streak — signature lens flare. */}
+      <mesh position={[0, 0, FLASH_Z + 0.005]}>
+        <planeGeometry args={[1.6, 0.05]} />
+        <meshBasicMaterial color="#fff0b8" transparent opacity={0.75} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Vertical streak — completes the cross. */}
+      <mesh position={[0, 0, FLASH_Z + 0.005]} rotation={[0, 0, Math.PI / 2]}>
+        <planeGeometry args={[0.7, 0.04]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.6} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Diagonal streaks — soften the cross into a 4-point star. */}
+      {[Math.PI / 4, -Math.PI / 4].map((rot) => (
+        <mesh key={rot} position={[0, 0, FLASH_Z + 0.004]} rotation={[0, 0, rot]}>
+          <planeGeometry args={[0.95, 0.025]} />
+          <meshBasicMaterial color="#ffd9a0" transparent opacity={0.55} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+        </mesh>
+      ))}
+      {/* Forward plume — short cone receding from the muzzle. */}
+      <mesh position={[0, 0, FLASH_Z - 0.32]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.14, 0.4, 16, 1, true]} />
+        <meshBasicMaterial color="#ffb060" transparent opacity={0.32} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      <pointLight
+        ref={flashLightRef}
+        position={[0, 0, FLASH_Z + 0.05]}
+        intensity={12}
+        color="#ffd56a"
+        distance={7}
+      />
+    </>
+  );
+}
 
 export function PlayerWeapon() {
   const { camera } = useThree();
@@ -122,41 +195,7 @@ export function PlayerWeapon() {
         <WeaponObject id={selectedWeaponId} targetSize={selectedWeaponId === "windBlade" ? 1.05 : 0.6} />
       </group>
       {flashVisible && selectedWeaponId !== "windBlade" ? (
-        <>
-          {/* Tight white-hot core */}
-          <mesh position={[0, 0, -0.62]}>
-            <sphereGeometry args={[0.06, 12, 12]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={1} toneMapped={false} />
-          </mesh>
-          {/* Bright orange-yellow halo around the core */}
-          <mesh ref={flashRef} position={[0, 0, -0.62]}>
-            <sphereGeometry args={[0.18, 14, 14]} />
-            <meshBasicMaterial color="#ffd56a" transparent opacity={0.9} toneMapped={false} />
-          </mesh>
-          {/* Outer wide soft glow — sells volumetric muzzle blast */}
-          <mesh position={[0, 0, -0.62]}>
-            <sphereGeometry args={[0.34, 12, 12]} />
-            <meshBasicMaterial color="#ff8a3a" transparent opacity={0.32} toneMapped={false} depthWrite={false} />
-          </mesh>
-          {/* 6-pointed cross of flame petals (ratio'd plane sprites) */}
-          {[0, Math.PI / 6, Math.PI / 3, Math.PI / 2, (Math.PI * 2) / 3, (Math.PI * 5) / 6].map((rot, i) => (
-            <mesh key={rot} position={[0, 0, -0.62]} rotation={[0, 0, rot]}>
-              <planeGeometry args={[0.78 - (i % 2) * 0.18, 0.13 - (i % 2) * 0.04]} />
-              <meshBasicMaterial color={i % 2 === 0 ? "#ffe9a8" : "#ffaa42"} transparent opacity={0.78 - (i % 3) * 0.12} toneMapped={false} depthWrite={false} />
-            </mesh>
-          ))}
-          {/* Forward smoke / heat-distort cone hint (a darker, smaller plane) */}
-          <mesh position={[0, 0, -0.92]} rotation={[Math.PI / 2, 0, 0]}>
-            <coneGeometry args={[0.18, 0.45, 12, 1, true]} />
-            <meshBasicMaterial color="#ffb060" transparent opacity={0.32} toneMapped={false} depthWrite={false} />
-          </mesh>
-          {/* Distant pinpoint to give parallax depth */}
-          <mesh position={[0, 0, -1.05]}>
-            <sphereGeometry args={[0.05, 8, 8]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.85} toneMapped={false} />
-          </mesh>
-          <pointLight ref={flashLightRef} position={[0, 0, -0.55]} intensity={11} color="#ffd56a" distance={6.5} />
-        </>
+        <MuzzleFlash flashRef={flashRef} flashLightRef={flashLightRef} />
       ) : null}
     </group>
   );

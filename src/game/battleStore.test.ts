@@ -25,14 +25,43 @@ describe("battleStore.triggerSkill", () => {
     expect(s.pressureGauge).toBe(80);
   });
 
-  it("consumes the gauge and damages the enemy when ready", () => {
+  it("consumes the gauge and queues a skill animation when ready", () => {
     enterBattle({ pressureGauge: 100 });
     const before = useBattleStore.getState().enemyHp;
     useBattleStore.getState().triggerSkill();
     const s = useBattleStore.getState();
     expect(s.pressureGauge).toBe(0);
-    expect(s.enemyHp).toBeLessThan(before);
+    // Damage is applied per step via advanceSkillStep, not immediately.
+    expect(s.enemyHp).toBe(before);
     expect(s.lastSkillAt).toBeGreaterThan(0);
+    expect(s.skillAnimation).not.toBeNull();
+    expect(s.skillAnimation?.totalSteps).toBeGreaterThan(0);
+    expect(s.skillAnimation?.completedSteps).toBe(0);
+  });
+
+  it("steps through the animation, applying damagePerStep each time", () => {
+    enterBattle({ pressureGauge: 100 });
+    useBattleStore.getState().triggerSkill();
+    const before = useBattleStore.getState().enemyHp;
+    const anim = useBattleStore.getState().skillAnimation!;
+    // Fire one step manually (the PlayerController loop normally drives this).
+    useBattleStore.getState().advanceSkillStep();
+    const afterOne = useBattleStore.getState().enemyHp;
+    expect(before - afterOne).toBe(anim.damagePerStep);
+    expect(useBattleStore.getState().skillAnimation?.completedSteps).toBe(1);
+  });
+
+  it("clears the animation and locks total damage on the final step", () => {
+    enterBattle({ pressureGauge: 100 });
+    useBattleStore.getState().triggerSkill();
+    const before = useBattleStore.getState().enemyHp;
+    const anim = useBattleStore.getState().skillAnimation!;
+    for (let i = 0; i < anim.totalSteps; i += 1) {
+      useBattleStore.getState().advanceSkillStep();
+    }
+    const after = useBattleStore.getState().enemyHp;
+    expect(before - after).toBe(anim.totalDamage);
+    expect(useBattleStore.getState().skillAnimation).toBeNull();
   });
 
   // Regression: a previous version wrote `lastSkillAt: Date.now()` while the

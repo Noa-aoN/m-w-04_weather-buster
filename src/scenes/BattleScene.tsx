@@ -10,6 +10,7 @@ import { BossShatterBurst } from "../entities/BossShatterBurst";
 import { LightningWarnings } from "../entities/LightningWarnings";
 import { MinionField } from "../entities/MinionField";
 import { MinionSpawnBurst } from "../entities/MinionSpawnBurst";
+import { SkillBurstVFX } from "../entities/SkillBurstVFX";
 import { FovController, PlayerBackAvatar, PlayerShield, PlayerWeapon } from "../entities/PlayerView";
 import { StageTerrain } from "../entities/StageTerrain";
 import { RainStreaks, SnowDrift, ThunderstormStrikes } from "../entities/WeatherFx";
@@ -153,6 +154,7 @@ function ExperimentField({
       <MinionField enemyPositionRef={enemyPositionRef} />
       <MinionSpawnBurst enemyPositionRef={enemyPositionRef} />
       <BossShatterBurst enemyPositionRef={enemyPositionRef} />
+      <SkillBurstVFX enemyPositionRef={enemyPositionRef} />
       <BulletTrails />
       <PlayerShield />
       <Suspense fallback={null}>

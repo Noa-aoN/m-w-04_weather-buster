@@ -215,6 +215,21 @@ export function PlayerController({
     }
 
     const now = performance.now();
+      // Skill animation pacing: each step fires at startedAt + k*interval,
+      // and `advanceSkillStep` applies that step's damage + bumps the
+      // per-shot signals so the existing muzzle-flash / tracer / blade
+      // swing reactions all play on cadence. Loop in case multiple steps
+      // came due in the same frame after a long stall.
+      const skillAnim = state.skillAnimation;
+      if (skillAnim !== null) {
+        let steps = skillAnim.completedSteps;
+        while (steps < skillAnim.totalSteps) {
+          const fireAt = skillAnim.startedAt + steps * skillAnim.stepIntervalMs;
+          if (now < fireAt) break;
+          state.advanceSkillStep();
+          steps += 1;
+        }
+      }
       const enemy = weatherEnemies.find((candidate) => candidate.id === state.selectedEnemyId);
       const pattern = enemy ? enemyAttackPatterns[enemy.id] : null;
 
@@ -413,7 +428,11 @@ export function PlayerController({
     // Minion attacks — each minion fires its own ranged marker on its own
     // cadence, originating from the minion's world position so it reads as
     // "they are shooting from over there" rather than from the boss.
-    if (!staggered && state.minions.length > 0) {
+    // Boss stagger no longer pauses minion fire: while the boss is
+    // exposed the screen feels too quiet without minions still pressing,
+    // and the player still gets a clear "boss is open" cue from the boss
+    // itself going still.
+    if (state.minions.length > 0) {
       for (const minion of state.minions) {
         const type = findMinionType(minion.typeId);
         if (now - minion.lastAttackAt < type.attackIntervalMs) continue;

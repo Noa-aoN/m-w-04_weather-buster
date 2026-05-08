@@ -73,6 +73,34 @@ type LightningMarker = {
   enemyId: WeatherEnemyId;
 };
 
+/**
+ * In-flight weapon-skill animation that the visual layer renders one step
+ * at a time. Damage is applied per step (synced with the visible burst /
+ * slash) so the HP bar drops in time with what the player sees.
+ *
+ * - `kind: "ranged"` → spawn N tracers from gun → enemy
+ * - `kind: "slash"` → spawn N slash arcs at the player's facing
+ *
+ * Per-step damage is the total skill burst divided across the steps.
+ * `id` distinguishes one cast from the next so React keys stay stable
+ * even if two casts fire back-to-back.
+ */
+export type SkillAnimationKind = "ranged" | "slash";
+export type SkillAnimation = {
+  id: number;
+  kind: SkillAnimationKind;
+  weaponId: WeaponId;
+  startedAt: number;
+  stepIntervalMs: number;
+  totalSteps: number;
+  completedSteps: number;
+  damagePerStep: number;
+  /** Total burst damage. Stored so the last step can absorb rounding. */
+  totalDamage: number;
+  /** Latched targets on cast: animation only updates the boss's HP. */
+  enemyMaxHpAtCast: number;
+};
+
 type BattleState = {
   status: BattleStatus;
   selectedEnemyId: WeatherEnemyId;
@@ -140,6 +168,16 @@ type BattleState = {
   contactEnemyId: WeatherEnemyId | null;
   contactToastUntil: number;
   isDashing: boolean;
+  /**
+   * In-flight weapon skill animation. `null` when no skill is currently
+   * playing. The store kicks this off in `triggerSkill` and the player
+   * controller advances it step-by-step from useFrame so each visible hit
+   * (gun burst / blade slash) lines up with one HP-bar tick.
+   *
+   * `kind` lets the visual layer pick the right component (ranged tracer
+   * vs slash arc) without needing to know the weapon directly.
+   */
+  skillAnimation: SkillAnimation | null;
   seedCount: number;
   seedHistory: Array<{ enemyId: WeatherEnemyId; difficulty: DifficultyLevel; rank: string; at: number }>;
   selectEnemy: (id: WeatherEnemyId) => void;
@@ -167,6 +205,13 @@ type BattleState = {
   takeMarkerDamage: (amount: number) => void;
   tick: () => void;
   triggerSkill: () => void;
+  /**
+   * Advance the in-flight skill animation: applies the next step's damage,
+   * increments completedSteps, and clears `skillAnimation` when finished.
+   * Called from PlayerController's useFrame when the next step's `firesAt`
+   * is reached. No-op if no animation is in flight.
+   */
+  advanceSkillStep: () => void;
   useItem: (id: ItemId) => void;
   spawnLightning: (marker: LightningMarker) => void;
   removeLightning: (id: number) => void;
@@ -232,6 +277,7 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   contactEnemyId: null as WeatherEnemyId | null,
   contactToastUntil: 0,
   isDashing: false,
+  skillAnimation: null as SkillAnimation | null,
 });
 
 let minionIdCounter = 1;
@@ -633,6 +679,11 @@ function buildBattleStore() {
       if (state.status !== "battle" || state.pressureGauge < 100) {
         return;
       }
+      // Skip-rule: do not chain a new skill on top of an in-flight one.
+      // Stops the rare double-press that would queue overlapping bursts.
+      if (state.skillAnimation !== null) {
+        return;
+      }
       const weapon = findWeapon(state.selectedWeaponId);
       const character = findCharacter(state.selectedCharacterId);
       const specialty = weapon.specialtyAgainst.includes(state.selectedEnemyId)
@@ -644,18 +695,70 @@ function buildBattleStore() {
       const burst = Math.floor(
         state.enemyMaxHp * weapon.skillBurstRatio * specialty * character.damageMultiplier * minionDmgMul,
       );
-      const nextHp = Math.max(state.enemyHp - burst, 0);
-      const becomesClear = nextHp === 0 && state.enemyHp > 0;
+      const totalSteps = Math.max(1, weapon.skillBurstShots);
+      const damagePerStep = Math.floor(burst / totalSteps);
+      const now = performance.now();
+      // Per-weapon pacing: keep the whole burst around 600–900ms so the
+      // player gets a snappy "watch it land" beat rather than a long wait.
+      // windBlade is the slowest because each slash has follow-through;
+      // light rapid-fire guns (clearSkyGun, stormwallRifle) tighten up.
+      const stepIntervalMs = weapon.id === "windBlade"
+        ? 130
+        : weapon.id === "weatherGun"
+          ? 70
+          : weapon.id === "clearSkyGun" || weapon.id === "stormwallRifle"
+            ? 90
+            : 110;
+      // Pressure gauge consumed and shots banked up front. HP is still
+      // intact at this point — the per-step damage applies in
+      // `advanceSkillStep` so the HP bar drops in time with the visuals.
+      set({
+        pressureGauge: 0,
+        shotsFired: state.shotsFired + weapon.skillBurstShots,
+        shotsHit: state.shotsHit + weapon.skillBurstShots,
+        // FovController と PlayerController の contact-block 判定は
+        // performance.now() を基準に減衰させるので、ここも performance.now()
+        // で揃える（Date.now() を入れると差分が桁違いになり FOV が破綻する）。
+        lastSkillAt: now,
+        skillAnimation: {
+          id: now,
+          kind: weapon.id === "windBlade" ? "slash" : "ranged",
+          weaponId: weapon.id,
+          startedAt: now,
+          stepIntervalMs,
+          totalSteps,
+          completedSteps: 0,
+          damagePerStep,
+          totalDamage: burst,
+          enemyMaxHpAtCast: state.enemyMaxHp,
+        },
+      });
+    },
+    advanceSkillStep: () => {
+      const state = get();
+      const anim = state.skillAnimation;
+      if (anim === null || state.status !== "battle") {
+        return;
+      }
+      const stepIndex = anim.completedSteps;
+      // Final step absorbs the integer-rounding remainder so the total
+      // matches what triggerSkill computed.
+      const isFinal = stepIndex >= anim.totalSteps - 1;
+      const stepDamage = isFinal
+        ? anim.totalDamage - anim.damagePerStep * (anim.totalSteps - 1)
+        : anim.damagePerStep;
+      const nextEnemyHp = Math.max(0, state.enemyHp - stepDamage);
+      const becomesClear = nextEnemyHp === 0 && state.enemyHp > 0;
       const now = performance.now();
       const staggerPatch = nextStaggerPatch(
         state.enemyHp,
-        nextHp,
+        nextEnemyHp,
         state.enemyMaxHp,
         state.staggerThresholdsHit,
         now,
       );
       const prevRatio = state.enemyHp / Math.max(state.enemyMaxHp, 1);
-      const nextRatio = nextHp / Math.max(state.enemyMaxHp, 1);
+      const nextRatio = nextEnemyHp / Math.max(state.enemyMaxHp, 1);
       const minionPatch = spawnMinionsForRatio(
         state.selectedEnemyId,
         prevRatio,
@@ -665,17 +768,24 @@ function buildBattleStore() {
         state.selectedDifficulty,
         now,
       );
+      const completedSteps = stepIndex + 1;
+      const finished = completedSteps >= anim.totalSteps;
       set({
-        enemyHp: nextHp,
-        pressureGauge: 0,
-        shotsFired: state.shotsFired + weapon.skillBurstShots,
-        shotsHit: state.shotsHit + weapon.skillBurstShots,
-        status: nextHp === 0 ? "clear" : state.status,
-        // FovController と PlayerController の contact-block 判定は
-        // performance.now() を基準に減衰させるので、ここも performance.now()
-        // で揃える（Date.now() を入れると差分が桁違いになり FOV が破綻する）。
-        lastSkillAt: now,
+        enemyHp: nextEnemyHp,
+        status: nextEnemyHp === 0 ? "clear" : state.status,
         lastDefeatAt: becomesClear ? Date.now() : state.lastDefeatAt,
+        // Drive existing per-shot reactions (muzzle flash, recoil, blade
+        // slash variant cycle, BulletTrails tracer) by bumping lastShotAt
+        // on every step. BulletTrails and PlayerWeapon already branch on
+        // selectedWeaponId so slash uses the swing animation and ranged
+        // uses the tracer + flash without further changes here.
+        lastShotAt: now,
+        lastShotHit: true,
+        lastShotCritical: false,
+        lastShotDamage: stepDamage,
+        skillAnimation: finished
+          ? null
+          : { ...anim, completedSteps },
         ...(staggerPatch ?? {}),
         ...(minionPatch
           ? {
