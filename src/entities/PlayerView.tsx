@@ -5,6 +5,7 @@ import type { AnimationClip, Group, Mesh, PerspectiveCamera, PointLight } from "
 import { Vector3 } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
+import { isDebugEnabled, writeDebug } from "../features/debug/debugBus";
 import { CHARACTER_MODEL_URL } from "./CharacterModel";
 import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
 import { WeaponObject, weaponModelRotation, weaponModelScale } from "./WeaponModel";
@@ -396,6 +397,15 @@ export function FovController() {
     const skillPunch = lastSkillAt > 0 ? Math.max(0, 1 - (now - lastSkillAt) / 360) * 3.5 : 0;
     perspective.fov = fov + shotPunch + skillPunch;
     perspective.updateProjectionMatrix();
+    if (isDebugEnabled()) {
+      writeDebug({
+        cameraFov: perspective.fov,
+        shotPunch,
+        skillPunch,
+        lastSkillAt,
+        sinceSkill: lastSkillAt > 0 ? now - lastSkillAt : 0,
+      });
+    }
   });
   return null;
 }

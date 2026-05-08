@@ -58,6 +58,11 @@ export function DebugOverlay() {
           <tr><th>ammo</th><td>{ammo}</td></tr>
           <tr><th>player.hp</th><td>{Math.round(playerHp)}</td></tr>
           <tr><th>enemy.hp</th><td>{Math.round(enemyHp)}</td></tr>
+          <tr><th>cam.fov</th><td>{snapshot.cameraFov.toFixed(2)}°</td></tr>
+          <tr><th>shotPunch</th><td>{snapshot.shotPunch.toFixed(2)}</td></tr>
+          <tr><th>skillPunch</th><td>{snapshot.skillPunch.toFixed(2)}</td></tr>
+          <tr><th>lastSkillAt</th><td>{snapshot.lastSkillAt.toFixed(0)}</td></tr>
+          <tr><th>sinceSkill</th><td>{snapshot.sinceSkill.toFixed(0)}ms</td></tr>
         </tbody>
       </table>
     </div>

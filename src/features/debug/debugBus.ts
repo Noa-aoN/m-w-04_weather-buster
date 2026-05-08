@@ -12,6 +12,12 @@ export type DebugSnapshot = {
   reloadingFor: number;
   barrierFor: number;
   comboCount: number;
+  // Camera diagnostic. Filled by FovController.
+  cameraFov: number;
+  shotPunch: number;
+  skillPunch: number;
+  lastSkillAt: number;
+  sinceSkill: number;
 };
 
 let current: DebugSnapshot = {
@@ -24,6 +30,11 @@ let current: DebugSnapshot = {
   reloadingFor: 0,
   barrierFor: 0,
   comboCount: 0,
+  cameraFov: 0,
+  shotPunch: 0,
+  skillPunch: 0,
+  lastSkillAt: 0,
+  sinceSkill: 0,
 };
 
 export function writeDebug(patch: Partial<DebugSnapshot>) {
