@@ -353,7 +353,8 @@ function persistSeedSnapshot(snapshot: SeedSnapshot) {
   }
 }
 
-export const useBattleStore = create<BattleState>((set, get) => {
+function buildBattleStore() {
+  return create<BattleState>((set, get) => {
   const defaultEnemy = weatherEnemies[DEFAULT_ENEMY_INDEX];
   const defaultWeapon = weapons[DEFAULT_WEAPON_INDEX];
   const seedSnapshot = loadSeedSnapshot();
@@ -424,7 +425,7 @@ export const useBattleStore = create<BattleState>((set, get) => {
     },
     sfxEnabled: true,
     bgmEnabled: false,
-    masterVolume: 0.6,
+    masterVolume: 0.55,
     setMouseSensitivity: (value) => set({ mouseSensitivity: value }),
     setFov: (value) => set({ fov: value }),
     setCameraMode: (value) => set({ cameraMode: value }),
@@ -670,7 +671,10 @@ export const useBattleStore = create<BattleState>((set, get) => {
         shotsFired: state.shotsFired + weapon.skillBurstShots,
         shotsHit: state.shotsHit + weapon.skillBurstShots,
         status: nextHp === 0 ? "clear" : state.status,
-        lastSkillAt: Date.now(),
+        // FovController と PlayerController の contact-block 判定は
+        // performance.now() を基準に減衰させるので、ここも performance.now()
+        // で揃える（Date.now() を入れると差分が桁違いになり FOV が破綻する）。
+        lastSkillAt: now,
         lastDefeatAt: becomesClear ? Date.now() : state.lastDefeatAt,
         ...(staggerPatch ?? {}),
         ...(minionPatch
@@ -834,6 +838,25 @@ export const useBattleStore = create<BattleState>((set, get) => {
       persistSeedSnapshot({ count: nextCount, history: nextHistory });
     },
   };
-});
+  });
+}
+
+// Vite HMR cascades whenever this module changes, which would otherwise
+// invalidate the store identity — components that called `subscribe()` on
+// the previous store keep listening to a dead reference, so SFX, bullet
+// trails, and other reactive features go silent until a hard reload.
+// Stash the store on `import.meta.hot.data` so it survives module
+// re-evaluation. Action / shape changes still require a hard reload.
+type BattleStore = ReturnType<typeof buildBattleStore>;
+let store: BattleStore;
+if (import.meta.hot) {
+  const hotData = import.meta.hot.data as { battleStore?: BattleStore };
+  store = hotData.battleStore ?? buildBattleStore();
+  hotData.battleStore = store;
+  import.meta.hot.accept();
+} else {
+  store = buildBattleStore();
+}
+export const useBattleStore = store;
 
 export { findStage };

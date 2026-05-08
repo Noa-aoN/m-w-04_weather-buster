@@ -220,12 +220,20 @@ export function PlayerController({
 
       // Body-contact reaction — when the player walks into the boss the
       // store applies a per-enemy damage + knockback (and optional slow).
-      // Cooldown prevents spam while still in range.
-      if (enemy) {
+      // Cooldown prevents spam while still in range. The high-altitude
+      // bosses (thunderstorm / typhoon) hover well above the player so we
+      // include a y check — otherwise standing under them would trigger
+      // contact damage repeatedly even though they're nowhere near.
+      // The wind-blade buster skill cancels the contact reaction entirely.
+      const blockContact = state.lastSkillAt > 0
+        && state.selectedWeaponId === "windBlade"
+        && now - state.lastSkillAt < 4000;
+      if (enemy && !blockContact) {
         const ePos = enemyPositionRef.current;
         const dx = camera.position.x - ePos.x;
+        const dy = camera.position.y - ePos.y;
         const dz = camera.position.z - ePos.z;
-        const distSq = dx * dx + dz * dz;
+        const distSq = dx * dx + dy * dy + dz * dz;
         if (distSq < CONTACT_RADIUS * CONTACT_RADIUS) {
           const reaction = enemyContactReactions[enemy.id];
           if (reaction && now - lastContactAt.current > reaction.cooldownMs) {

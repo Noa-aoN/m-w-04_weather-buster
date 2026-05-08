@@ -196,10 +196,10 @@ export const weapons: Weapon[] = [
     maxAmmo: 999,
     fireRateMs: 360,
     skillName: "風向反転",
-    skillDescription: "敵HPの 28% を 3 連斬で削る。竜巻・台風には特効で +35%。",
+    skillDescription: "敵HPの 28% を 3 連斬で削り、発動から 4 秒は接触リアクションを無効化する。竜巻・台風には特効で +35%。",
     skillBurstRatio: 0.28,
     skillBurstShots: 3,
-    description: "弾を持たない近接ブレード。竜巻・台風以外には威力が抑えめで、玄人向け。",
+    description: "弾を持たない近接ブレード。竜巻・台風以外には威力が抑えめで、玄人向け。発動中は接触ダメージを無効にできる。",
     specialtyAgainst: ["tornado", "typhoon"],
     specialtyMultiplier: 1.35,
   },
@@ -520,14 +520,14 @@ export type EnemyContactReaction = {
   cooldownMs: number;
 };
 
-export const enemyContactReactions: Record<WeatherEnemyId, EnemyContactReaction> = {
+// 高高度に浮く落雷・台風は地上の体当たりが届かない想定なので、接触リアクションを
+// 持たせない（プレイヤーがその真下を通り抜けても影響しない）。
+export const enemyContactReactions: Partial<Record<WeatherEnemyId, EnemyContactReaction>> = {
   cloudy: { damage: 15, knockback: 1.4, cooldownMs: 800 },
   heavyRain: { damage: 30, knockback: 2.5, slowMs: 700, cooldownMs: 700 },
-  thunderstorm: { damage: 45, knockback: 2.0, cooldownMs: 1000 },
   tornado: { damage: 22, knockback: 5.0, cooldownMs: 500 },
   rainySeason: { damage: 28, knockback: 1.6, slowMs: 1600, cooldownMs: 700 },
   blizzard: { damage: 35, knockback: 2.4, slowMs: 600, cooldownMs: 800 },
-  typhoon: { damage: 50, knockback: 4.0, slowMs: 900, cooldownMs: 600 },
 };
 
 export const CONTACT_RADIUS = 2.4;
