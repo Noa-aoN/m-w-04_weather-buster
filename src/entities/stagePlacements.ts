@@ -16,11 +16,18 @@ export type GltfPlacement = {
   scale: number;
   rotY: number;
   tilt?: number;
-  /** Optional disc footprint radius (model-local units, scaled at runtime).
-   *  Falls back to inferFootprint(url, scale). Set to 0 to opt out of
-   *  overlap reservation entirely (e.g. a flat pallet meant to be stacked
-   *  under another prop at the same coords). */
+  /** Placement-time disc reservation radius (model-local units, scaled at
+   *  runtime). Falls back to inferFootprint(url, scale). Set to 0 to opt
+   *  out of overlap reservation entirely — used for intentional layering
+   *  with another prop (a flat pallet under barrels, a cargo cluster,
+   *  building modules grouped against a hangar). Does NOT affect runtime
+   *  collision; that's controlled by `solid`. */
   footprint?: number;
+  /** Whether the prop blocks runtime player / enemy movement and occludes
+   *  ranged shots. Default true. Set false for wall-mounted, ceiling-hung,
+   *  flat-on-the-floor, or truly minor decorative props (screens, hanging
+   *  signs, pallets, landing pads, roof modules, marker lights, bushes). */
+  solid?: boolean;
 };
 
 export type ProceduralCluster = {
@@ -93,10 +100,11 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-kit/structure_detailed.glb", x: -8, z: 6, scale: 1.4, rotY: -0.4, footprint: 0 },
       // Center backdrop: self-contained GLB consoles. The wall-mounted
       // screens are visually behind the desk and don't actually occupy
-      // floor space, so footprint:0 prevents false disc collisions.
+      // floor space — footprint:0 skips placement reservation, solid:false
+      // skips runtime collision (player can pass under).
       { url: "/models/space-kit/desk_computer.glb", x: 0, z: -8.5, scale: 1.6, rotY: 0 },
-      { url: "/models/factory-kit/screen-panel-wide.glb", x: -3, z: -8.6, scale: 1.5, rotY: 0.3, footprint: 0 },
-      { url: "/models/factory-kit/screen-panel-wide.glb", x: 3, z: -8.6, scale: 1.5, rotY: -0.3, footprint: 0 },
+      { url: "/models/factory-kit/screen-panel-wide.glb", x: -3, z: -8.6, scale: 1.5, rotY: 0.3, footprint: 0, solid: false },
+      { url: "/models/factory-kit/screen-panel-wide.glb", x: 3, z: -8.6, scale: 1.5, rotY: -0.3, footprint: 0, solid: false },
       // Side props — decorative cogs, opt out so they can sit beside cargo.
       { url: "/models/factory-kit/cog-a.glb", x: -10, z: 0, scale: 1.4, rotY: 0, footprint: 0 },
       { url: "/models/factory-kit/cog-b.glb", x: 10, z: -1, scale: 1.4, rotY: 0.5, footprint: 0 },
@@ -107,21 +115,24 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-base-bits/containers_B.gltf", x: -3.5, z: 7.4, scale: 2.4, rotY: -0.2, footprint: 0 },
       { url: "/models/space-base-bits/containers_C.gltf", x: 4.6, z: 7.6, scale: 2.4, rotY: 0.4 },
       // Floor lamps + small detail props (KayKit lights mark walking lanes)
-      { url: "/models/space-base-bits/lights.gltf", x: -2.4, z: 4.5, scale: 1.0, rotY: 0 },
-      { url: "/models/space-base-bits/lights.gltf", x: 2.4, z: 4.5, scale: 1.0, rotY: 0 },
-      // Hanging from the ceiling, no floor footprint.
-      { url: "/models/factory-kit/screen-hanging-small.glb", x: 0, z: 6.0, scale: 0.9, rotY: 0, footprint: 0 },
-      // Wall-mounted, no floor footprint.
-      { url: "/models/factory-kit/machine-window.glb", x: 6.5, z: 4.5, scale: 1.1, rotY: -0.4, footprint: 0 },
+      // Lab lane-marker lights — thin posts, treat as non-blocking like
+      // their highland counterparts so the player isn't randomly stopped.
+      { url: "/models/space-base-bits/lights.gltf", x: -2.4, z: 4.5, scale: 1.0, rotY: 0, solid: false },
+      { url: "/models/space-base-bits/lights.gltf", x: 2.4, z: 4.5, scale: 1.0, rotY: 0, solid: false },
+      // Hanging from the ceiling, no floor footprint, no collision.
+      { url: "/models/factory-kit/screen-hanging-small.glb", x: 0, z: 6.0, scale: 0.9, rotY: 0, footprint: 0, solid: false },
+      // Wall-mounted, no floor footprint, no collision.
+      { url: "/models/factory-kit/machine-window.glb", x: 6.5, z: 4.5, scale: 1.1, rotY: -0.4, footprint: 0, solid: false },
       { url: "/models/space-kit/machine_wirelessCable.glb", x: -7, z: -1.5, scale: 1.0, rotY: 0.2 },
       // KayKit ResourceBits: industrial pallets / fuel barrels / parts piles
       // line the side aisles. Pallets sit flat (no height) so they don't
       // block the player line of sight; barrels add silhouette.
-      // Pallets opt out of disc reservation (footprint: 0) so the barrel
-      // pair stacked on top owns the spot uncontested.
-      { url: "/models/resource-bits/Pallet_Wood_Covered_A.gltf", x: -5.5, z: -2.5, scale: 1.2, rotY: 0.3, footprint: 0 },
+      // Pallets are flat ground items: skip placement reservation (the
+      // barrel on top owns the disc) and skip collision (player walks
+      // over the pallet).
+      { url: "/models/resource-bits/Pallet_Wood_Covered_A.gltf", x: -5.5, z: -2.5, scale: 1.2, rotY: 0.3, footprint: 0, solid: false },
       { url: "/models/resource-bits/Fuel_A_Barrels.gltf", x: -5.5, z: -2.5, scale: 1.0, rotY: 0.3 },
-      { url: "/models/resource-bits/Pallet_Wood.gltf", x: 5.5, z: -2.5, scale: 1.2, rotY: -0.4, footprint: 0 },
+      { url: "/models/resource-bits/Pallet_Wood.gltf", x: 5.5, z: -2.5, scale: 1.2, rotY: -0.4, footprint: 0, solid: false },
       { url: "/models/resource-bits/Fuel_C_Barrels.gltf", x: 5.5, z: -2.5, scale: 1.0, rotY: -0.4 },
       { url: "/models/resource-bits/Iron_Bars_Stack_Large.gltf", x: -3, z: 0, scale: 1.0, rotY: 0.5 },
       { url: "/models/resource-bits/Copper_Bars_Stack_Medium.gltf", x: 3, z: 0, scale: 1.0, rotY: -0.4 },
@@ -160,11 +171,12 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/forest-nature/Tree_2_A_Color1.gltf", x: 14, z: -2, scale: 0.4, rotY: -0.7 },
       // Bushes hugging cargo wreckage — intentionally clipped against
       // craft / cargodepot / structure_low so they read as overgrowth.
-      // Opt out of disc reservation; the host wreckage owns the spot.
-      { url: "/models/forest-nature/Bush_1_C_Color1.gltf", x: -6, z: 11, scale: 1.4, rotY: 0.2, footprint: 0 },
-      { url: "/models/forest-nature/Bush_2_A_Color1.gltf", x: 5, z: 10, scale: 1.6, rotY: -0.3 },
-      { url: "/models/forest-nature/Bush_3_A_Color1.gltf", x: 9.5, z: 13, scale: 1.4, rotY: 0.5, footprint: 0 },
-      { url: "/models/forest-nature/Bush_1_A_Color1.gltf", x: -3, z: -10.5, scale: 2.0, rotY: -0.4, footprint: 0 },
+      // solid:false (foliage you walk through), footprint:0 where they
+      // sit on top of another prop's disc.
+      { url: "/models/forest-nature/Bush_1_C_Color1.gltf", x: -6, z: 11, scale: 1.4, rotY: 0.2, footprint: 0, solid: false },
+      { url: "/models/forest-nature/Bush_2_A_Color1.gltf", x: 5, z: 10, scale: 1.6, rotY: -0.3, solid: false },
+      { url: "/models/forest-nature/Bush_3_A_Color1.gltf", x: 9.5, z: 13, scale: 1.4, rotY: 0.5, footprint: 0, solid: false },
+      { url: "/models/forest-nature/Bush_1_A_Color1.gltf", x: -3, z: -10.5, scale: 2.0, rotY: -0.4, footprint: 0, solid: false },
     ],
     scattered: [
       // Small rubble scattered across the field
@@ -248,11 +260,12 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-base-bits/windturbine_tall.gltf", x: 18, z: -7, scale: 2.0, rotY: -0.3 },
       { url: "/models/space-base-bits/windturbine_low.gltf", x: 18, z: 10, scale: 1.8, rotY: 0.8 },
       // Landing pads are flat ground-level pieces — opt out of disc
-      // reservation so neighbour platforms / lights don't false-positive.
-      { url: "/models/space-base-bits/landingpad_large.gltf", x: -10, z: 14, scale: 2.0, rotY: 0, footprint: 0 },
-      { url: "/models/space-base-bits/landingpad_small.gltf", x: 6, z: 18, scale: 1.6, rotY: 0.5, footprint: 0 },
-      // Roof solar panels are mounted high; no real ground footprint.
-      { url: "/models/space-base-bits/roofmodule_solarpanels.gltf", x: -2, z: -8, scale: 2.0, rotY: 0, footprint: 0 },
+      // reservation AND collision (player walks on them).
+      { url: "/models/space-base-bits/landingpad_large.gltf", x: -10, z: 14, scale: 2.0, rotY: 0, footprint: 0, solid: false },
+      { url: "/models/space-base-bits/landingpad_small.gltf", x: 6, z: 18, scale: 1.6, rotY: 0.5, footprint: 0, solid: false },
+      // Roof solar panels are mounted high; no real ground footprint, no
+      // collision (player passes underneath).
+      { url: "/models/space-base-bits/roofmodule_solarpanels.gltf", x: -2, z: -8, scale: 2.0, rotY: 0, footprint: 0, solid: false },
       { url: "/models/space-base-bits/solarpanel.gltf", x: 3, z: -8, scale: 1.6, rotY: -0.2 },
       // Anchor base: drum-shaped basemodules behind the central hangar so the
       // turbines/solar field reads as a connected research outpost. They are
@@ -261,12 +274,13 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-base-bits/basemodule_E.gltf", x: -8, z: -19, scale: 2.4, rotY: 0.2, footprint: 0 },
       { url: "/models/space-base-bits/basemodule_garage.gltf", x: 9, z: -19, scale: 2.4, rotY: -0.2, footprint: 0 },
       { url: "/models/space-base-bits/basemodule_C.gltf", x: -16, z: -16, scale: 2.0, rotY: 0.6, footprint: 0 },
-      // Marker lights flanking the landing pads (visual lane cues at altitude).
-      // Mounted on top of the pads, no floor footprint.
-      { url: "/models/space-base-bits/lights.gltf", x: -12.5, z: 14, scale: 1.4, rotY: 0, footprint: 0 },
-      { url: "/models/space-base-bits/lights.gltf", x: -7.5, z: 14, scale: 1.4, rotY: 0, footprint: 0 },
-      { url: "/models/space-base-bits/lights.gltf", x: 4, z: 18, scale: 1.2, rotY: 0, footprint: 0 },
-      { url: "/models/space-base-bits/lights.gltf", x: 8, z: 18, scale: 1.2, rotY: 0, footprint: 0 },
+      // Marker lights flanking the landing pads (visual lane cues at
+      // altitude). Mounted on top of the pads, thin posts — no floor
+      // footprint, no collision.
+      { url: "/models/space-base-bits/lights.gltf", x: -12.5, z: 14, scale: 1.4, rotY: 0, footprint: 0, solid: false },
+      { url: "/models/space-base-bits/lights.gltf", x: -7.5, z: 14, scale: 1.4, rotY: 0, footprint: 0, solid: false },
+      { url: "/models/space-base-bits/lights.gltf", x: 4, z: 18, scale: 1.2, rotY: 0, footprint: 0, solid: false },
+      { url: "/models/space-base-bits/lights.gltf", x: 8, z: 18, scale: 1.2, rotY: 0, footprint: 0, solid: false },
       // Tall pines for vertical silhouette against the horizon
       { url: "/models/forest-nature/Tree_4_B_Color1.gltf", x: 19, z: 4, scale: 0.55, rotY: 0.5 },
       { url: "/models/forest-nature/Tree_4_B_Color1.gltf", x: -20, z: 0, scale: 0.5, rotY: -0.7 },
@@ -526,12 +540,21 @@ export function buildPlacements(stage: Stage, placement: StagePlacement): {
   for (const cluster of placement.scattered) {
     scattered.push(...expandCluster(cluster, { existing, arena: stage.arena }));
   }
-  // Build the public collider list from the resolved data. Drop r === 0
-  // (intentional layer markers) so they don't block movement.
+  // Build the public collider list from the resolved data. `solid: false`
+  // opts a prop out of runtime collision (independent of `footprint`,
+  // which only controls placement-time disc reservation). Collider radius
+  // always comes from inferFootprint so cluster items that opted out of
+  // placement reservation (footprint:0) still occupy real space at runtime.
   const colliders: StageCollider[] = [
     ...platforms.map((p) => ({ ...platformToDisc(p), kind: "platform" as const })),
     ...placement.fixed
-      .map((f) => ({ ...fixedToDisc(f), kind: "fixed" as const }))
+      .filter((f) => f.solid !== false)
+      .map((f) => ({
+        x: f.x,
+        z: f.z,
+        r: inferFootprint(f.url, f.scale),
+        kind: "fixed" as const,
+      }))
       .filter((d) => d.r > 0),
     ...scattered.map((s) => ({
       x: s.x,
