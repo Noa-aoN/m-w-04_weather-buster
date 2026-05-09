@@ -16,7 +16,12 @@ import {
   weatherEnemies,
 } from "../../game/data";
 import { findMinionByObject, getMinionRoot, getMinionWorldPosition } from "../../entities/minionRegistry";
-import { rayToFirstCollider, resolveCircleVsCircles } from "../../entities/stageColliders";
+import {
+  blockingColliders,
+  groundYAt,
+  rayToFirstCollider,
+  resolveCircleVsCircles,
+} from "../../entities/stageColliders";
 import type { StageCollider } from "../../entities/stagePlacements";
 import { setLockTarget } from "./lockControls";
 import { useKeyboardInput } from "./useKeyboardInput";
@@ -25,7 +30,10 @@ const MOVE_SPEED = 5.4;
 const DASH_MULTIPLIER = 1.55;
 const JUMP_HEIGHT = 1.25;
 const JUMP_DURATION = 0.55;
-const GROUND_Y = 2.15;
+// Camera height above the player's "feet" plane. Eye height — the camera
+// sits this far above whichever ground they're standing on (floor or a
+// platform top).
+const EYE_HEIGHT = 2.15;
 const WIND_BLADE_REACH = 4.8;
 const WIND_BLADE_DOT = 0.62;
 // Player capsule radius for static-prop collision. ~30cm closer to the
@@ -196,18 +204,24 @@ export function PlayerController({
       camera.position.x += move.current.x;
       camera.position.z += move.current.z;
     }
-    // Push the player back out of any static prop they slid into. Done
-    // before the arena clamp so a collider near the wall can't "trap" the
-    // player by pushing them past the boundary.
+    // Push the player back out of any static prop they slid into. Filter
+    // colliders by current feet height so a low platform / pad doesn't
+    // block sideways approach (the player will simply step on top instead).
+    // Done before the arena clamp so a collider near the wall can't trap
+    // the player past the boundary.
     if (colliders.length > 0) {
-      const resolved = resolveCircleVsCircles(
-        camera.position.x,
-        camera.position.z,
-        PLAYER_COLLIDER_RADIUS,
-        colliders,
-      );
-      camera.position.x = resolved.x;
-      camera.position.z = resolved.z;
+      const feetY = camera.position.y - EYE_HEIGHT;
+      const blockers = blockingColliders(feetY, colliders);
+      if (blockers.length > 0) {
+        const resolved = resolveCircleVsCircles(
+          camera.position.x,
+          camera.position.z,
+          PLAYER_COLLIDER_RADIUS,
+          blockers,
+        );
+        camera.position.x = resolved.x;
+        camera.position.z = resolved.z;
+      }
     }
     camera.position.x = Math.max(-arena.x, Math.min(arena.x, camera.position.x));
     camera.position.z = Math.max(arena.zFront, Math.min(arena.zBack, camera.position.z));
@@ -228,17 +242,25 @@ export function PlayerController({
     }
     const bobAmplitude = isMoving ? (dash > 1 ? 0.045 : 0.028) : 0;
     const verticalBob = Math.sin(bobPhaseRef.current) * bobAmplitude;
+    // Compute the ground level under the player: floor (y=0) by default,
+    // or the top of any short collider whose disc contains them and that
+    // their current feet are at-or-above (so they "step up" onto low
+    // pads / platforms automatically). Jump arc adds on top of this.
+    const currentFeetY = camera.position.y - EYE_HEIGHT;
+    const groundY = colliders.length > 0
+      ? groundYAt(camera.position.x, camera.position.z, currentFeetY, colliders)
+      : 0;
     if (jumpStartedAt.current !== null) {
       const elapsed = (performance.now() - jumpStartedAt.current) / 1000;
       const t = elapsed / JUMP_DURATION;
       if (t >= 1) {
-        camera.position.y = GROUND_Y;
+        camera.position.y = groundY + EYE_HEIGHT;
         jumpStartedAt.current = null;
       } else {
-        camera.position.y = GROUND_Y + Math.sin(t * Math.PI) * JUMP_HEIGHT;
+        camera.position.y = groundY + EYE_HEIGHT + Math.sin(t * Math.PI) * JUMP_HEIGHT;
       }
     } else {
-      camera.position.y = GROUND_Y + verticalBob;
+      camera.position.y = groundY + EYE_HEIGHT + verticalBob;
     }
 
     const now = performance.now();

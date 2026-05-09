@@ -1,5 +1,5 @@
 import type { Stage, StageId } from "../game/types";
-import { getMeasuredFootprint } from "./footprintCache";
+import { getMeasuredFootprint, getMeasuredTop } from "./footprintCache";
 
 // Placement data for stage-specific decorations. Splitting out from
 // StageTerrain.tsx so adding "+1 satellite dish" or "move that tower" only
@@ -511,8 +511,37 @@ function platformToDisc(p: RaisedPlatform): Disc {
 }
 
 /** Disc collider tagged with its source layer — drives debug visualization
- *  and lets push-out / occlusion code apply per-layer rules later. */
-export type StageCollider = Disc & { kind: "platform" | "fixed" | "scattered" };
+ *  and lets push-out / occlusion code apply per-layer rules later.
+ *
+ *  `top` is the world-Y of the collider's upper surface, scaled by the
+ *  placement's scale. Player can step on / over colliders whose top
+ *  is below their current feet height. Falls back to a generous default
+ *  for measured-but-unknown props so they keep blocking. */
+export type StageCollider = Disc & {
+  kind: "platform" | "fixed" | "scattered";
+  top: number;
+};
+
+// Default top used when a GLTF hasn't been measured yet (cache cold) or
+// the top can't be inferred. Tall enough that the player's jump won't
+// clear it, so the prop keeps blocking until proper data arrives.
+const DEFAULT_COLLIDER_TOP = 3.0;
+
+function fixedColliderTop(piece: GltfPlacement): number {
+  const measured = getMeasuredTop(piece.url);
+  if (measured !== undefined) {
+    return measured * piece.scale;
+  }
+  return DEFAULT_COLLIDER_TOP;
+}
+
+function scatteredColliderTop(url: string, scale: number): number {
+  const measured = getMeasuredTop(url);
+  if (measured !== undefined) {
+    return measured * scale;
+  }
+  return DEFAULT_COLLIDER_TOP;
+}
 
 /** Build the final placement set for a stage: returns fixed + scattered
  *  prop arrays after running the cluster pieces through the overlap-aware
@@ -545,7 +574,11 @@ export function buildPlacements(stage: Stage, placement: StagePlacement): {
   // always comes from inferFootprint so cluster items that opted out of
   // placement reservation (footprint:0) still occupy real space at runtime.
   const colliders: StageCollider[] = [
-    ...platforms.map((p) => ({ ...platformToDisc(p), kind: "platform" as const })),
+    ...platforms.map((p) => ({
+      ...platformToDisc(p),
+      kind: "platform" as const,
+      top: p.height,
+    })),
     ...placement.fixed
       .filter((f) => f.solid !== false)
       .map((f) => ({
@@ -553,6 +586,7 @@ export function buildPlacements(stage: Stage, placement: StagePlacement): {
         z: f.z,
         r: inferFootprint(f.url, f.scale),
         kind: "fixed" as const,
+        top: fixedColliderTop(f),
       }))
       .filter((d) => d.r > 0),
     ...scattered.map((s) => ({
@@ -560,6 +594,7 @@ export function buildPlacements(stage: Stage, placement: StagePlacement): {
       z: s.z,
       r: inferFootprint(s.url, s.scale),
       kind: "scattered" as const,
+      top: scatteredColliderTop(s.url, s.scale),
     })),
   ];
   return { fixed: placement.fixed, scattered, platforms, colliders };

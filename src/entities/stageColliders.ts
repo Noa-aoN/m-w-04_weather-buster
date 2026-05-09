@@ -9,8 +9,16 @@ import type { Disc, StageCollider } from "./stagePlacements";
 //   - All positions are in world-space XZ (Y is altitude, ignored here)
 //   - radius / r are in world units
 //   - Solidity is binary (collider has r > 0 OR not in the array)
+//   - Per-collider top (StageCollider.top) is used by step-up / jump-on
+//     helpers (groundYAt / collidersTallerThan); the basic resolve helpers
+//     don't care about Y.
 
 const RESOLVE_ITERATIONS = 4;
+
+// Step tolerance: when computing whether a collider blocks a feet-Y
+// position, treat tops within this many units of (or below) the feet as
+// non-blocking. Lets the player walk smoothly onto low platforms / pads.
+const STEP_TOLERANCE = 0.35;
 
 /** Push `(x, z)` (radius `r`) out of any overlapping `colliders`. Returns
  *  the corrected position. Stable across multiple overlaps via several
@@ -104,4 +112,48 @@ export function rayToFirstCollider(
   return nearest;
 }
 
+/** Highest collider top under (x, z) that the player can stand on at the
+ *  given feet height. Returns 0 (the floor) if nothing supports them.
+ *
+ *  "Standable" = player's feet are at or above the top minus STEP_TOLERANCE
+ *  AND the (x, z) point is inside the collider disc. We pick the highest
+ *  such top so the player snaps to the tallest stack they're over. */
+export function groundYAt(
+  x: number,
+  z: number,
+  feetY: number,
+  colliders: readonly StageCollider[],
+): number {
+  let highest = 0;
+  for (const c of colliders) {
+    if (c.r <= 0 || c.top <= 0) continue;
+    if (feetY + STEP_TOLERANCE < c.top) continue; // can't stand on something above feet
+    const dx = x - c.x;
+    const dz = z - c.z;
+    if (dx * dx + dz * dz <= c.r * c.r) {
+      if (c.top > highest) highest = c.top;
+    }
+  }
+  return highest;
+}
+
+/** Subset of `colliders` that should block movement at the given feet
+ *  height. A collider blocks when its top is *above* the feet by more
+ *  than STEP_TOLERANCE — anything below or at feet level can be stepped
+ *  onto and is therefore non-blocking. */
+export function blockingColliders(
+  feetY: number,
+  colliders: readonly StageCollider[],
+): StageCollider[] {
+  const out: StageCollider[] = [];
+  for (const c of colliders) {
+    if (c.r <= 0) continue;
+    if (c.top - feetY > STEP_TOLERANCE) {
+      out.push(c);
+    }
+  }
+  return out;
+}
+
 export type { StageCollider };
+export { STEP_TOLERANCE };

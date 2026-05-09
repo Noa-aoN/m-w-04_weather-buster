@@ -9,29 +9,36 @@ import type { Object3D } from "three";
 // Values are in model-local units at scene.scale = 1; multiply by the
 // placement's scale at use time.
 
-const cache = new Map<string, number>();
+type Measurement = { radius: number; top: number };
+const cache = new Map<string, Measurement>();
 const subscribers = new Set<() => void>();
 
 export function getMeasuredFootprint(url: string): number | undefined {
-  return cache.get(url);
+  return cache.get(url)?.radius;
 }
 
-/** Measure the horizontal (X / Z) extents of `scene` and store half of the
- *  larger one as the URL's footprint radius. Idempotent — re-calls return
- *  the cached value. Notifies subscribers on the first measurement so
- *  React consumers can recompute their derived placement / collider data. */
+export function getMeasuredTop(url: string): number | undefined {
+  return cache.get(url)?.top;
+}
+
+/** Measure the horizontal (X / Z) half-extents and the vertical top of
+ *  `scene`, store both. `radius = max(extentX, extentZ) / 2`, `top = box.max.y`
+ *  in model-local units. Idempotent — re-calls return the cached values.
+ *  Notifies subscribers on the first measurement so React consumers can
+ *  recompute their derived placement / collider data. */
 export function recordMeasuredFootprint(url: string, scene: Object3D): number {
   const cached = cache.get(url);
   if (cached !== undefined) {
-    return cached;
+    return cached.radius;
   }
   const box = new Box3().setFromObject(scene);
   const size = new Vector3();
   box.getSize(size);
-  const r = Math.max(size.x, size.z) / 2;
-  cache.set(url, r);
+  const radius = Math.max(size.x, size.z) / 2;
+  const top = box.max.y;
+  cache.set(url, { radius, top });
   subscribers.forEach((fn) => fn());
-  return r;
+  return radius;
 }
 
 export function isFootprintCacheWarm(urls: readonly string[]): boolean {

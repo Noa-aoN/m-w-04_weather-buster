@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { rayToFirstCollider, resolveCircleVsCircles } from "./stageColliders";
-import type { Disc } from "./stagePlacements";
+import {
+  blockingColliders,
+  groundYAt,
+  rayToFirstCollider,
+  resolveCircleVsCircles,
+} from "./stageColliders";
+import type { Disc, StageCollider } from "./stagePlacements";
 
 describe("resolveCircleVsCircles", () => {
   it("returns the input when no colliders are supplied", () => {
@@ -82,5 +87,63 @@ describe("rayToFirstCollider", () => {
     const t = rayToFirstCollider(0, 0, 1, 0, colliders);
     // Origin is inside; first non-negative entry is t = +1 (exit point).
     expect(t).toBeCloseTo(1, 5);
+  });
+});
+
+describe("groundYAt", () => {
+  it("returns 0 when no collider is under (x,z)", () => {
+    const colliders: StageCollider[] = [
+      { x: 5, z: 0, r: 1, top: 1.5, kind: "platform" },
+    ];
+    expect(groundYAt(0, 0, 0, colliders)).toBe(0);
+  });
+
+  it("snaps to the tallest collider feet can step onto", () => {
+    const colliders: StageCollider[] = [
+      { x: 0, z: 0, r: 2, top: 0.5, kind: "platform" },
+      { x: 0, z: 0, r: 1.5, top: 1.2, kind: "platform" },
+    ];
+    // Feet at 1.5 → can step on both, picks 1.2
+    expect(groundYAt(0, 0, 1.5, colliders)).toBeCloseTo(1.2);
+  });
+
+  it("ignores tops above feet + step tolerance", () => {
+    const colliders: StageCollider[] = [
+      { x: 0, z: 0, r: 2, top: 3.0, kind: "fixed" },
+    ];
+    // Feet at 0; 3.0 > 0.35 tolerance → ignored
+    expect(groundYAt(0, 0, 0, colliders)).toBe(0);
+  });
+
+  it("only counts colliders whose disc contains (x, z)", () => {
+    const colliders: StageCollider[] = [
+      { x: 5, z: 0, r: 1, top: 0.6, kind: "platform" },
+    ];
+    expect(groundYAt(0, 0, 1.0, colliders)).toBe(0); // outside disc
+    expect(groundYAt(5, 0, 1.0, colliders)).toBeCloseTo(0.6); // on disc
+  });
+});
+
+describe("blockingColliders", () => {
+  it("excludes colliders with top <= feet + tolerance (steppable)", () => {
+    const colliders: StageCollider[] = [
+      { x: 0, z: 0, r: 1, top: 0.3, kind: "platform" }, // low pad — steppable
+      { x: 5, z: 0, r: 1, top: 3.0, kind: "fixed" },     // tall — blocks
+    ];
+    const blocking = blockingColliders(0, colliders);
+    expect(blocking).toHaveLength(1);
+    expect(blocking[0].x).toBe(5);
+  });
+
+  it("blocks tall colliders even when feet are high", () => {
+    const colliders: StageCollider[] = [
+      { x: 0, z: 0, r: 1, top: 5, kind: "fixed" },
+    ];
+    expect(blockingColliders(2, colliders)).toHaveLength(1); // top - feet = 3 > tolerance
+  });
+
+  it("ignores r <= 0 colliders", () => {
+    const colliders: StageCollider[] = [{ x: 0, z: 0, r: 0, top: 99, kind: "fixed" }];
+    expect(blockingColliders(0, colliders)).toHaveLength(0);
   });
 });
