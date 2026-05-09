@@ -133,6 +133,13 @@ type BattleState = {
   currentWeatherCode: number | null;
   lastShotAt: number;
   lastShotHit: boolean;
+  /** Bumped when a shot was occluded by a static prop (vs missing the
+   *  enemy entirely). Drives the impact-spark VFX so the player sees
+   *  WHY the shot didn't connect. */
+  lastShotBlockedAt: number;
+  lastShotBlockedX: number;
+  lastShotBlockedY: number;
+  lastShotBlockedZ: number;
   /** Timestamp of the last windBlade ranged-slash projectile (right click).
    *  Kept separate from lastShotAt so close-range slash visuals (PlayerView
    *  blade swing, SlashTrails carve line) don't fire on a ranged cast. */
@@ -253,6 +260,10 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   decoyUntil: 0,
   lastShotAt: 0,
   lastShotHit: false,
+  lastShotBlockedAt: 0,
+  lastShotBlockedX: 0,
+  lastShotBlockedY: 0,
+  lastShotBlockedZ: 0,
   lastShotCritical: false,
   lastShotDamage: 0,
   lastSlashProjectileAt: 0,

@@ -14,6 +14,7 @@ import { SkillBurstVFX } from "../entities/SkillBurstVFX";
 import { SlashProjectiles } from "../entities/SlashProjectiles";
 import { SlashTrails } from "../entities/SlashTrails";
 import { StageColliderDebug } from "../entities/StageColliderDebug";
+import { StaticImpactBursts } from "../entities/StaticImpactBursts";
 import type { StageCollider } from "../entities/stagePlacements";
 import { useStageColliders } from "../entities/useStageColliders";
 import { FovController, PlayerBackAvatar, PlayerShield, PlayerWeapon } from "../entities/PlayerView";
@@ -171,6 +172,7 @@ function ExperimentField({
       <BulletTrails />
       <SlashTrails />
       <SlashProjectiles />
+      <StaticImpactBursts />
       <PlayerShield />
       <Suspense fallback={null}>
         <PlayerWeapon />
