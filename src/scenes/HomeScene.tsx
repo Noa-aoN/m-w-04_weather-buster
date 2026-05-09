@@ -3,7 +3,7 @@ import { Sky, Stars, useAnimations, useGLTF, useTexture } from "@react-three/dre
 import { SceneLoader } from "../features/loader/SceneLoader";
 import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh } from "three";
-import { LoopOnce, RepeatWrapping, SRGBColorSpace } from "three";
+import { DoubleSide, LoopOnce, RepeatWrapping, SRGBColorSpace } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
 import { characters, findCharacter, findStage, findWeapon, stages, weapons, weatherEnemies } from "../game/data";
@@ -11,7 +11,7 @@ import { useGeolocationWeather } from "../features/weather/useGeolocationWeather
 import type { CharacterId, DifficultyLevel, LoadoutTab, Stage } from "../game/types";
 import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
 import { fitObjectToHeight, tintCharacterMaterials } from "../entities/fitObject";
-import { STAGE_PLACEMENTS } from "../entities/stagePlacements";
+import { STAGE_PLACEMENTS, inferFootprint } from "../entities/stagePlacements";
 import { AudioToggle } from "../features/audio/AudioToggle";
 import { assetUrl } from "../shared/assets";
 import { HomeBackdropLayer, HomeHudLayer, HomeMenuLayer } from "./home/HomeLayers";
@@ -359,7 +359,10 @@ function HeroSparkles({ accent }: { accent: string }) {
 
 const SATELLITE_DISH_URL = assetUrl("/models/space-kit/satelliteDish_large.glb");
 
-function SatelliteDish() {
+function SatelliteDish({ position = [6, 0, -3] as [number, number, number], scale = 1.6 }: {
+  position?: [number, number, number];
+  scale?: number;
+} = {}) {
   const dishRef = useRef<Group>(null);
   const { scene } = useGLTF(SATELLITE_DISH_URL);
   const cloned = useMemo(() => scene.clone(true), [scene]);
@@ -373,7 +376,7 @@ function SatelliteDish() {
   });
 
   return (
-    <group ref={dishRef} position={[6.6, 0, -3.2]} scale={1.6}>
+    <group ref={dishRef} position={position} scale={scale}>
       <primitive object={cloned} />
     </group>
   );
@@ -591,13 +594,93 @@ const BACKDROP_URLS = [
   assetUrl("/models/space-kit/structure_detailed.glb"),
 ];
 
-// 中央付近のハンガーは「コンテナのような塊」に見えるので除外。両端のみに配置
+// Outer backdrop ring (z = -10 / -10.5). Every neighbour pair clears
+// hangar+hangar footprint sums (5.28 + 5.28 = 10.56 for smallA/B, sum
+// 3.20 for structure pair) with comfortable margin. Outer pair pushed
+// to ±14 so they don't crowd the inner tower line.
 const BACKDROP_PLACEMENTS: Array<{ x: number; z: number; rotY: number; scale: number; idx: number }> = [
-  { x: -10.5, z: -6.0, rotY: 0.4, scale: 2.2, idx: 0 },
-  { x: -7.6, z: -7.4, rotY: -0.3, scale: 2.0, idx: 4 },
-  { x: 7.6, z: -7.4, rotY: -0.5, scale: 2.0, idx: 5 },
-  { x: 10.5, z: -6.0, rotY: 0.2, scale: 2.2, idx: 1 },
+  { x: -14.0, z: -10.0, rotY: 0.4, scale: 2.2, idx: 0 },  // hangar_smallA
+  { x: -4.5, z: -10.5, rotY: -0.3, scale: 2.0, idx: 4 },  // structure
+  { x: 4.5, z: -10.5, rotY: -0.5, scale: 2.0, idx: 5 },   // structure_detailed
+  { x: 14.0, z: -10.0, rotY: 0.2, scale: 2.2, idx: 1 },   // hangar_smallB
 ];
+
+// Mid layer: 4 vertical accent towers in a row at z = -5.5. Spacings
+// chosen against the keyword-inferred tower footprint (1.76) and the
+// satellite dish (2.56) so all neighbour pairs stay clear without
+// relying on Box3 measurements being smaller than keyword inference.
+const TOWER_PLACEMENTS: Array<[number, number, number]> = [
+  [-7.0, 0, -5.5],
+  [-3.0, 0, -5.5],
+  [3.0, 0, -5.5],
+  [7.0, 0, -5.5],
+];
+
+// Front anchor: dish sits forward and to the right (z=-1, x=5). Far
+// enough from all 4 towers to clear the dish radius (2.56) + tower
+// (1.76), and far enough from hero (radius 1) to not crowd the
+// silhouette.
+const SATELLITE_DISH_POSITION: [number, number, number] = [5.0, 0, -1.0];
+const SATELLITE_DISH_SCALE = 1.6;
+
+// Inline disc list used by HomeColliderDebug. Hero is the central
+// keep-out; the rest mirror the placement constants above. Footprint
+// values are derived at render time from inferFootprint to keep this in
+// sync with whatever is in the cache.
+function homeDebugDiscs(): Array<{ x: number; z: number; r: number; kind: "hero" | "tower" | "dish" | "hangar" }> {
+  const out: Array<{ x: number; z: number; r: number; kind: "hero" | "tower" | "dish" | "hangar" }> = [
+    { x: 0, z: 0, r: 1.0, kind: "hero" },
+    {
+      x: SATELLITE_DISH_POSITION[0],
+      z: SATELLITE_DISH_POSITION[2],
+      r: inferFootprint(SATELLITE_DISH_URL.replace(/^.*\/models\//, "/models/"), SATELLITE_DISH_SCALE),
+      kind: "dish",
+    },
+  ];
+  for (const [x, , z] of TOWER_PLACEMENTS) {
+    out.push({ x, z, r: inferFootprint("/models/tower-defense-kit/tower-round-base.glb", 1.1), kind: "tower" });
+  }
+  for (const p of BACKDROP_PLACEMENTS) {
+    out.push({
+      x: p.x,
+      z: p.z,
+      r: inferFootprint(BACKDROP_URLS[p.idx % BACKDROP_URLS.length].replace(/^.*\/models\//, "/models/"), p.scale),
+      kind: "hangar",
+    });
+  }
+  return out;
+}
+
+function HomeColliderDebug() {
+  const enabled = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("debug") === "placement";
+  }, []);
+  if (!enabled) return null;
+  const discs = homeDebugDiscs();
+  const colorFor: Record<string, string> = {
+    hero: "#ff3b6b",
+    tower: "#3bd6ff",
+    dish: "#ffd83b",
+    hangar: "#ff63d1",
+  };
+  return (
+    <>
+      {discs.map((d, i) => (
+        <group key={i} position={[d.x, 0.05, d.z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh>
+            <ringGeometry args={[Math.max(d.r - 0.05, 0.02), d.r, 48]} />
+            <meshBasicMaterial color={colorFor[d.kind]} transparent opacity={0.95} side={DoubleSide} toneMapped={false} />
+          </mesh>
+          <mesh>
+            <ringGeometry args={[0, Math.max(d.r - 0.05, 0.02), 48]} />
+            <meshBasicMaterial color={colorFor[d.kind]} transparent opacity={0.18} side={DoubleSide} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+    </>
+  );
+}
 
 function BackdropStructures() {
   return (
@@ -689,12 +772,12 @@ function HomeStage({
 
       <HomeOrbit speed={0.06}>
         <FloorGrid stage={stage} ringColor={ringColor} />
-        <SatelliteDish />
-        <WarningTower position={[-7, 0, -3.5]} />
-        <WarningTower position={[-3.6, 0, -5.6]} />
-        <WarningTower position={[3.4, 0, -6.2]} />
-        <WarningTower position={[6.6, 0, -3.4]} />
+        <SatelliteDish position={SATELLITE_DISH_POSITION} scale={SATELLITE_DISH_SCALE} />
+        {TOWER_PLACEMENTS.map((position) => (
+          <WarningTower key={`${position[0]}_${position[2]}`} position={position} />
+        ))}
         <BackdropStructures />
+        <HomeColliderDebug />
         <RotatingScenery>
           {[3, 5, 8].map((radius) => (
             <mesh key={radius} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>

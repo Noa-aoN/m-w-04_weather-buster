@@ -13,6 +13,9 @@ import { MinionSpawnBurst } from "../entities/MinionSpawnBurst";
 import { SkillBurstVFX } from "../entities/SkillBurstVFX";
 import { SlashProjectiles } from "../entities/SlashProjectiles";
 import { SlashTrails } from "../entities/SlashTrails";
+import { StageColliderDebug } from "../entities/StageColliderDebug";
+import type { StageCollider } from "../entities/stagePlacements";
+import { useStageColliders } from "../entities/useStageColliders";
 import { FovController, PlayerBackAvatar, PlayerShield, PlayerWeapon } from "../entities/PlayerView";
 import { StageTerrain } from "../entities/StageTerrain";
 import { RainStreaks, SnowDrift, ThunderstormStrikes } from "../entities/WeatherFx";
@@ -76,12 +79,14 @@ function ExperimentField({
   isClear,
   enemyRef,
   enemyPositionRef,
+  colliders,
 }: {
   enemyId: WeatherEnemyId;
   stage: Stage;
   isClear: boolean;
   enemyRef: React.RefObject<Group | null>;
   enemyPositionRef: React.RefObject<Vector3>;
+  colliders: readonly StageCollider[];
 }) {
   const enemy = weatherEnemies.find((candidate) => candidate.id === enemyId) ?? weatherEnemies[0];
   const selectedDifficulty = useBattleStore((state) => state.selectedDifficulty);
@@ -110,6 +115,16 @@ function ExperimentField({
         position={[4, 8, 3]}
         intensity={isClear ? 6.6 : 1.85}
         color={isClear ? "#fffae0" : stage.ringColor}
+        castShadow
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-near={1}
+        shadow-camera-far={50}
+        shadow-camera-left={-22}
+        shadow-camera-right={22}
+        shadow-camera-top={22}
+        shadow-camera-bottom={-22}
+        shadow-bias={-0.0008}
       />
       <hemisphereLight args={[isClear ? "#fffbe8" : "#bdeeff", isClear ? "#dceffd" : "#1c2a36", isClear ? 1.35 : 0.55]} />
       <pointLight position={[0, 1.4, -3]} intensity={isClear ? 0.6 : 3.2} color={isClear ? "#fffbe8" : enemy.coreColor} />
@@ -123,6 +138,11 @@ function ExperimentField({
       <Suspense fallback={null}>
         <StageTerrain stage={stage} isClear={isClear} />
       </Suspense>
+
+      {/* Renders nothing unless ?debug=placement is in the URL. Lives
+          outside the Suspense above so the rings appear as soon as the
+          footprint cache is warm, even mid-load. */}
+      <StageColliderDebug stage={stage} />
 
       {/* Suspense isolation around EnemyFigure: rex GLBs are 9-19MB after
           optimization (much larger before). Without this boundary the
@@ -142,6 +162,7 @@ function ExperimentField({
         arenaZFront={stage.arena.zFront}
         arenaZBack={stage.arena.zBack}
         difficulty={selectedDifficulty}
+        colliders={colliders}
       />
 
       {!isClear && enemy.id === "thunderstorm" ? <ThunderstormStrikes /> : null}
@@ -171,6 +192,44 @@ function ExperimentField({
   );
 }
 
+/** Lives inside the Canvas because useStageColliders subscribes to the
+ *  footprint cache (a module-level Map mutated by GLTF measurement
+ *  components rendered down-tree). Owns ExperimentField + PlayerController
+ *  together so both share the same `colliders` instance and re-render
+ *  costs stay local to this subtree. */
+function CollisionWiring({
+  stage,
+  enemyId,
+  isClear,
+  enemyGroupRef,
+  enemyPositionRef,
+}: {
+  stage: Stage;
+  enemyId: WeatherEnemyId;
+  isClear: boolean;
+  enemyGroupRef: React.RefObject<Group | null>;
+  enemyPositionRef: React.RefObject<Vector3>;
+}) {
+  const colliders = useStageColliders(stage);
+  return (
+    <>
+      <ExperimentField
+        enemyId={enemyId}
+        stage={stage}
+        isClear={isClear}
+        enemyRef={enemyGroupRef}
+        enemyPositionRef={enemyPositionRef}
+        colliders={colliders}
+      />
+      <PlayerController
+        enemyRef={enemyGroupRef}
+        enemyPositionRef={enemyPositionRef}
+        colliders={colliders}
+      />
+    </>
+  );
+}
+
 export function BattleScene({
   onBack,
   onShowResult,
@@ -193,18 +252,18 @@ export function BattleScene({
       <Canvas
         camera={{ position: [0, 2.15, 7.1], fov: initialFov }}
         dpr={[1, 1.5]}
+        shadows="soft"
         gl={{ antialias: true, powerPreference: "high-performance" }}
       >
         <FovController />
         <ClearSkyCameraPan />
-        <ExperimentField
-          enemyId={selectedEnemyId}
+        <CollisionWiring
           stage={stage}
-          isClear={isClear}
-          enemyRef={enemyGroupRef}
+          enemyGroupRef={enemyGroupRef}
           enemyPositionRef={enemyPositionRef}
+          isClear={isClear}
+          enemyId={selectedEnemyId}
         />
-        <PlayerController enemyRef={enemyGroupRef} enemyPositionRef={enemyPositionRef} />
       </Canvas>
 
       <BattleHud onBack={onBack} onShowResult={onShowResult} />

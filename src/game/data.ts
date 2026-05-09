@@ -192,7 +192,7 @@ export const weapons: Weapon[] = [
   {
     id: "windBlade",
     name: "風切ブレード",
-    damage: 36,
+    damage: 28,
     maxAmmo: 999,
     fireRateMs: 360,
     skillName: "風向反転",
