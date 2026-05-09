@@ -16,7 +16,7 @@ import {
   weatherEnemies,
 } from "../../game/data";
 import { findMinionByObject, getMinionRoot, getMinionWorldPosition } from "../../entities/minionRegistry";
-import { resolveCircleVsCircles } from "../../entities/stageColliders";
+import { rayToFirstCollider, resolveCircleVsCircles } from "../../entities/stageColliders";
 import type { StageCollider } from "../../entities/stagePlacements";
 import { setLockTarget } from "./lockControls";
 import { useKeyboardInput } from "./useKeyboardInput";
@@ -533,7 +533,19 @@ export function PlayerController({
           const toEnemy = enemyPositionRef.current.clone().sub(camera.position);
           const distance = toEnemy.length();
           const alignment = distance > 0 ? dir.dot(toEnemy.normalize()) : 0;
-          const didHit = distance <= WIND_BLADE_PROJECTILE_REACH && alignment >= WIND_BLADE_PROJECTILE_DOT;
+          let didHit = distance <= WIND_BLADE_PROJECTILE_REACH && alignment >= WIND_BLADE_PROJECTILE_DOT;
+          // Static prop occlusion: if a static disc sits between the camera
+          // and the enemy along the aim direction, the crescent can't pass.
+          if (didHit && colliders.length > 0) {
+            const blockerT = rayToFirstCollider(
+              camera.position.x,
+              camera.position.z,
+              dir.x,
+              dir.z,
+              colliders,
+            );
+            if (blockerT < distance) didHit = false;
+          }
           // Crit when the crescent threads the boss tightly along its center
           // line — narrower than melee so a clean ranged shot still rewards.
           const critical = didHit && alignment >= 0.95;
@@ -574,16 +586,28 @@ export function PlayerController({
       const minionHits = minionRoot ? raycaster.current.intersectObject(minionRoot, true) : [];
       const closestEnemy = enemyHits[0];
       const closestMinion = minionHits[0];
+      // Static prop occlusion: anything closer than the nearest collider
+      // along the aim ray is reachable; anything further is blocked.
+      const occlusionT = colliders.length > 0
+        ? rayToFirstCollider(camera.position.x, camera.position.z, dir.x, dir.z, colliders)
+        : Infinity;
       // Closer object wins. If a minion is in front of the boss the player
       // gets to chip it down first; otherwise the boss takes the shot.
+      // Skip the minion shot too if a static prop is in the way.
       if (closestMinion && (!closestEnemy || closestMinion.distance < closestEnemy.distance)) {
+        if (closestMinion.distance >= occlusionT) {
+          // Blocked by a static prop — register a miss instead.
+          store.shoot(false, false);
+          return;
+        }
         const minionId = findMinionByObject(closestMinion.object);
         if (minionId !== null) {
           store.shootMinion(minionId);
           return;
         }
       }
-      const didHit = enemyHits.length > 0;
+      const enemyDist = closestEnemy ? closestEnemy.distance : Infinity;
+      const didHit = enemyHits.length > 0 && enemyDist < occlusionT;
       const critical = didHit && enemyHits.some((hit) => {
         let node: Object3D | null = hit.object;
         while (node) {
