@@ -5,7 +5,7 @@ import type { Stage } from "../game/types";
 import { assetUrl } from "../shared/assets";
 import {
   STAGE_PLACEMENTS,
-  expandCluster,
+  buildPlacements,
   type GltfPlacement,
   type RaisedPlatform,
   type StagePlacement,
@@ -161,11 +161,11 @@ function StageContent({
   isClear: boolean;
   placement: StagePlacement;
 }) {
-  const fixedProps = placement.fixed;
-  const scattered = useMemo(
-    () => placement.scattered.flatMap((cluster) => expandCluster(cluster)),
-    [placement],
-  );
+  // buildPlacements runs the overlap-aware placer once per stage change.
+  // platforms come back unchanged (they reserve their own discs); fixed
+  // is also returned as-is and used for keys, while scattered is the
+  // filtered output of the procedural clusters.
+  const built = useMemo(() => buildPlacements(stage, placement), [stage, placement]);
 
   return (
     <>
@@ -173,13 +173,13 @@ function StageContent({
         ? <PbrFloor isClear={isClear} placement={placement} />
         : <PlainFloor stage={stage} isClear={isClear} placement={placement} />}
       <ArenaRings stage={stage} scale={1} />
-      {placement.platforms?.map((p, idx) => (
+      {built.platforms.map((p, idx) => (
         <HighlandPlatform key={idx} p={p} isClear={isClear} />
       ))}
-      {fixedProps.map((piece, idx) => (
+      {built.fixed.map((piece, idx) => (
         <PlacedProp key={`fixed-${idx}`} piece={piece} />
       ))}
-      {scattered.map((piece, idx) => (
+      {built.scattered.map((piece, idx) => (
         <PlacedProp key={`scattered-${idx}`} piece={piece} />
       ))}
     </>

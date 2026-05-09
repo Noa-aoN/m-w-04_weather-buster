@@ -1,4 +1,4 @@
-import type { StageId } from "../game/types";
+import type { Stage, StageId } from "../game/types";
 
 // Placement data for stage-specific decorations. Splitting out from
 // StageTerrain.tsx so adding "+1 satellite dish" or "move that tower" only
@@ -15,6 +15,11 @@ export type GltfPlacement = {
   scale: number;
   rotY: number;
   tilt?: number;
+  /** Optional disc footprint radius (model-local units, scaled at runtime).
+   *  Falls back to inferFootprint(url, scale). Set to 0 to opt out of
+   *  overlap reservation entirely (e.g. a flat pallet meant to be stacked
+   *  under another prop at the same coords). */
+  footprint?: number;
 };
 
 export type ProceduralCluster = {
@@ -28,6 +33,9 @@ export type ProceduralCluster = {
   seed: number;
   // Optional small tilt / lean per piece (radians)
   tilt?: number;
+  /** Override the URL-inferred footprint for every piece in this cluster
+   *  (model-local units, scaled at runtime). */
+  footprint?: number;
 };
 
 export type RaisedPlatform = {
@@ -99,9 +107,11 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // KayKit ResourceBits: industrial pallets / fuel barrels / parts piles
       // line the side aisles. Pallets sit flat (no height) so they don't
       // block the player line of sight; barrels add silhouette.
-      { url: "/models/resource-bits/Pallet_Wood_Covered_A.gltf", x: -5.5, z: -2.5, scale: 1.2, rotY: 0.3 },
+      // Pallets opt out of disc reservation (footprint: 0) so the barrel
+      // pair stacked on top owns the spot uncontested.
+      { url: "/models/resource-bits/Pallet_Wood_Covered_A.gltf", x: -5.5, z: -2.5, scale: 1.2, rotY: 0.3, footprint: 0 },
       { url: "/models/resource-bits/Fuel_A_Barrels.gltf", x: -5.5, z: -2.5, scale: 1.0, rotY: 0.3 },
-      { url: "/models/resource-bits/Pallet_Wood.gltf", x: 5.5, z: -2.5, scale: 1.2, rotY: -0.4 },
+      { url: "/models/resource-bits/Pallet_Wood.gltf", x: 5.5, z: -2.5, scale: 1.2, rotY: -0.4, footprint: 0 },
       { url: "/models/resource-bits/Fuel_C_Barrels.gltf", x: 5.5, z: -2.5, scale: 1.0, rotY: -0.4 },
       { url: "/models/resource-bits/Iron_Bars_Stack_Large.gltf", x: -3, z: 0, scale: 1.0, rotY: 0.5 },
       { url: "/models/resource-bits/Copper_Bars_Stack_Medium.gltf", x: 3, z: 0, scale: 1.0, rotY: -0.4 },
@@ -235,13 +245,16 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/stylized-nature/CommonTree_4.gltf", x: 14, z: 6, scale: 0.5, rotY: 0.3 },
       { url: "/models/stylized-nature/CommonTree_4.gltf", x: -16, z: 4, scale: 0.6, rotY: -0.6 },
       { url: "/models/stylized-nature/CommonTree_4.gltf", x: 11, z: 16, scale: 0.45, rotY: 1.2 },
-      // Outcrops between the snow rocks
-      { url: "/models/stylized-nature/Rock_Medium_1.gltf", x: -12, z: 8, scale: 0.6, rotY: 0.4 },
+      // Outcrops between the snow rocks. Rock_Medium_1 used to sit at
+      // (-12, 8) directly on top of a snow platform — moved out so the
+      // platform stays clean.
+      { url: "/models/stylized-nature/Rock_Medium_1.gltf", x: -13.5, z: 9.2, scale: 0.6, rotY: 0.4 },
       { url: "/models/stylized-nature/Rock_Medium_2.gltf", x: 13, z: -2, scale: 0.7, rotY: -0.5 },
       { url: "/models/stylized-nature/Rock_Medium_3.gltf", x: -3, z: 14, scale: 0.65, rotY: 0.9 },
     ],
     scattered: [
-      // Outer crystal peaks
+      // Outer crystal peaks. Capped at radius 20 so they stay inside
+      // arena.x = 21 (with footprint + arena inset margin).
       {
         count: 10,
         pool: [
@@ -250,7 +263,7 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
           "/models/space-kit/rock_crystals.glb",
           "/models/tower-defense-kit/snow-detail-crystal-large.glb",
         ],
-        radius: [17, 23],
+        radius: [17, 20],
         scale: [2.4, 4.0],
         seed: 3,
       },
@@ -300,22 +313,170 @@ export function pseudoRandom(seed: number) {
   return x - Math.floor(x);
 }
 
-export function expandCluster(cluster: ProceduralCluster): GltfPlacement[] {
-  return Array.from({ length: cluster.count }, (_, index) => {
-    const idx = cluster.seed + index;
-    const radius = cluster.radius[0] + pseudoRandom(idx + 1) * (cluster.radius[1] - cluster.radius[0]);
-    const angle = pseudoRandom(idx + 7) * Math.PI * 2;
-    const scale = cluster.scale[0] + pseudoRandom(idx + 17) * (cluster.scale[1] - cluster.scale[0]);
-    const rotY = pseudoRandom(idx + 29) * Math.PI;
-    const url = cluster.pool[index % cluster.pool.length];
-    const tilt = cluster.tilt ? (pseudoRandom(idx + 81) - 0.5) * cluster.tilt : 0;
-    return {
-      url,
-      x: Math.cos(angle) * radius,
-      z: Math.sin(angle) * radius,
-      scale,
-      rotY,
-      tilt,
-    };
-  });
+// 2D disc collider used for placement-time overlap checks. r is in world
+// units (already scaled). Same struct will be reused by the future static-
+// asset collision PR.
+export type Disc = { x: number; z: number; r: number };
+
+export type ArenaBounds = { x: number; zFront: number; zBack: number };
+
+// Player camera spawns at (0, 2.15, 7.1) on every stage (BattleScene.tsx).
+// Reserve a 1.5m disc so no scatter lands directly under the spawn point.
+export const PLAYER_SPAWN_DISC: Disc = { x: 0, z: 7.1, r: 1.5 };
+const MIN_MARGIN = 0.25;
+const ARENA_INSET = 0.6;
+const MAX_TRIES_PER_PIECE = 12;
+
+// URL keyword → base footprint radius in model-local units. Multiplied by
+// the placement's scale at runtime. Keep entries short — the matcher walks
+// the table top-down and stops at the first substring hit, so order
+// matters: longer / more specific keywords go first within a tier.
+const FOOTPRINT_KEYWORDS: Array<[string, number]> = [
+  ["windturbine_tall", 2.4],
+  ["hangar_", 2.4],
+  ["landingpad_large", 2.4],
+  ["basemodule_", 2.4],
+  ["tower-", 1.6],
+  ["craft_", 1.6],
+  ["cargodepot", 1.6],
+  ["landingpad_small", 1.6],
+  ["satelliteDish_large", 1.6],
+  ["roofmodule_solar", 1.6],
+  ["machine_generatorLarge", 1.1],
+  ["windturbine_low", 1.1],
+  ["cargo_", 1.1],
+  ["containers_", 1.1],
+  ["solarpanel", 1.1],
+  ["satelliteDish", 1.1],
+  ["desk_computer", 1.1],
+  ["screen-panel", 1.1],
+  ["rock_crystalsLarge", 0.8],
+  ["rock_largeA", 0.8],
+  ["rock_largeB", 0.8],
+  ["Rock_Medium", 0.8],
+  ["Parts_Pile", 0.8],
+  ["Tree_4", 0.8],
+  ["CommonTree", 0.8],
+  ["machine_", 0.8],
+  ["structure", 0.8],
+  ["cog-", 0.8],
+  ["snow-detail-rocks", 0.5],
+  ["snow-detail-tree", 0.5],
+  ["snow-detail-crystal", 0.5],
+  ["rocks_smallA", 0.5],
+  ["rocks_smallB", 0.5],
+  ["Rock_1", 0.5],
+  ["Rock_3", 0.5],
+  ["Bush_", 0.5],
+  ["Iron_Bars", 0.5],
+  ["Copper_Bars", 0.5],
+  ["Pallet", 0.5],
+  ["Fuel_", 0.5],
+  ["lights", 0.3],
+  ["Tree_Bare", 0.5],
+  ["Tree_2", 0.5],
+  ["Tree_3", 0.5],
+];
+
+export function inferFootprint(url: string, scale: number): number {
+  for (const [needle, base] of FOOTPRINT_KEYWORDS) {
+    if (url.includes(needle)) {
+      return base * scale;
+    }
+  }
+  // Fallback for unknown assets — small enough not to choke the algorithm
+  // but big enough that genuinely solid props still reserve space.
+  return 0.6 * scale;
+}
+
+function discsOverlap(a: Disc, b: Disc): boolean {
+  const dx = a.x - b.x;
+  const dz = a.z - b.z;
+  return dx * dx + dz * dz < (a.r + b.r + MIN_MARGIN) * (a.r + b.r + MIN_MARGIN);
+}
+
+function withinArena(disc: Disc, arena: ArenaBounds): boolean {
+  const inset = ARENA_INSET + disc.r;
+  return (
+    disc.x >= -arena.x + inset
+    && disc.x <= arena.x - inset
+    && disc.z >= arena.zFront + inset
+    && disc.z <= arena.zBack - inset
+  );
+}
+
+export function expandCluster(
+  cluster: ProceduralCluster,
+  ctx: { existing: Disc[]; arena: ArenaBounds },
+): GltfPlacement[] {
+  const out: GltfPlacement[] = [];
+  for (let index = 0; index < cluster.count; index += 1) {
+    for (let attempt = 0; attempt < MAX_TRIES_PER_PIECE; attempt += 1) {
+      // seed * piece index * try — every retry walks a fresh slot in the
+      // pseudo-random series, so the layout stays deterministic across
+      // runs but a bad initial position can be recovered from.
+      const idx = cluster.seed + index * 32 + attempt;
+      const radius = cluster.radius[0] + pseudoRandom(idx + 1) * (cluster.radius[1] - cluster.radius[0]);
+      const angle = pseudoRandom(idx + 7) * Math.PI * 2;
+      const scale = cluster.scale[0] + pseudoRandom(idx + 17) * (cluster.scale[1] - cluster.scale[0]);
+      const rotY = pseudoRandom(idx + 29) * Math.PI;
+      const url = cluster.pool[index % cluster.pool.length];
+      const tilt = cluster.tilt ? (pseudoRandom(idx + 81) - 0.5) * cluster.tilt : 0;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      const r = cluster.footprint !== undefined ? cluster.footprint * scale : inferFootprint(url, scale);
+      const candidate: Disc = { x, z, r };
+      if (!withinArena(candidate, ctx.arena)) continue;
+      let collides = false;
+      for (const other of ctx.existing) {
+        if (other.r === 0) continue;
+        if (discsOverlap(candidate, other)) {
+          collides = true;
+          break;
+        }
+      }
+      if (collides) continue;
+      ctx.existing.push(candidate);
+      out.push({ url, x, z, scale, rotY, tilt });
+      break;
+    }
+    // If all attempts failed the piece is silently dropped; the seed
+    // sequence advanced for `try` slots so subsequent pieces still land
+    // deterministically.
+  }
+  return out;
+}
+
+function fixedToDisc(piece: GltfPlacement): Disc {
+  const r = piece.footprint !== undefined ? piece.footprint * piece.scale : inferFootprint(piece.url, piece.scale);
+  return { x: piece.x, z: piece.z, r };
+}
+
+function platformToDisc(p: RaisedPlatform): Disc {
+  return { x: p.x, z: p.z, r: Math.max(p.w, p.d) / 2 };
+}
+
+/** Build the final placement set for a stage: returns fixed + scattered
+ *  prop arrays after running the cluster pieces through the overlap-aware
+ *  placer. `platforms` is returned untouched — they're authored by hand
+ *  and reserve their own discs so scatter avoids them. */
+export function buildPlacements(stage: Stage, placement: StagePlacement): {
+  fixed: GltfPlacement[];
+  scattered: GltfPlacement[];
+  platforms: RaisedPlatform[];
+} {
+  const platforms = placement.platforms ?? [];
+  // Order matters: platforms first (largest immovable footprints), then
+  // hand-placed fixed props (designer intent), then the player spawn
+  // keep-out, then each scatter cluster in declaration order.
+  const existing: Disc[] = [
+    ...platforms.map(platformToDisc),
+    ...placement.fixed.map(fixedToDisc),
+    PLAYER_SPAWN_DISC,
+  ];
+  const scattered: GltfPlacement[] = [];
+  for (const cluster of placement.scattered) {
+    scattered.push(...expandCluster(cluster, { existing, arena: stage.arena }));
+  }
+  return { fixed: placement.fixed, scattered, platforms };
 }
