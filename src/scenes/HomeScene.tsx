@@ -359,7 +359,10 @@ function HeroSparkles({ accent }: { accent: string }) {
 
 const SATELLITE_DISH_URL = assetUrl("/models/space-kit/satelliteDish_large.glb");
 
-function SatelliteDish() {
+function SatelliteDish({ position = [6, 0, -3] as [number, number, number], scale = 1.6 }: {
+  position?: [number, number, number];
+  scale?: number;
+} = {}) {
   const dishRef = useRef<Group>(null);
   const { scene } = useGLTF(SATELLITE_DISH_URL);
   const cloned = useMemo(() => scene.clone(true), [scene]);
@@ -373,7 +376,7 @@ function SatelliteDish() {
   });
 
   return (
-    <group ref={dishRef} position={[6.6, 0, -3.2]} scale={1.6}>
+    <group ref={dishRef} position={position} scale={scale}>
       <primitive object={cloned} />
     </group>
   );
@@ -591,13 +594,33 @@ const BACKDROP_URLS = [
   assetUrl("/models/space-kit/structure_detailed.glb"),
 ];
 
-// 中央付近のハンガーは「コンテナのような塊」に見えるので除外。両端のみに配置
+// Outer backdrop ring (z = -8 to -10.5). All neighbour pairs are 8.5+
+// units apart so the scale 2.0-2.2 hangars never touch. Outermost two are
+// closer to camera (-8) so they read as the "scene wall"; inner two sit
+// further back (-10.5) for depth.
 const BACKDROP_PLACEMENTS: Array<{ x: number; z: number; rotY: number; scale: number; idx: number }> = [
-  { x: -10.5, z: -6.0, rotY: 0.4, scale: 2.2, idx: 0 },
-  { x: -7.6, z: -7.4, rotY: -0.3, scale: 2.0, idx: 4 },
-  { x: 7.6, z: -7.4, rotY: -0.5, scale: 2.0, idx: 5 },
-  { x: 10.5, z: -6.0, rotY: 0.2, scale: 2.2, idx: 1 },
+  { x: -13.0, z: -8.0, rotY: 0.4, scale: 2.2, idx: 0 },   // hangar_smallA
+  { x: -4.5, z: -10.5, rotY: -0.3, scale: 2.0, idx: 4 },  // structure
+  { x: 4.5, z: -10.5, rotY: -0.5, scale: 2.0, idx: 5 },   // structure_detailed
+  { x: 13.0, z: -8.0, rotY: 0.2, scale: 2.2, idx: 1 },    // hangar_smallB
 ];
+
+// Mid layer: 4 vertical accent towers in a row at z = -5.5. Together with
+// the satellite dish they form 5 vertical silhouettes between the hero and
+// the back wall. Spacings of 5-5.5 units leave footprint margin against
+// each other and against the outer hangars.
+const TOWER_PLACEMENTS: Array<[number, number, number]> = [
+  [-8.5, 0, -5.5],
+  [-3.0, 0, -5.5],
+  [3.0, 0, -5.5],
+  [8.5, 0, -5.5],
+];
+
+// Front-mid: the satellite dish sits one row in front of the towers (z=-3)
+// so the silhouette layers — dish (front), towers (mid), hangars (back) —
+// read as three depth bands.
+const SATELLITE_DISH_POSITION: [number, number, number] = [6.0, 0, -3.0];
+const SATELLITE_DISH_SCALE = 1.6;
 
 function BackdropStructures() {
   return (
@@ -689,11 +712,10 @@ function HomeStage({
 
       <HomeOrbit speed={0.06}>
         <FloorGrid stage={stage} ringColor={ringColor} />
-        <SatelliteDish />
-        <WarningTower position={[-7, 0, -3.5]} />
-        <WarningTower position={[-3.6, 0, -5.6]} />
-        <WarningTower position={[3.4, 0, -6.2]} />
-        <WarningTower position={[6.6, 0, -3.4]} />
+        <SatelliteDish position={SATELLITE_DISH_POSITION} scale={SATELLITE_DISH_SCALE} />
+        {TOWER_PLACEMENTS.map((position) => (
+          <WarningTower key={`${position[0]}_${position[2]}`} position={position} />
+        ))}
         <BackdropStructures />
         <RotatingScenery>
           {[3, 5, 8].map((radius) => (
