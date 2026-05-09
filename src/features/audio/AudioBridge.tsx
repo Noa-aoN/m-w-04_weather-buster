@@ -14,6 +14,7 @@ import {
   playEnemyChargeStart,
   playLowAmmoBeep,
   playMiss,
+  playPropHit,
   playReload,
   playSlash,
   playMinionSummon,
@@ -122,9 +123,16 @@ export function AudioBridge() {
         } else {
           playShoot();
         }
+        // Discriminate the outcome SFX:
+        //   hit → playHit + stagger
+        //   blocked by static prop → playPropHit (set in the same frame
+        //     by PlayerController; lastShotBlockedAt matches lastShotAt)
+        //   clean miss → playMiss
         if (state.lastShotHit) {
           playHit(state.lastShotCritical);
           playEnemyStagger(state.lastShotCritical);
+        } else if (state.lastShotBlockedAt === state.lastShotAt) {
+          playPropHit();
         } else {
           playMiss();
         }
@@ -133,7 +141,7 @@ export function AudioBridge() {
         }
       }
       // windBlade right-click crescent — same swing SFX so it reads as a
-      // sword move, plus hit / miss feedback.
+      // sword move, plus hit / miss / prop-block feedback.
       if (
         state.lastSlashProjectileAt !== prev.lastSlashProjectileAt
         && state.lastSlashProjectileAt !== 0
@@ -142,6 +150,8 @@ export function AudioBridge() {
         if (state.lastSlashProjectileHit) {
           playHit(state.lastSlashProjectileCritical);
           playEnemyStagger(state.lastSlashProjectileCritical);
+        } else if (state.lastShotBlockedAt === state.lastSlashProjectileAt) {
+          playPropHit();
         } else {
           playMiss();
         }

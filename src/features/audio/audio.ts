@@ -324,6 +324,20 @@ export function playMiss() {
   tone({ freq: 220, duration: 0.05, type: "sawtooth", volume: 0.08, release: 0.08 });
 }
 
+/** Played when a shot is occluded by a static prop — distinct from miss
+ *  (clean wiff in air) so the player can tell at audio level that the
+ *  hit was eaten by terrain. Short, dry "thunk": low-frequency noise
+ *  burst + brief sub-bass tone for impact weight. */
+export function playPropHit() {
+  // Short filtered noise burst for the "knock" of metal/wood/dirt impact.
+  noiseBurst({ duration: 0.08, volume: 0.22, filter: 1400 });
+  // Sub-bass stub adds weight (no ringing — release is tight so it
+  // doesn't muddy a follow-up shot).
+  tone({ freq: 130, duration: 0.04, type: "sine", volume: 0.18, attack: 0.001, release: 0.06 });
+  // Tiny mid spike — the surface scratch/scrape on top of the thud.
+  tone({ freq: 480, duration: 0.025, type: "triangle", volume: 0.10, attack: 0.001, release: 0.04, delay: 0.005 });
+}
+
 export function playSkill() {
   if (sampleBuffers.size > 0) {
     playRandomSample("skill", 0.7);
