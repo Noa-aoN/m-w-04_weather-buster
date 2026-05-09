@@ -988,9 +988,14 @@ export function HomeScene({
         </header>
 
         <section className="titleBlock">
-          <h1 className="titleMain" data-text="ウェザー・バスターズ"><span>ウェザー・バスターズ</span></h1>
-          <strong className="titleSub" data-text="CLEAR THE SKY"><span>CLEAR THE SKY</span></strong>
-          <span className="titleTag">荒れた天候を撃ち抜き、空を晴らせ</span>
+          {/* Combined title art (main + subtitle + tagline). The PNG already
+              contains all three strings so we don't need separate text
+              layers — the alt attr keeps it readable for screen readers. */}
+          <img
+            className="titleLogoImg"
+            src={assetUrl("/images/title-logo.png")}
+            alt="ウェザー・バスターズ — CLEAR THE SKY — 荒れた天候を撃ち抜き、空を晴らせ"
+          />
         </section>
 
         <HeroTelemetry ref={telemetryRef} />

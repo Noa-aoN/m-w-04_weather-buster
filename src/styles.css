@@ -297,6 +297,23 @@ canvas {
   pointer-events: none;
 }
 
+/* Image-based title logo — matches the previous text title's screen
+   footprint via clamped width. Drop-shadow stack approximates the cyan
+   glow + dark lift the text version had so the rest of the home screen
+   art still reads as cohesive. */
+.titleLogoImg {
+  display: block;
+  margin: 0 auto;
+  width: min(820px, calc(100vw - 80px));
+  height: auto;
+  filter:
+    drop-shadow(0 0 18px rgba(98, 219, 255, 0.45))
+    drop-shadow(0 12px 28px rgba(0, 0, 0, 0.55));
+  animation: titleEnter 0.9s cubic-bezier(0.18, 0.9, 0.3, 1) both;
+  pointer-events: none;
+  user-select: none;
+}
+
 .titleBlock p,
 .missionPreview span,
 .gridHeader span,
