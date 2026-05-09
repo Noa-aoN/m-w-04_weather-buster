@@ -84,26 +84,35 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-kit/machine_wireless.glb", x: 8, z: -4, scale: 1.4, rotY: -0.5 },
       // Side structures
       { url: "/models/space-base-bits/cargo_B_packed.gltf", x: 9, z: 2, scale: 2.0, rotY: 0.4 },
-      { url: "/models/space-base-bits/cargo_A_stacked.gltf", x: 8.5, z: 5, scale: 1.6, rotY: -0.2 },
+      // cargo_A_stacked sits next to cargo_B_packed as a "supplies pile" —
+      // overlap is intentional, opt out of disc reservation.
+      { url: "/models/space-base-bits/cargo_A_stacked.gltf", x: 8.5, z: 5, scale: 1.6, rotY: -0.2, footprint: 0 },
       { url: "/models/space-kit/structure.glb", x: -8.5, z: 3, scale: 1.5, rotY: 0.3 },
-      { url: "/models/space-kit/structure_detailed.glb", x: -8, z: 6, scale: 1.4, rotY: -0.4 },
-      // Center backdrop: self-contained GLB consoles. Avoid external-texture
-      // GLTFs here because their external trim textures are not included.
+      // structure_detailed is intentionally next to structure / containers as
+      // a back-wall machinery cluster.
+      { url: "/models/space-kit/structure_detailed.glb", x: -8, z: 6, scale: 1.4, rotY: -0.4, footprint: 0 },
+      // Center backdrop: self-contained GLB consoles. The wall-mounted
+      // screens are visually behind the desk and don't actually occupy
+      // floor space, so footprint:0 prevents false disc collisions.
       { url: "/models/space-kit/desk_computer.glb", x: 0, z: -8.5, scale: 1.6, rotY: 0 },
-      { url: "/models/factory-kit/screen-panel-wide.glb", x: -3, z: -8.6, scale: 1.5, rotY: 0.3 },
-      { url: "/models/factory-kit/screen-panel-wide.glb", x: 3, z: -8.6, scale: 1.5, rotY: -0.3 },
-      // Side props
-      { url: "/models/factory-kit/cog-a.glb", x: -10, z: 0, scale: 1.4, rotY: 0 },
-      { url: "/models/factory-kit/cog-b.glb", x: 10, z: -1, scale: 1.4, rotY: 0.5 },
-      // Containers / crates (KayKit modular cargo for stronger silhouette)
+      { url: "/models/factory-kit/screen-panel-wide.glb", x: -3, z: -8.6, scale: 1.5, rotY: 0.3, footprint: 0 },
+      { url: "/models/factory-kit/screen-panel-wide.glb", x: 3, z: -8.6, scale: 1.5, rotY: -0.3, footprint: 0 },
+      // Side props — decorative cogs, opt out so they can sit beside cargo.
+      { url: "/models/factory-kit/cog-a.glb", x: -10, z: 0, scale: 1.4, rotY: 0, footprint: 0 },
+      { url: "/models/factory-kit/cog-b.glb", x: 10, z: -1, scale: 1.4, rotY: 0.5, footprint: 0 },
+      // Containers / crates (KayKit modular cargo for stronger silhouette).
+      // Authored as a clustered cargo pile — secondary containers opt out
+      // of disc reservation so they can stack against the primary.
       { url: "/models/space-base-bits/containers_A.gltf", x: -5, z: 7, scale: 2.4, rotY: 0.6 },
-      { url: "/models/space-base-bits/containers_B.gltf", x: -3.5, z: 7.4, scale: 2.4, rotY: -0.2 },
+      { url: "/models/space-base-bits/containers_B.gltf", x: -3.5, z: 7.4, scale: 2.4, rotY: -0.2, footprint: 0 },
       { url: "/models/space-base-bits/containers_C.gltf", x: 4.6, z: 7.6, scale: 2.4, rotY: 0.4 },
       // Floor lamps + small detail props (KayKit lights mark walking lanes)
       { url: "/models/space-base-bits/lights.gltf", x: -2.4, z: 4.5, scale: 1.0, rotY: 0 },
       { url: "/models/space-base-bits/lights.gltf", x: 2.4, z: 4.5, scale: 1.0, rotY: 0 },
-      { url: "/models/factory-kit/screen-hanging-small.glb", x: 0, z: 6.0, scale: 0.9, rotY: 0 },
-      { url: "/models/factory-kit/machine-window.glb", x: 6.5, z: 4.5, scale: 1.1, rotY: -0.4 },
+      // Hanging from the ceiling, no floor footprint.
+      { url: "/models/factory-kit/screen-hanging-small.glb", x: 0, z: 6.0, scale: 0.9, rotY: 0, footprint: 0 },
+      // Wall-mounted, no floor footprint.
+      { url: "/models/factory-kit/machine-window.glb", x: 6.5, z: 4.5, scale: 1.1, rotY: -0.4, footprint: 0 },
       { url: "/models/space-kit/machine_wirelessCable.glb", x: -7, z: -1.5, scale: 1.0, rotY: 0.2 },
       // KayKit ResourceBits: industrial pallets / fuel barrels / parts piles
       // line the side aisles. Pallets sit flat (no height) so they don't
@@ -119,7 +128,9 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/resource-bits/Parts_Pile_Large.gltf", x: -1.6, z: -3.2, scale: 1.0, rotY: 0.2 },
       { url: "/models/resource-bits/Parts_Pile_Medium.gltf", x: 1.6, z: -3.2, scale: 1.0, rotY: -0.5 },
       { url: "/models/resource-bits/Fuel_A_Jerrycan.gltf", x: -7, z: 4, scale: 1.2, rotY: 0.7 },
-      { url: "/models/resource-bits/Fuel_A_Barrel_Dirty.gltf", x: 7.5, z: 1, scale: 1.0, rotY: 0.4 },
+      // Sits beside cargo_B_packed as set-dressing — opt out so the cargo
+      // owns the disc.
+      { url: "/models/resource-bits/Fuel_A_Barrel_Dirty.gltf", x: 7.5, z: 1, scale: 1.0, rotY: 0.4, footprint: 0 },
     ],
     scattered: [],
   },
@@ -128,7 +139,11 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
     fixed: [
       { url: "/models/tower-defense-kit/tower-square-bottom-a.glb", x: -7, z: -3, scale: 1.4, rotY: 0.4 },
       { url: "/models/tower-defense-kit/tower-square-middle-b.glb", x: 6, z: -1, scale: 1.5, rotY: -0.6 },
-      { url: "/models/tower-defense-kit/tower-square-roof-c.glb", x: -2, z: 8, scale: 1.3, rotY: 1.2 },
+      // Was at (-2, 8) — directly inside the player spawn keep-out at
+      // (0, 7.1). Was then briefly (-2, 12) but that put it inside the
+      // back hangar. Final spot (-4, 4) is a clean visible-from-spawn
+      // mid-arena anchor that doesn't interfere with anything.
+      { url: "/models/tower-defense-kit/tower-square-roof-c.glb", x: -4, z: 4, scale: 1.3, rotY: 1.2 },
       { url: "/models/space-kit/hangar_largeB.glb", x: 0, z: 14, scale: 1.4, rotY: 0.6, tilt: 0.05 },
       { url: "/models/space-kit/craft_cargoB.glb", x: -9, z: 12, scale: 1.6, rotY: -0.3 },
       // KayKit cargo wreckage: scattered base-module debris around the central crash
@@ -143,11 +158,13 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // A few young trees breaking through the rubble (color = recovery)
       { url: "/models/forest-nature/Tree_3_A_Color1.gltf", x: -2, z: -13, scale: 0.45, rotY: 0.3 },
       { url: "/models/forest-nature/Tree_2_A_Color1.gltf", x: 14, z: -2, scale: 0.4, rotY: -0.7 },
-      // Bushes hugging cargo wreckage
-      { url: "/models/forest-nature/Bush_1_C_Color1.gltf", x: -6, z: 11, scale: 1.4, rotY: 0.2 },
+      // Bushes hugging cargo wreckage — intentionally clipped against
+      // craft / cargodepot / structure_low so they read as overgrowth.
+      // Opt out of disc reservation; the host wreckage owns the spot.
+      { url: "/models/forest-nature/Bush_1_C_Color1.gltf", x: -6, z: 11, scale: 1.4, rotY: 0.2, footprint: 0 },
       { url: "/models/forest-nature/Bush_2_A_Color1.gltf", x: 5, z: 10, scale: 1.6, rotY: -0.3 },
-      { url: "/models/forest-nature/Bush_3_A_Color1.gltf", x: 9.5, z: 13, scale: 1.4, rotY: 0.5 },
-      { url: "/models/forest-nature/Bush_1_A_Color1.gltf", x: -3, z: -10.5, scale: 2.0, rotY: -0.4 },
+      { url: "/models/forest-nature/Bush_3_A_Color1.gltf", x: 9.5, z: 13, scale: 1.4, rotY: 0.5, footprint: 0 },
+      { url: "/models/forest-nature/Bush_1_A_Color1.gltf", x: -3, z: -10.5, scale: 2.0, rotY: -0.4, footprint: 0 },
     ],
     scattered: [
       // Small rubble scattered across the field
@@ -218,26 +235,38 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
     floor: { size: 58, metalness: 0.24, roughness: 0.62, clearColor: "#e6f4ff", texture: "highland", textureRepeat: 10 },
     fixed: [
       { url: "/models/space-kit/hangar_roundGlass.glb", x: 0, z: -16, scale: 2.4, rotY: 0 },
-      { url: "/models/space-kit/satelliteDish_large.glb", x: 6, z: -14, scale: 1.6, rotY: 0.4 },
-      { url: "/models/space-kit/satelliteDish.glb", x: -6, z: -14, scale: 1.6, rotY: -0.6 },
+      // satelliteDish_large used to share coords (6, -14) with platform 9.
+      // Moved off the platform; the dish silhouette reads against the back
+      // hangar instead. Also opt out of disc reservation since the dish
+      // overhang would still falsely intersect the platform footprint.
+      { url: "/models/space-kit/satelliteDish_large.glb", x: 7, z: -12, scale: 1.6, rotY: 0.4, footprint: 0 },
+      { url: "/models/space-kit/satelliteDish.glb", x: -6, z: -14, scale: 1.6, rotY: -0.6, footprint: 0 },
       // KayKit weather observation gear: turbines + solar arrays = "we measure the wind"
-      { url: "/models/space-base-bits/windturbine_tall.gltf", x: -14, z: -8, scale: 2.2, rotY: 0.4 },
-      { url: "/models/space-base-bits/windturbine_tall.gltf", x: 15, z: -10, scale: 2.0, rotY: -0.3 },
+      // Wind turbines moved outward to clear the snow platforms (was at
+      // -14,-8 / 15,-10 — overlapping plat#7 and plat#8 footprints).
+      { url: "/models/space-base-bits/windturbine_tall.gltf", x: -16, z: -8, scale: 2.2, rotY: 0.4 },
+      { url: "/models/space-base-bits/windturbine_tall.gltf", x: 18, z: -7, scale: 2.0, rotY: -0.3 },
       { url: "/models/space-base-bits/windturbine_low.gltf", x: 18, z: 10, scale: 1.8, rotY: 0.8 },
-      { url: "/models/space-base-bits/landingpad_large.gltf", x: -10, z: 14, scale: 2.0, rotY: 0 },
-      { url: "/models/space-base-bits/landingpad_small.gltf", x: 6, z: 18, scale: 1.6, rotY: 0.5 },
-      { url: "/models/space-base-bits/roofmodule_solarpanels.gltf", x: -2, z: -8, scale: 2.0, rotY: 0 },
+      // Landing pads are flat ground-level pieces — opt out of disc
+      // reservation so neighbour platforms / lights don't false-positive.
+      { url: "/models/space-base-bits/landingpad_large.gltf", x: -10, z: 14, scale: 2.0, rotY: 0, footprint: 0 },
+      { url: "/models/space-base-bits/landingpad_small.gltf", x: 6, z: 18, scale: 1.6, rotY: 0.5, footprint: 0 },
+      // Roof solar panels are mounted high; no real ground footprint.
+      { url: "/models/space-base-bits/roofmodule_solarpanels.gltf", x: -2, z: -8, scale: 2.0, rotY: 0, footprint: 0 },
       { url: "/models/space-base-bits/solarpanel.gltf", x: 3, z: -8, scale: 1.6, rotY: -0.2 },
       // Anchor base: drum-shaped basemodules behind the central hangar so the
-      // turbines/solar field reads as a connected research outpost.
-      { url: "/models/space-base-bits/basemodule_E.gltf", x: -8, z: -19, scale: 2.4, rotY: 0.2 },
-      { url: "/models/space-base-bits/basemodule_garage.gltf", x: 9, z: -19, scale: 2.4, rotY: -0.2 },
-      { url: "/models/space-base-bits/basemodule_C.gltf", x: -16, z: -16, scale: 2.0, rotY: 0.6 },
-      // Marker lights flanking the landing pads (visual lane cues at altitude)
-      { url: "/models/space-base-bits/lights.gltf", x: -12.5, z: 14, scale: 1.4, rotY: 0 },
-      { url: "/models/space-base-bits/lights.gltf", x: -7.5, z: 14, scale: 1.4, rotY: 0 },
-      { url: "/models/space-base-bits/lights.gltf", x: 4, z: 18, scale: 1.2, rotY: 0 },
-      { url: "/models/space-base-bits/lights.gltf", x: 8, z: 18, scale: 1.2, rotY: 0 },
+      // turbines/solar field reads as a connected research outpost. They are
+      // intentionally clustered against the hangar — the hangar owns the disc,
+      // basemodules opt out.
+      { url: "/models/space-base-bits/basemodule_E.gltf", x: -8, z: -19, scale: 2.4, rotY: 0.2, footprint: 0 },
+      { url: "/models/space-base-bits/basemodule_garage.gltf", x: 9, z: -19, scale: 2.4, rotY: -0.2, footprint: 0 },
+      { url: "/models/space-base-bits/basemodule_C.gltf", x: -16, z: -16, scale: 2.0, rotY: 0.6, footprint: 0 },
+      // Marker lights flanking the landing pads (visual lane cues at altitude).
+      // Mounted on top of the pads, no floor footprint.
+      { url: "/models/space-base-bits/lights.gltf", x: -12.5, z: 14, scale: 1.4, rotY: 0, footprint: 0 },
+      { url: "/models/space-base-bits/lights.gltf", x: -7.5, z: 14, scale: 1.4, rotY: 0, footprint: 0 },
+      { url: "/models/space-base-bits/lights.gltf", x: 4, z: 18, scale: 1.2, rotY: 0, footprint: 0 },
+      { url: "/models/space-base-bits/lights.gltf", x: 8, z: 18, scale: 1.2, rotY: 0, footprint: 0 },
       // Tall pines for vertical silhouette against the horizon
       { url: "/models/forest-nature/Tree_4_B_Color1.gltf", x: 19, z: 4, scale: 0.55, rotY: 0.5 },
       { url: "/models/forest-nature/Tree_4_B_Color1.gltf", x: -20, z: 0, scale: 0.5, rotY: -0.7 },
@@ -246,12 +275,12 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/stylized-nature/CommonTree_4.gltf", x: 14, z: 6, scale: 0.5, rotY: 0.3 },
       { url: "/models/stylized-nature/CommonTree_4.gltf", x: -16, z: 4, scale: 0.6, rotY: -0.6 },
       { url: "/models/stylized-nature/CommonTree_4.gltf", x: 11, z: 16, scale: 0.45, rotY: 1.2 },
-      // Outcrops between the snow rocks. Rock_Medium_1 used to sit at
-      // (-12, 8) directly on top of a snow platform — moved out so the
-      // platform stays clean.
-      { url: "/models/stylized-nature/Rock_Medium_1.gltf", x: -13.5, z: 9.2, scale: 0.6, rotY: 0.4 },
+      // Outcrops between the snow rocks. Rock_Medium_1 sits next to platform
+      // (-12, 8) as decorative dressing — opt out of disc reservation.
+      { url: "/models/stylized-nature/Rock_Medium_1.gltf", x: -13.5, z: 9.2, scale: 0.6, rotY: 0.4, footprint: 0 },
       { url: "/models/stylized-nature/Rock_Medium_2.gltf", x: 13, z: -2, scale: 0.7, rotY: -0.5 },
-      { url: "/models/stylized-nature/Rock_Medium_3.gltf", x: -3, z: 14, scale: 0.65, rotY: 0.9 },
+      // Decorative outcrop near platform (0, 13). Opt out so they coexist.
+      { url: "/models/stylized-nature/Rock_Medium_3.gltf", x: -3, z: 14, scale: 0.65, rotY: 0.9, footprint: 0 },
     ],
     scattered: [
       // Outer crystal peaks. Capped at radius 20 so they stay inside
@@ -296,7 +325,9 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
     platforms: [
       { x: -7, z: 4, height: 0.6, w: 4.5, d: 3.6 },
       { x: 8, z: -2, height: 0.9, w: 5, d: 4 },
-      { x: 0, z: 11, height: 1.2, w: 6, d: 4.5 },
+      // Was at (0, 11) — large platform (w=6) sat too close to PLAYER_SPAWN
+      // (margin -0.6). Pushed back to (0, 13) for clearance.
+      { x: 0, z: 13, height: 1.2, w: 6, d: 4.5 },
       // Snow-covered rocky outcrops at varied altitudes
       { x: -12, z: 8, height: 1.6, w: 3.8, d: 3.2, rotY: 0.4, tilt: 0.08 },
       { x: 13, z: 10, height: 1.1, w: 4.2, d: 3.0, rotY: -0.3, tilt: 0.05 },
@@ -304,7 +335,9 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { x: 4, z: 6, height: 0.5, w: 2.6, d: 2.2, rotY: -0.5, tilt: 0.06 },
       { x: -10, z: -4, height: 1.9, w: 3.4, d: 3.0, rotY: 0.7, tilt: 0.1 },
       { x: 11, z: -8, height: 0.8, w: 3.0, d: 2.8, rotY: -0.6, tilt: 0.04 },
-      { x: 6, z: -14, height: 1.4, w: 4.0, d: 3.4, rotY: 0.3, tilt: 0.07 },
+      // Was at (6, -14) — overlapped hangar_roundGlass at (0, -16).
+      // Moved to (8, -11) to escape the hangar's footprint.
+      { x: 8, z: -11, height: 1.4, w: 4.0, d: 3.4, rotY: 0.3, tilt: 0.07 },
     ],
   },
 };
