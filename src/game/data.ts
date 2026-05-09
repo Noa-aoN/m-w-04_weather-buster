@@ -286,7 +286,9 @@ export const stages: Stage[] = [
     skyRayleigh: 3.2,
     buildingColor: "#1f2f3a",
     buildingEmissive: "#0aa0d7",
-    arena: { x: 11, zFront: -3, zBack: 9 },
+    // Arena z は ring 最大半径 (0.95 * arena.x = 10.45) に合わせて
+    // ±10.5 に拡張。プレイヤーが床のリングの全周に到達できる。
+    arena: { x: 11, zFront: -10.5, zBack: 10.5 },
   },
   {
     id: "ruins",
@@ -300,7 +302,8 @@ export const stages: Stage[] = [
     skyRayleigh: 1.4,
     buildingColor: "#3a2a26",
     buildingEmissive: "#d76a2e",
-    arena: { x: 19, zFront: -6, zBack: 16 },
+    // ring 最大半径 18.05 に合わせて zFront -18 / zBack 18.5 へ拡張。
+    arena: { x: 19, zFront: -18, zBack: 18.5 },
   },
   {
     id: "highland",
@@ -314,7 +317,9 @@ export const stages: Stage[] = [
     skyRayleigh: 0.8,
     buildingColor: "#2c4453",
     buildingEmissive: "#7ab5d7",
-    arena: { x: 21, zFront: -7, zBack: 18 },
+    // ring 最大半径 19.95 に合わせて ±20 へ拡張。highland の固定
+    // basemodule は z=-19 にあるが新 arena に収まる。
+    arena: { x: 21, zFront: -20, zBack: 20 },
   },
 ];
 
