@@ -242,6 +242,7 @@ function MinionSummonOverlay() {
 function StaggerBurst() {
   const lastStaggerAt = useBattleStore((state) => state.lastStaggerAt);
   const staggerUntil = useBattleStore((state) => state.staggerUntil);
+  const status = useBattleStore((state) => state.status);
   const [activeKey, setActiveKey] = useState(0);
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -254,7 +255,9 @@ function StaggerBurst() {
     return () => window.clearInterval(id);
   }, [activeKey]);
   const now = performance.now();
-  const isActive = activeKey !== 0 && now < staggerUntil;
+  // Cancel as soon as the player finishes the boss off — leaving a
+  // "core exposed" banner up after the kill reads as a stale popup.
+  const isActive = activeKey !== 0 && now < staggerUntil && status === "battle";
   if (!isActive) {
     return null;
   }
@@ -262,7 +265,7 @@ function StaggerBurst() {
     <>
       <div className="staggerFlash" key={`flash-${activeKey}`} aria-hidden="true" />
       <div className={`staggerBanner ${tick % 2 === 0 ? "on" : ""}`} aria-hidden="true">
-        <span>硬直</span>
+        <span>気象核 露出</span>
         <small>核を狙え</small>
       </div>
     </>
@@ -393,8 +396,8 @@ function ReloadPromptOverlay() {
   if (performance.now() < reloadingUntil) return null;
   return (
     <div className="reloadPrompt" key={pulse} aria-hidden="true">
-      <span className="reloadPromptKick">装填！</span>
-      <span className="reloadPromptHint">右クリック / Rキーで装填</span>
+      <span className="reloadPromptKick">リロード</span>
+      <span className="reloadPromptHint">右クリック / R キーで再装填</span>
     </div>
   );
 }
@@ -403,6 +406,7 @@ function ReloadIndicator() {
   const reloadingUntil = useBattleStore((state) => state.reloadingUntil);
   const reloadingStartedAt = useBattleStore((state) => state.reloadingStartedAt);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
+  const status = useBattleStore((state) => state.status);
   const [progress, setProgress] = useState(0);
   useEffect(() => {
     if (reloadingUntil === 0) {
@@ -420,12 +424,17 @@ function ReloadIndicator() {
     }, 30);
     return () => window.clearInterval(id);
   }, [reloadingUntil, reloadingStartedAt]);
-  if (selectedWeaponId === "windBlade" || reloadingUntil === 0 || performance.now() >= reloadingUntil) {
+  if (
+    selectedWeaponId === "windBlade"
+    || reloadingUntil === 0
+    || performance.now() >= reloadingUntil
+    || status !== "battle"  // hide once the boss is down
+  ) {
     return null;
   }
   return (
     <div className="reloadIndicator" aria-hidden="true">
-      <span>装填中</span>
+      <span>リロード中</span>
       <div className="reloadBar"><i style={{ width: `${progress * 100}%` }} /></div>
     </div>
   );
