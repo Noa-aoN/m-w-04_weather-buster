@@ -19,6 +19,10 @@ const RESOLVE_ITERATIONS = 4;
 // position, treat tops within this many units of (or below) the feet as
 // non-blocking. Lets the player walk smoothly onto low platforms / pads.
 const STEP_TOLERANCE = 0.35;
+// Head clearance: an overhead collider is treated as walk-under when its
+// bottom is at least this many units above the player's eye Y. Keeps
+// hanging signs / ceiling-mounted props from blocking foot traffic.
+const HEAD_CLEARANCE = 0.1;
 
 /** Push `(x, z)` (radius `r`) out of any overlapping `colliders`. Returns
  *  the corrected position. Stable across multiple overlaps via several
@@ -118,6 +122,7 @@ export function rayToFirstCollider(
     // parameter — same scalar that scales (dx, dy, dz)).
     const yAtEntry = oy + dy * t;
     if (yAtEntry > c.top) continue; // ray clears the collider's roof
+    if (yAtEntry < c.bottom) continue; // ray slips under the collider
     nearest = t;
   }
   return nearest;
@@ -148,20 +153,27 @@ export function groundYAt(
   return highest;
 }
 
-/** Subset of `colliders` that should block movement at the given feet
- *  height. A collider blocks when its top is *above* the feet by more
- *  than STEP_TOLERANCE — anything below or at feet level can be stepped
- *  onto and is therefore non-blocking. */
+/** Subset of `colliders` that should block movement given the player's
+ *  current vertical extent (`feetY` to `headY`). A collider blocks when:
+ *
+ *  - its top is *above* the feet by more than STEP_TOLERANCE
+ *    (otherwise the player simply steps onto it), AND
+ *  - its bottom is *below* the head by more than HEAD_CLEARANCE
+ *    (otherwise the player walks underneath it).
+ *
+ *  Lets ground-mounted props block at body height while overhead-only
+ *  props (hanging signs, ceiling consoles) stay non-blocking. */
 export function blockingColliders(
   feetY: number,
+  headY: number,
   colliders: readonly StageCollider[],
 ): StageCollider[] {
   const out: StageCollider[] = [];
   for (const c of colliders) {
     if (c.r <= 0) continue;
-    if (c.top - feetY > STEP_TOLERANCE) {
-      out.push(c);
-    }
+    if (c.top - feetY <= STEP_TOLERANCE) continue; // step over
+    if (c.bottom - headY >= HEAD_CLEARANCE) continue; // walk under
+    out.push(c);
   }
   return out;
 }

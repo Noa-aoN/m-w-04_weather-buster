@@ -1,5 +1,5 @@
 import type { Stage, StageId } from "../game/types";
-import { getMeasuredFootprint, getMeasuredTop } from "./footprintCache";
+import { getMeasuredBottom, getMeasuredFootprint, getMeasuredTop } from "./footprintCache";
 
 // Placement data for stage-specific decorations. Splitting out from
 // StageTerrain.tsx so adding "+1 satellite dish" or "move that tower" only
@@ -99,12 +99,12 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // a back-wall machinery cluster.
       { url: "/models/space-kit/structure_detailed.glb", x: -8, z: 6, scale: 1.4, rotY: -0.4, footprint: 0 },
       // Center backdrop: self-contained GLB consoles. The wall-mounted
-      // screens are visually behind the desk and don't actually occupy
-      // floor space — footprint:0 skips placement reservation, solid:false
-      // skips runtime collision (player can pass under).
+      // screens have a chest-height body — keep solid:true so the player
+      // bumps into them; footprint:0 skips placement reservation since
+      // they sit against the desk row.
       { url: "/models/space-kit/desk_computer.glb", x: 0, z: -8.5, scale: 1.6, rotY: 0 },
-      { url: "/models/factory-kit/screen-panel-wide.glb", x: -3, z: -8.6, scale: 1.5, rotY: 0.3, footprint: 0, solid: false },
-      { url: "/models/factory-kit/screen-panel-wide.glb", x: 3, z: -8.6, scale: 1.5, rotY: -0.3, footprint: 0, solid: false },
+      { url: "/models/factory-kit/screen-panel-wide.glb", x: -3, z: -8.6, scale: 1.5, rotY: 0.3, footprint: 0 },
+      { url: "/models/factory-kit/screen-panel-wide.glb", x: 3, z: -8.6, scale: 1.5, rotY: -0.3, footprint: 0 },
       // Side props — decorative cogs, opt out so they can sit beside cargo.
       { url: "/models/factory-kit/cog-a.glb", x: -10, z: 0, scale: 1.4, rotY: 0, footprint: 0 },
       { url: "/models/factory-kit/cog-b.glb", x: 10, z: -1, scale: 1.4, rotY: 0.5, footprint: 0 },
@@ -119,10 +119,11 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // so players bump into them rather than walking through.
       { url: "/models/space-base-bits/lights.gltf", x: -2.4, z: 4.5, scale: 1.0, rotY: 0 },
       { url: "/models/space-base-bits/lights.gltf", x: 2.4, z: 4.5, scale: 1.0, rotY: 0 },
-      // Hanging from the ceiling, no floor footprint, no collision.
-      { url: "/models/factory-kit/screen-hanging-small.glb", x: 0, z: 6.0, scale: 0.9, rotY: 0, footprint: 0, solid: false },
-      // Wall-mounted, no floor footprint, no collision.
-      { url: "/models/factory-kit/machine-window.glb", x: 6.5, z: 4.5, scale: 1.1, rotY: -0.4, footprint: 0, solid: false },
+      // Hanging from the ceiling — keep solid:true and let the bottom Y
+      // (overhead) make the collider walk-under for the player.
+      { url: "/models/factory-kit/screen-hanging-small.glb", x: 0, z: 6.0, scale: 0.9, rotY: 0, footprint: 0 },
+      // Wall-mounted machine box — body at chest height, blocks normally.
+      { url: "/models/factory-kit/machine-window.glb", x: 6.5, z: 4.5, scale: 1.1, rotY: -0.4, footprint: 0 },
       { url: "/models/space-kit/machine_wirelessCable.glb", x: -7, z: -1.5, scale: 1.0, rotY: 0.2 },
       // KayKit ResourceBits: industrial pallets / fuel barrels / parts piles
       // line the side aisles. Pallets sit flat (no height) so they don't
@@ -515,19 +516,22 @@ function platformToDisc(p: RaisedPlatform): Disc {
 /** Disc collider tagged with its source layer — drives debug visualization
  *  and lets push-out / occlusion code apply per-layer rules later.
  *
- *  `top` is the world-Y of the collider's upper surface, scaled by the
- *  placement's scale. Player can step on / over colliders whose top
- *  is below their current feet height. Falls back to a generous default
- *  for measured-but-unknown props so they keep blocking. */
+ *  `top` and `bottom` are world-Y of the collider's upper / lower surfaces
+ *  (scaled by the placement's scale). The player can step on / over
+ *  colliders whose top is below their current feet height, and walk under
+ *  colliders whose bottom is above their head — both checked by the
+ *  collision helpers in stageColliders.ts. */
 export type StageCollider = Disc & {
   kind: "platform" | "fixed" | "scattered";
   top: number;
+  bottom: number;
 };
 
-// Default top used when a GLTF hasn't been measured yet (cache cold) or
-// the top can't be inferred. Tall enough that the player's jump won't
-// clear it, so the prop keeps blocking until proper data arrives.
+// Defaults used when a GLTF hasn't been measured yet (cache cold). The top
+// is generous so the prop still blocks; bottom 0 assumes the prop sits on
+// the floor.
 const DEFAULT_COLLIDER_TOP = 3.0;
+const DEFAULT_COLLIDER_BOTTOM = 0;
 
 function fixedColliderTop(piece: GltfPlacement): number {
   const measured = getMeasuredTop(piece.url);
@@ -537,12 +541,28 @@ function fixedColliderTop(piece: GltfPlacement): number {
   return DEFAULT_COLLIDER_TOP;
 }
 
+function fixedColliderBottom(piece: GltfPlacement): number {
+  const measured = getMeasuredBottom(piece.url);
+  if (measured !== undefined) {
+    return measured * piece.scale;
+  }
+  return DEFAULT_COLLIDER_BOTTOM;
+}
+
 function scatteredColliderTop(url: string, scale: number): number {
   const measured = getMeasuredTop(url);
   if (measured !== undefined) {
     return measured * scale;
   }
   return DEFAULT_COLLIDER_TOP;
+}
+
+function scatteredColliderBottom(url: string, scale: number): number {
+  const measured = getMeasuredBottom(url);
+  if (measured !== undefined) {
+    return measured * scale;
+  }
+  return DEFAULT_COLLIDER_BOTTOM;
 }
 
 /** Build the final placement set for a stage: returns fixed + scattered
@@ -580,6 +600,7 @@ export function buildPlacements(stage: Stage, placement: StagePlacement): {
       ...platformToDisc(p),
       kind: "platform" as const,
       top: p.height,
+      bottom: 0,
     })),
     ...placement.fixed
       .filter((f) => f.solid !== false)
@@ -589,6 +610,7 @@ export function buildPlacements(stage: Stage, placement: StagePlacement): {
         r: inferFootprint(f.url, f.scale),
         kind: "fixed" as const,
         top: fixedColliderTop(f),
+        bottom: fixedColliderBottom(f),
       }))
       .filter((d) => d.r > 0),
     ...scattered.map((s) => ({
@@ -597,6 +619,7 @@ export function buildPlacements(stage: Stage, placement: StagePlacement): {
       r: inferFootprint(s.url, s.scale),
       kind: "scattered" as const,
       top: scatteredColliderTop(s.url, s.scale),
+      bottom: scatteredColliderBottom(s.url, s.scale),
     })),
   ];
   return { fixed: placement.fixed, scattered, platforms, colliders };

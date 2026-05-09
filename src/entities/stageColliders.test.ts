@@ -56,7 +56,7 @@ describe("resolveCircleVsCircles", () => {
 describe("rayToFirstCollider (height-aware)", () => {
   // Convenience: tall (3m) cylinder collider at the supplied XZ.
   const tall = (x: number, z: number, r = 1): StageCollider => ({
-    x, z, r, top: 3, kind: "fixed",
+    x, z, r, top: 3, bottom: 0, kind: "fixed",
   });
 
   it("returns Infinity when no colliders are supplied", () => {
@@ -77,24 +77,24 @@ describe("rayToFirstCollider (height-aware)", () => {
   });
 
   it("ignores r <= 0 colliders", () => {
-    expect(rayToFirstCollider(0, 1, 0, 1, 0, 0, [{ x: 5, z: 0, r: 0, top: 3, kind: "fixed" }])).toBe(Infinity);
+    expect(rayToFirstCollider(0, 1, 0, 1, 0, 0, [{ x: 5, z: 0, r: 0, top: 3, bottom: 0, kind: "fixed" }])).toBe(Infinity);
   });
 
   it("passes over a low collider when aim height clears its top", () => {
     // Camera at y=2, aiming horizontally (+x). A short collider at x=5
     // with top=1 — the ray's y at entry is still 2 (>1) → not blocked.
-    const low: StageCollider = { x: 5, z: 0, r: 1, top: 1, kind: "platform" };
+    const low: StageCollider = { x: 5, z: 0, r: 1, top: 1, bottom: 0, kind: "platform" };
     expect(rayToFirstCollider(0, 2, 0, 1, 0, 0, [low])).toBe(Infinity);
   });
 
   it("blocks a tall collider even with a horizontal ray from camera height", () => {
-    const high: StageCollider = { x: 5, z: 0, r: 1, top: 5, kind: "fixed" };
+    const high: StageCollider = { x: 5, z: 0, r: 1, top: 5, bottom: 0, kind: "fixed" };
     expect(rayToFirstCollider(0, 2, 0, 1, 0, 0, [high])).toBeCloseTo(4, 5);
   });
 
   it("blocks a low collider when the ray dives into it", () => {
     // Ray from (0, 2, 0) aimed steeply down + forward (normalized).
-    const low: StageCollider = { x: 5, z: 0, r: 1, top: 1, kind: "platform" };
+    const low: StageCollider = { x: 5, z: 0, r: 1, top: 1, bottom: 0, kind: "platform" };
     // Direction such that at x=4 (entry distance 4 in XZ) the y has
     // dropped below 1: dy/dx = -0.4 → at t=4*sqrt(...), y = 2 + dy*t.
     // Use direction (0.9, -0.4359, 0) ≈ normalized.
@@ -110,31 +110,29 @@ describe("rayToFirstCollider (height-aware)", () => {
 describe("groundYAt", () => {
   it("returns 0 when no collider is under (x,z)", () => {
     const colliders: StageCollider[] = [
-      { x: 5, z: 0, r: 1, top: 1.5, kind: "platform" },
+      { x: 5, z: 0, r: 1, top: 1.5, bottom: 0, kind: "platform" },
     ];
     expect(groundYAt(0, 0, 0, colliders)).toBe(0);
   });
 
   it("snaps to the tallest collider feet can step onto", () => {
     const colliders: StageCollider[] = [
-      { x: 0, z: 0, r: 2, top: 0.5, kind: "platform" },
-      { x: 0, z: 0, r: 1.5, top: 1.2, kind: "platform" },
+      { x: 0, z: 0, r: 2, top: 0.5, bottom: 0, kind: "platform" },
+      { x: 0, z: 0, r: 1.5, top: 1.2, bottom: 0, kind: "platform" },
     ];
-    // Feet at 1.5 → can step on both, picks 1.2
     expect(groundYAt(0, 0, 1.5, colliders)).toBeCloseTo(1.2);
   });
 
   it("ignores tops above feet + step tolerance", () => {
     const colliders: StageCollider[] = [
-      { x: 0, z: 0, r: 2, top: 3.0, kind: "fixed" },
+      { x: 0, z: 0, r: 2, top: 3.0, bottom: 0, kind: "fixed" },
     ];
-    // Feet at 0; 3.0 > 0.35 tolerance → ignored
     expect(groundYAt(0, 0, 0, colliders)).toBe(0);
   });
 
   it("only counts colliders whose disc contains (x, z)", () => {
     const colliders: StageCollider[] = [
-      { x: 5, z: 0, r: 1, top: 0.6, kind: "platform" },
+      { x: 5, z: 0, r: 1, top: 0.6, bottom: 0, kind: "platform" },
     ];
     expect(groundYAt(0, 0, 1.0, colliders)).toBe(0); // outside disc
     expect(groundYAt(5, 0, 1.0, colliders)).toBeCloseTo(0.6); // on disc
@@ -142,25 +140,46 @@ describe("groundYAt", () => {
 });
 
 describe("blockingColliders", () => {
+  // Player standing on the floor: feet 0, head ~2.15
+  const PLAYER_FEET = 0;
+  const PLAYER_HEAD = 2.15;
+
   it("excludes colliders with top <= feet + tolerance (steppable)", () => {
     const colliders: StageCollider[] = [
-      { x: 0, z: 0, r: 1, top: 0.3, kind: "platform" }, // low pad — steppable
-      { x: 5, z: 0, r: 1, top: 3.0, kind: "fixed" },     // tall — blocks
+      { x: 0, z: 0, r: 1, top: 0.3, bottom: 0, kind: "platform" }, // low pad — steppable
+      { x: 5, z: 0, r: 1, top: 3.0, bottom: 0, kind: "fixed" },     // tall — blocks
     ];
-    const blocking = blockingColliders(0, colliders);
+    const blocking = blockingColliders(PLAYER_FEET, PLAYER_HEAD, colliders);
     expect(blocking).toHaveLength(1);
     expect(blocking[0].x).toBe(5);
   });
 
+  it("excludes overhead colliders the player walks under", () => {
+    const colliders: StageCollider[] = [
+      { x: 0, z: 0, r: 1, top: 3.0, bottom: 2.5, kind: "fixed" }, // hanging — clears head
+    ];
+    expect(blockingColliders(PLAYER_FEET, PLAYER_HEAD, colliders)).toHaveLength(0);
+  });
+
+  it("blocks chest-height wall mounts", () => {
+    const colliders: StageCollider[] = [
+      { x: 0, z: 0, r: 1, top: 1.8, bottom: 1.0, kind: "fixed" }, // wall screen
+    ];
+    // Top 1.8 > feet 0 + 0.35; bottom 1.0 < head 2.15 - 0.1 → blocks
+    expect(blockingColliders(PLAYER_FEET, PLAYER_HEAD, colliders)).toHaveLength(1);
+  });
+
   it("blocks tall colliders even when feet are high", () => {
     const colliders: StageCollider[] = [
-      { x: 0, z: 0, r: 1, top: 5, kind: "fixed" },
+      { x: 0, z: 0, r: 1, top: 5, bottom: 0, kind: "fixed" },
     ];
-    expect(blockingColliders(2, colliders)).toHaveLength(1); // top - feet = 3 > tolerance
+    expect(blockingColliders(2, 4.15, colliders)).toHaveLength(1);
   });
 
   it("ignores r <= 0 colliders", () => {
-    const colliders: StageCollider[] = [{ x: 0, z: 0, r: 0, top: 99, kind: "fixed" }];
-    expect(blockingColliders(0, colliders)).toHaveLength(0);
+    const colliders: StageCollider[] = [
+      { x: 0, z: 0, r: 0, top: 99, bottom: 0, kind: "fixed" },
+    ];
+    expect(blockingColliders(0, 2.15, colliders)).toHaveLength(0);
   });
 });

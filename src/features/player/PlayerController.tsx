@@ -205,13 +205,15 @@ export function PlayerController({
       camera.position.z += move.current.z;
     }
     // Push the player back out of any static prop they slid into. Filter
-    // colliders by current feet height so a low platform / pad doesn't
-    // block sideways approach (the player will simply step on top instead).
-    // Done before the arena clamp so a collider near the wall can't trap
-    // the player past the boundary.
+    // colliders by current vertical extent so a low platform / pad doesn't
+    // block sideways approach (player steps on top) and an overhead
+    // hanging sign doesn't block at all (player walks under). Done before
+    // the arena clamp so a collider near the wall can't trap the player
+    // past the boundary.
     if (colliders.length > 0) {
       const feetY = camera.position.y - EYE_HEIGHT;
-      const blockers = blockingColliders(feetY, colliders);
+      const headY = camera.position.y;
+      const blockers = blockingColliders(feetY, headY, colliders);
       if (blockers.length > 0) {
         const resolved = resolveCircleVsCircles(
           camera.position.x,
