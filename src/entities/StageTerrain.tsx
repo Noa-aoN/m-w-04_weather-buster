@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useGLTF, useTexture } from "@react-three/drei";
 import { RepeatWrapping, SRGBColorSpace } from "three";
 import type { Stage } from "../game/types";
@@ -10,6 +10,7 @@ import {
   type RaisedPlatform,
   type StagePlacement,
 } from "./stagePlacements";
+import { isFootprintCacheWarm, recordMeasuredFootprint } from "./footprintCache";
 
 // StageTerrain renders the floor + arena rings + placement-driven props.
 // All "what / where" decisions live in stagePlacements.ts so a designer-
@@ -18,7 +19,32 @@ import {
 function GLTFInstance({ url, ...props }: { url: string } & Record<string, unknown>) {
   const { scene } = useGLTF(assetUrl(url));
   const cloned = useMemo(() => scene.clone(true), [scene]);
+  // Side-effect: record the model-local footprint the first time this URL
+  // is seen so subsequent buildPlacements calls get accurate disc radii.
+  recordMeasuredFootprint(url, scene);
   return <primitive object={cloned} {...props} />;
+}
+
+/** Touches each placement URL via useGLTF (suspending until loaded) so the
+ *  footprint cache is warm before any placements are computed. Renders
+ *  nothing visible. Calls onWarm after the suspense boundary completes. */
+function FootprintWarmup({ urls, onWarm }: { urls: string[]; onWarm: () => void }) {
+  useEffect(() => {
+    onWarm();
+  }, [onWarm]);
+  return (
+    <>
+      {urls.map((url) => (
+        <MeasureCell key={url} url={url} />
+      ))}
+    </>
+  );
+}
+
+function MeasureCell({ url }: { url: string }) {
+  const { scene } = useGLTF(assetUrl(url));
+  recordMeasuredFootprint(url, scene);
+  return null;
 }
 
 function ArenaRings({ stage, scale }: { stage: Stage; scale: number }) {
@@ -161,11 +187,23 @@ function StageContent({
   isClear: boolean;
   placement: StagePlacement;
 }) {
-  // buildPlacements runs the overlap-aware placer once per stage change.
-  // platforms come back unchanged (they reserve their own discs); fixed
-  // is also returned as-is and used for keys, while scattered is the
-  // filtered output of the procedural clusters.
-  const built = useMemo(() => buildPlacements(stage, placement), [stage, placement]);
+  // Collect every URL the placement could spawn so we can warm the Box3
+  // footprint cache before running buildPlacements. Without this pass,
+  // the procedural placer falls back to URL-keyword footprints which
+  // mis-size several space-kit families (hangar 5.28 vs structure 1.60
+  // for what are actually similar-sized assets).
+  const allUrls = useMemo(() => {
+    const set = new Set<string>();
+    placement.fixed.forEach((f) => set.add(f.url));
+    placement.scattered.forEach((c) => c.pool.forEach((u) => set.add(u)));
+    return Array.from(set);
+  }, [placement]);
+
+  const [warmTick, setWarmTick] = useState(() => (isFootprintCacheWarm(allUrls) ? 1 : 0));
+  const built = useMemo(
+    () => (warmTick > 0 ? buildPlacements(stage, placement) : null),
+    [stage, placement, warmTick],
+  );
 
   return (
     <>
@@ -173,15 +211,24 @@ function StageContent({
         ? <PbrFloor isClear={isClear} placement={placement} />
         : <PlainFloor stage={stage} isClear={isClear} placement={placement} />}
       <ArenaRings stage={stage} scale={1} />
-      {built.platforms.map((p, idx) => (
-        <HighlandPlatform key={idx} p={p} isClear={isClear} />
-      ))}
-      {built.fixed.map((piece, idx) => (
-        <PlacedProp key={`fixed-${idx}`} piece={piece} />
-      ))}
-      {built.scattered.map((piece, idx) => (
-        <PlacedProp key={`scattered-${idx}`} piece={piece} />
-      ))}
+      {warmTick === 0 ? (
+        <Suspense fallback={null}>
+          <FootprintWarmup urls={allUrls} onWarm={() => setWarmTick((t) => t + 1)} />
+        </Suspense>
+      ) : null}
+      {built ? (
+        <>
+          {built.platforms.map((p, idx) => (
+            <HighlandPlatform key={idx} p={p} isClear={isClear} />
+          ))}
+          {built.fixed.map((piece, idx) => (
+            <PlacedProp key={`fixed-${idx}`} piece={piece} />
+          ))}
+          {built.scattered.map((piece, idx) => (
+            <PlacedProp key={`scattered-${idx}`} piece={piece} />
+          ))}
+        </>
+      ) : null}
     </>
   );
 }

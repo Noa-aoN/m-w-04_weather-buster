@@ -1,4 +1,5 @@
 import type { Stage, StageId } from "../game/types";
+import { getMeasuredFootprint } from "./footprintCache";
 
 // Placement data for stage-specific decorations. Splitting out from
 // StageTerrain.tsx so adding "+1 satellite dish" or "move that tower" only
@@ -379,6 +380,13 @@ const FOOTPRINT_KEYWORDS: Array<[string, number]> = [
 ];
 
 export function inferFootprint(url: string, scale: number): number {
+  // Box3-measured footprint (footprintCache) wins when the GLTF has been
+  // loaded at least once. Otherwise fall back to the URL-keyword table —
+  // good enough for the very first placement pass before scenes load.
+  const measured = getMeasuredFootprint(url);
+  if (measured !== undefined) {
+    return measured * scale;
+  }
   for (const [needle, base] of FOOTPRINT_KEYWORDS) {
     if (url.includes(needle)) {
       return base * scale;
