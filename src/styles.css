@@ -297,19 +297,18 @@ canvas {
   pointer-events: none;
 }
 
-/* Image-based title logo. The PNG ships as RGB (no alpha channel) so the
-   dark smoke / cloud backdrop is solid pixels. `mix-blend-mode: screen`
-   composites the image additively against the dark home scene — black /
-   near-black source pixels contribute nothing, so the smoke effectively
-   becomes transparent while the bright title strokes still read.
-   Drop-shadow is dropped because screen mode would invert it; a soft
-   inner glow comes through naturally from the image itself. */
+/* Image-based title logo. The PNG now ships with a real alpha channel
+   (background removed), so we composite normally without blend-mode
+   tricks. Cyan + dark drop-shadows give the title some depth against
+   the home scene without fighting the image's own glow. */
 .titleLogoImg {
   display: block;
   margin: 0 auto;
   width: min(1100px, calc(100vw - 40px));
   height: auto;
-  mix-blend-mode: screen;
+  filter:
+    drop-shadow(0 0 18px rgba(98, 219, 255, 0.45))
+    drop-shadow(0 12px 28px rgba(0, 0, 0, 0.55));
   animation: titleEnter 0.9s cubic-bezier(0.18, 0.9, 0.3, 1) both;
   pointer-events: none;
   user-select: none;
