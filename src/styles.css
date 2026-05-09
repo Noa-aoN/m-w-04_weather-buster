@@ -297,18 +297,19 @@ canvas {
   pointer-events: none;
 }
 
-/* Image-based title logo — matches the previous text title's screen
-   footprint via clamped width. Drop-shadow stack approximates the cyan
-   glow + dark lift the text version had so the rest of the home screen
-   art still reads as cohesive. */
+/* Image-based title logo. The PNG ships as RGB (no alpha channel) so the
+   dark smoke / cloud backdrop is solid pixels. `mix-blend-mode: screen`
+   composites the image additively against the dark home scene — black /
+   near-black source pixels contribute nothing, so the smoke effectively
+   becomes transparent while the bright title strokes still read.
+   Drop-shadow is dropped because screen mode would invert it; a soft
+   inner glow comes through naturally from the image itself. */
 .titleLogoImg {
   display: block;
   margin: 0 auto;
-  width: min(820px, calc(100vw - 80px));
+  width: min(1100px, calc(100vw - 40px));
   height: auto;
-  filter:
-    drop-shadow(0 0 18px rgba(98, 219, 255, 0.45))
-    drop-shadow(0 12px 28px rgba(0, 0, 0, 0.55));
+  mix-blend-mode: screen;
   animation: titleEnter 0.9s cubic-bezier(0.18, 0.9, 0.3, 1) both;
   pointer-events: none;
   user-select: none;
