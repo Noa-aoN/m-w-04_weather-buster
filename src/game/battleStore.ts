@@ -631,7 +631,9 @@ function buildBattleStore() {
       const minionDmgMul = state.minions.length > 0
         ? Math.pow(findMinionType(state.minions[0].typeId).bossDamageReceivedMul, state.minions.length)
         : 1;
-      const adjustedDamage = patch.damage * minionDmgMul;
+      // Ranged crescent trades safety (no need to close to melee) for raw
+      // output — quarter damage of a close-range slash.
+      const adjustedDamage = patch.damage * 0.25 * minionDmgMul;
       const adjustedEnemyHp = Math.max(state.enemyHp - adjustedDamage, 0);
       const becomesClear = adjustedEnemyHp === 0 && state.enemyHp > 0;
       const staggerPatch = nextStaggerPatch(
