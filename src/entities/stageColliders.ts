@@ -75,27 +75,36 @@ export function resolveCircleVsCircles(
   return { x: cx, z: cz };
 }
 
-/** Tightest entry distance along ray `(ox, oz) + t * (dx, dz)` to any
- *  collider in `colliders`. Returns `+Infinity` if nothing is hit. Used
- *  to occlude shots / projectiles by static props.
+/** Tightest entry distance along the 3D ray `(ox, oy, oz) + t * (dx, dy, dz)`
+ *  to any collider in `colliders`. Returns `+Infinity` if nothing is hit.
+ *  Used to occlude shots / projectiles by static props.
  *
- *  Direction `(dx, dz)` must be normalized. */
+ *  Height-aware: each collider is treated as a vertical cylinder with
+ *  radius `r` and top `top`. If the ray's Y at the disc-entry XZ point
+ *  is above the collider's top, the ray passes over and isn't blocked —
+ *  so a low pad / barrel won't kill a shot aimed at a tall enemy.
+ *
+ *  Direction `(dx, dy, dz)` must be normalized in 3D. */
 export function rayToFirstCollider(
   ox: number,
+  oy: number,
   oz: number,
   dx: number,
+  dy: number,
   dz: number,
-  colliders: readonly Disc[],
+  colliders: readonly StageCollider[],
 ): number {
   let nearest = Infinity;
   for (const c of colliders) {
     if (c.r <= 0) continue;
-    // Translate so collider is at origin
+    // Translate so collider is at origin (XZ only).
     const fx = ox - c.x;
     const fz = oz - c.z;
-    // Quadratic for ray-circle intersection: |f + t * d|^2 = r^2
-    // → (d.d) t^2 + 2(f.d) t + (f.f - r^2) = 0
-    const a = dx * dx + dz * dz; // == 1 if d is normalized
+    // Quadratic for 2D ray-circle intersection in the XZ plane. The 2D
+    // direction (dx, dz) is NOT unit length when the 3D direction has a
+    // Y component, so we keep `a` rather than collapsing to 1.
+    const a = dx * dx + dz * dz;
+    if (a < 1e-12) continue; // ray straight up/down, doesn't sweep XZ
     const b = 2 * (fx * dx + fz * dz);
     const cc = fx * fx + fz * fz - c.r * c.r;
     const disc = b * b - 4 * a * cc;
@@ -103,11 +112,13 @@ export function rayToFirstCollider(
     const sq = Math.sqrt(disc);
     const t1 = (-b - sq) / (2 * a);
     const t2 = (-b + sq) / (2 * a);
-    // Earliest non-negative entry
     const t = t1 >= 0 ? t1 : t2 >= 0 ? t2 : -1;
-    if (t >= 0 && t < nearest) {
-      nearest = t;
-    }
+    if (t < 0 || t >= nearest) continue;
+    // Y at the entry point along the original 3D ray (t is the 3D ray
+    // parameter — same scalar that scales (dx, dy, dz)).
+    const yAtEntry = oy + dy * t;
+    if (yAtEntry > c.top) continue; // ray clears the collider's roof
+    nearest = t;
   }
   return nearest;
 }

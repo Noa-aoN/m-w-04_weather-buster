@@ -53,40 +53,57 @@ describe("resolveCircleVsCircles", () => {
   });
 });
 
-describe("rayToFirstCollider", () => {
+describe("rayToFirstCollider (height-aware)", () => {
+  // Convenience: tall (3m) cylinder collider at the supplied XZ.
+  const tall = (x: number, z: number, r = 1): StageCollider => ({
+    x, z, r, top: 3, kind: "fixed",
+  });
+
   it("returns Infinity when no colliders are supplied", () => {
-    expect(rayToFirstCollider(0, 0, 1, 0, [])).toBe(Infinity);
+    expect(rayToFirstCollider(0, 1, 0, 1, 0, 0, [])).toBe(Infinity);
   });
 
-  it("returns Infinity when the ray misses everything", () => {
-    const colliders: Disc[] = [{ x: 0, z: 5, r: 1 }];
-    expect(rayToFirstCollider(0, 0, 1, 0, colliders)).toBe(Infinity);
+  it("returns Infinity when the horizontal ray misses every disc", () => {
+    expect(rayToFirstCollider(0, 1, 0, 1, 0, 0, [tall(0, 5)])).toBe(Infinity);
   });
 
-  it("returns the nearest entry distance for a direct hit", () => {
-    const colliders: Disc[] = [{ x: 5, z: 0, r: 1 }];
-    // Ray from origin along +x: enters circle at x=4.
-    expect(rayToFirstCollider(0, 0, 1, 0, colliders)).toBeCloseTo(4, 5);
+  it("returns the nearest entry distance for a direct horizontal hit", () => {
+    // Ray from (0, 1, 0) along +x; cylinder at x=5 r=1 entered at x=4.
+    expect(rayToFirstCollider(0, 1, 0, 1, 0, 0, [tall(5, 0)])).toBeCloseTo(4, 5);
   });
 
   it("picks the closest of multiple hits", () => {
-    const colliders: Disc[] = [
-      { x: 10, z: 0, r: 1 },
-      { x: 5, z: 0, r: 1 },
-    ];
-    expect(rayToFirstCollider(0, 0, 1, 0, colliders)).toBeCloseTo(4, 5);
+    expect(rayToFirstCollider(0, 1, 0, 1, 0, 0, [tall(10, 0), tall(5, 0)])).toBeCloseTo(4, 5);
   });
 
   it("ignores r <= 0 colliders", () => {
-    const colliders: Disc[] = [{ x: 5, z: 0, r: 0 }];
-    expect(rayToFirstCollider(0, 0, 1, 0, colliders)).toBe(Infinity);
+    expect(rayToFirstCollider(0, 1, 0, 1, 0, 0, [{ x: 5, z: 0, r: 0, top: 3, kind: "fixed" }])).toBe(Infinity);
   });
 
-  it("handles ray origin inside a collider (returns positive exit)", () => {
-    const colliders: Disc[] = [{ x: 0, z: 0, r: 1 }];
-    const t = rayToFirstCollider(0, 0, 1, 0, colliders);
-    // Origin is inside; first non-negative entry is t = +1 (exit point).
-    expect(t).toBeCloseTo(1, 5);
+  it("passes over a low collider when aim height clears its top", () => {
+    // Camera at y=2, aiming horizontally (+x). A short collider at x=5
+    // with top=1 — the ray's y at entry is still 2 (>1) → not blocked.
+    const low: StageCollider = { x: 5, z: 0, r: 1, top: 1, kind: "platform" };
+    expect(rayToFirstCollider(0, 2, 0, 1, 0, 0, [low])).toBe(Infinity);
+  });
+
+  it("blocks a tall collider even with a horizontal ray from camera height", () => {
+    const high: StageCollider = { x: 5, z: 0, r: 1, top: 5, kind: "fixed" };
+    expect(rayToFirstCollider(0, 2, 0, 1, 0, 0, [high])).toBeCloseTo(4, 5);
+  });
+
+  it("blocks a low collider when the ray dives into it", () => {
+    // Ray from (0, 2, 0) aimed steeply down + forward (normalized).
+    const low: StageCollider = { x: 5, z: 0, r: 1, top: 1, kind: "platform" };
+    // Direction such that at x=4 (entry distance 4 in XZ) the y has
+    // dropped below 1: dy/dx = -0.4 → at t=4*sqrt(...), y = 2 + dy*t.
+    // Use direction (0.9, -0.4359, 0) ≈ normalized.
+    const dx = 0.9;
+    const dy = -0.4359;
+    const dz = 0;
+    const len = Math.hypot(dx, dy, dz);
+    const t = rayToFirstCollider(0, 2, 0, dx / len, dy / len, dz / len, [low]);
+    expect(t).toBeLessThan(Infinity);
   });
 });
 

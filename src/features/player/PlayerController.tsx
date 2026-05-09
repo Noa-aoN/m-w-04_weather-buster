@@ -556,13 +556,17 @@ export function PlayerController({
           const distance = toEnemy.length();
           const alignment = distance > 0 ? dir.dot(toEnemy.normalize()) : 0;
           let didHit = distance <= WIND_BLADE_PROJECTILE_REACH && alignment >= WIND_BLADE_PROJECTILE_DOT;
-          // Static prop occlusion: if a static disc sits between the camera
-          // and the enemy along the aim direction, the crescent can't pass.
+          // Static prop occlusion: if a static collider sits between the
+          // camera and the enemy along the aim direction *and* its top is
+          // tall enough to intercept the shot at that point, the crescent
+          // can't pass.
           if (didHit && colliders.length > 0) {
             const blockerT = rayToFirstCollider(
               camera.position.x,
+              camera.position.y,
               camera.position.z,
               dir.x,
+              dir.y,
               dir.z,
               colliders,
             );
@@ -609,9 +613,19 @@ export function PlayerController({
       const closestEnemy = enemyHits[0];
       const closestMinion = minionHits[0];
       // Static prop occlusion: anything closer than the nearest collider
-      // along the aim ray is reachable; anything further is blocked.
+      // along the 3D aim ray is reachable; anything further is blocked.
+      // Height-aware — a low pad won't kill a horizontal shot from
+      // standing eye level.
       const occlusionT = colliders.length > 0
-        ? rayToFirstCollider(camera.position.x, camera.position.z, dir.x, dir.z, colliders)
+        ? rayToFirstCollider(
+            camera.position.x,
+            camera.position.y,
+            camera.position.z,
+            dir.x,
+            dir.y,
+            dir.z,
+            colliders,
+          )
         : Infinity;
       // Closer object wins. If a minion is in front of the boss the player
       // gets to chip it down first; otherwise the boss takes the shot.
