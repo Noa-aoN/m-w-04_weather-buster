@@ -583,6 +583,9 @@ export function PlayerController({
           // Static prop occlusion: if a static collider sits between the
           // camera and the enemy along the aim direction *and* its body
           // intercepts the shot Y at that point, the crescent can't pass.
+          // Stash contact and apply the store update AFTER fireSlashProjectile
+          // so the lastShotBlockedAt timestamp can match the projectile's.
+          let blockedContact: { x: number; y: number; z: number } | null = null;
           if (didHit && colliders.length > 0) {
             const blockerT = rayToFirstCollider(
               camera.position.x,
@@ -595,18 +598,25 @@ export function PlayerController({
             );
             if (blockerT < distance) {
               didHit = false;
-              useBattleStore.setState({
-                lastShotBlockedAt: now,
-                lastShotBlockedX: camera.position.x + dir.x * blockerT,
-                lastShotBlockedY: camera.position.y + dir.y * blockerT,
-                lastShotBlockedZ: camera.position.z + dir.z * blockerT,
-              });
+              blockedContact = {
+                x: camera.position.x + dir.x * blockerT,
+                y: camera.position.y + dir.y * blockerT,
+                z: camera.position.z + dir.z * blockerT,
+              };
             }
           }
           // Crit when the crescent threads the boss tightly along its center
           // line — narrower than melee so a clean ranged shot still rewards.
           const critical = didHit && alignment >= 0.95;
           store.fireSlashProjectile(didHit, critical);
+          if (blockedContact) {
+            useBattleStore.setState({
+              lastShotBlockedAt: useBattleStore.getState().lastSlashProjectileAt,
+              lastShotBlockedX: blockedContact.x,
+              lastShotBlockedY: blockedContact.y,
+              lastShotBlockedZ: blockedContact.z,
+            });
+          }
         } else {
           store.reload();
         }
@@ -658,22 +668,31 @@ export function PlayerController({
             colliders,
           )
         : Infinity;
-      const recordBlock = () => {
-        useBattleStore.setState({
-          lastShotBlockedAt: now,
-          lastShotBlockedX: camera.position.x + dir.x * occlusionT,
-          lastShotBlockedY: camera.position.y + dir.y * occlusionT,
-          lastShotBlockedZ: camera.position.z + dir.z * occlusionT,
-        });
-      };
+      // Stash block contact (don't setState yet) — applied AFTER shoot so
+      // lastShotBlockedAt can be set to the same timestamp as lastShotAt
+      // (the AudioBridge uses equality to gate the prop-hit SE).
+      const blockContact = (): { x: number; y: number; z: number } => ({
+        x: camera.position.x + dir.x * occlusionT,
+        y: camera.position.y + dir.y * occlusionT,
+        z: camera.position.z + dir.z * occlusionT,
+      });
+      let blockedContact: { x: number; y: number; z: number } | null = null;
       // Closer object wins. If a minion is in front of the boss the player
       // gets to chip it down first; otherwise the boss takes the shot.
       // Skip the minion shot too if a static prop is in the way.
       if (closestMinion && (!closestEnemy || closestMinion.distance < closestEnemy.distance)) {
         if (closestMinion.distance >= occlusionT) {
           // Blocked by a static prop — register a miss instead.
-          recordBlock();
+          blockedContact = blockContact();
           store.shoot(false, false);
+          if (blockedContact) {
+            useBattleStore.setState({
+              lastShotBlockedAt: useBattleStore.getState().lastShotAt,
+              lastShotBlockedX: blockedContact.x,
+              lastShotBlockedY: blockedContact.y,
+              lastShotBlockedZ: blockedContact.z,
+            });
+          }
           return;
         }
         const minionId = findMinionByObject(closestMinion.object);
@@ -685,10 +704,10 @@ export function PlayerController({
       const enemyDist = closestEnemy ? closestEnemy.distance : Infinity;
       const didHit = enemyHits.length > 0 && enemyDist < occlusionT;
       // Enemy was hit by the raycast but a static prop is in the way →
-      // record a block so the impact-spark VFX shows the player WHY the
-      // shot didn't connect.
+      // stash a block contact so the impact-spark VFX + prop-hit SE show
+      // the player WHY the shot didn't connect.
       if (closestEnemy && enemyDist >= occlusionT && occlusionT < Infinity) {
-        recordBlock();
+        blockedContact = blockContact();
       }
       const critical = didHit && enemyHits.some((hit) => {
         let node: Object3D | null = hit.object;
@@ -704,6 +723,14 @@ export function PlayerController({
         return false;
       });
       store.shoot(didHit, critical);
+      if (blockedContact) {
+        useBattleStore.setState({
+          lastShotBlockedAt: useBattleStore.getState().lastShotAt,
+          lastShotBlockedX: blockedContact.x,
+          lastShotBlockedY: blockedContact.y,
+          lastShotBlockedZ: blockedContact.z,
+        });
+      }
     };
     const onMouseUp = (_event: MouseEvent) => {
       // Shield no longer lives on right click; nothing to release here.
