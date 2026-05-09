@@ -132,6 +132,20 @@ export function AudioBridge() {
           playLowAmmoBeep();
         }
       }
+      // windBlade right-click crescent — same swing SFX so it reads as a
+      // sword move, plus hit / miss feedback.
+      if (
+        state.lastSlashProjectileAt !== prev.lastSlashProjectileAt
+        && state.lastSlashProjectileAt !== 0
+      ) {
+        playSlash();
+        if (state.lastSlashProjectileHit) {
+          playHit(state.lastSlashProjectileCritical);
+          playEnemyStagger(state.lastSlashProjectileCritical);
+        } else {
+          playMiss();
+        }
+      }
       if (state.reloadingStartedAt !== prev.reloadingStartedAt && state.reloadingStartedAt !== 0) {
         playReload();
       }

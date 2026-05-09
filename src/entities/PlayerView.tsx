@@ -16,7 +16,7 @@ import { WeaponObject, weaponModelRotation, weaponModelScale } from "./WeaponMod
 // For windBlade, left click triggers one of four varied slash animations
 // (right→left swipe, diagonal cross, forward thrust, vertical chop) cycled
 // through so consecutive clicks visibly differ.
-const SLASH_DURATION_MS = 320;
+const SLASH_DURATION_MS = 180;
 const SLASH_VARIANTS = 4;
 
 /**
@@ -130,39 +130,45 @@ export function PlayerWeapon() {
       node.translateY(-0.54);
       node.translateZ(-0.72);
       node.rotateZ(-0.28);
-      // Slash animation: pose the blade through one of four arcs over
-      // SLASH_DURATION_MS. We use eased t (1 - cos π t / 2 type curves) so
-      // the swing feels weighty — fast wind-up, slower follow-through.
+      // Slash animation: every variant is now an "off-screen above → fast
+      // downstrike" so the chop reads as decisive regardless of which
+      // variant the rotation lands on. Variants only differ in the slight
+      // angle / cross-direction the blade lands at, so a 3-hit combo still
+      // has visual variety.
+      //
+      // Curve: ease-in (t² acceleration). The blade is parked off-frame
+      // above with the tip pointed up at t=0, then falls fast through the
+      // crosshair to a forward-down landing pose by t=1.
       const slashElapsed = slashStartedAt.current > 0
         ? performance.now() - slashStartedAt.current
         : Infinity;
       if (slashElapsed < SLASH_DURATION_MS) {
         const t = slashElapsed / SLASH_DURATION_MS;
-        // Bell curve so peak is in the middle of the swing.
-        const swing = Math.sin(t * Math.PI);
-        const arc = Math.sin(t * Math.PI * 0.5);
+        const eased = t * t;
+        const w = 1 - eased; // wind-up coefficient (1 at start, 0 at end)
+        // Y travels from off-screen high (t=0) → below the rest pose (t=1)
+        // so the tip clearly carves past the crosshair on the way down.
+        const liftY = 1.7 * w - 0.45 * eased;
+        // X rotation: tip pointing up-back at t=0 → strongly forward-down at
+        // t=1. The bigger end angle (0.95 rad ≈ 54°) plants the tip well
+        // below the camera line for a decisive landing.
+        const tiltX = -1.1 * w + eased * 0.95;
+        node.translateY(liftY);
+        node.rotateX(tiltX);
         switch (slashVariantRef.current) {
-          case 0: // horizontal right → left
-            node.rotateY(swing * 1.4);
-            node.rotateZ(arc * 0.5);
-            node.translateX(-swing * 0.36);
-            node.translateZ(-arc * 0.18);
+          case 0: // straight-down centered chop
             break;
-          case 1: // diagonal upper-right → lower-left
-            node.rotateZ(-swing * 1.5);
-            node.rotateY(arc * 0.8);
-            node.translateY(arc * 0.22);
-            node.translateZ(-swing * 0.2);
+          case 1: // down + slight left landing
+            node.rotateZ(-w * 0.35 + eased * 0.18);
+            node.translateX(-eased * 0.32);
             break;
-          case 2: // forward thrust
-            node.translateZ(-swing * 0.95);
-            node.rotateX(-arc * 0.32);
-            node.rotateZ(swing * 0.18);
+          case 2: // down + slight right landing (mirror of 1)
+            node.rotateZ(w * 0.35 - eased * 0.18);
+            node.translateX(eased * 0.32);
             break;
-          case 3: // vertical chop top → bottom
-            node.rotateX(-swing * 1.6);
-            node.translateY(arc * 0.32);
-            node.translateZ(-arc * 0.18);
+          case 3: // overhead slam — adds forward thrust on impact
+            node.translateZ(-eased * 0.55);
+            node.translateY(-eased * 0.30);
             break;
         }
       }

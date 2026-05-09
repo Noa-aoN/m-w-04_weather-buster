@@ -26,6 +26,12 @@ const JUMP_DURATION = 0.55;
 const GROUND_Y = 2.15;
 const WIND_BLADE_REACH = 4.8;
 const WIND_BLADE_DOT = 0.62;
+// Right-click crescent: longer reach than the close swing so the player can
+// answer enemies that have stepped out of melee range. Cooldown is much
+// slower than left-click so the projectile can't replace gunplay entirely.
+const WIND_BLADE_PROJECTILE_REACH = 22;
+const WIND_BLADE_PROJECTILE_DOT = 0.82;
+const WIND_BLADE_PROJECTILE_COOLDOWN_MS = 1000;
 
 function getSpecialDelay(enemyId: string): number {
   // Larger / scarier enemies fire specials more often
@@ -483,17 +489,35 @@ export function PlayerController({
   });
 
   const lastTriggerAtRef = useRef(0);
+  const lastSlashProjectileAtRef = useRef(0);
 
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
       if (document.pointerLockElement !== gl.domElement) return;
       const store = useBattleStore.getState();
       if (store.status !== "battle") return;
-      // Right click → reload (was shield). Reload is now mandatory; the
-      // player must explicitly press right click or R to reload.
+      // Right click:
+      //   - non-windBlade → reload (mandatory; no auto-reload anymore)
+      //   - windBlade     → fire mid-range crescent projectile
       if (event.button === 2) {
         event.preventDefault();
-        if (store.selectedWeaponId !== "windBlade") {
+        if (store.selectedWeaponId === "windBlade") {
+          const now = performance.now();
+          if (now - lastSlashProjectileAtRef.current < WIND_BLADE_PROJECTILE_COOLDOWN_MS) {
+            return;
+          }
+          lastSlashProjectileAtRef.current = now;
+          const dir = forward.current;
+          camera.getWorldDirection(dir);
+          const toEnemy = enemyPositionRef.current.clone().sub(camera.position);
+          const distance = toEnemy.length();
+          const alignment = distance > 0 ? dir.dot(toEnemy.normalize()) : 0;
+          const didHit = distance <= WIND_BLADE_PROJECTILE_REACH && alignment >= WIND_BLADE_PROJECTILE_DOT;
+          // Crit when the crescent threads the boss tightly along its center
+          // line — narrower than melee so a clean ranged shot still rewards.
+          const critical = didHit && alignment >= 0.95;
+          store.fireSlashProjectile(didHit, critical);
+        } else {
           store.reload();
         }
         return;

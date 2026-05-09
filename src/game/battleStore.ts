@@ -133,6 +133,12 @@ type BattleState = {
   currentWeatherCode: number | null;
   lastShotAt: number;
   lastShotHit: boolean;
+  /** Timestamp of the last windBlade ranged-slash projectile (right click).
+   *  Kept separate from lastShotAt so close-range slash visuals (PlayerView
+   *  blade swing, SlashTrails carve line) don't fire on a ranged cast. */
+  lastSlashProjectileAt: number;
+  lastSlashProjectileHit: boolean;
+  lastSlashProjectileCritical: boolean;
   lastItemAt: number;
   lastItemId: ItemId | null;
   lastSkillAt: number;
@@ -200,6 +206,10 @@ type BattleState = {
   start: () => void;
   reset: () => void;
   shoot: (didHit: boolean, critical?: boolean) => void;
+  /** windBlade-only ranged crescent. Same damage/gauge math as `shoot`, but
+   *  records to `lastSlashProjectile*` so the visual layer can show a
+   *  flying slash instead of the close-range carve. */
+  fireSlashProjectile: (didHit: boolean, critical?: boolean) => void;
   reload: () => void;
   takeDamageTick: () => void;
   takeMarkerDamage: (amount: number) => void;
@@ -245,6 +255,9 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   lastShotHit: false,
   lastShotCritical: false,
   lastShotDamage: 0,
+  lastSlashProjectileAt: 0,
+  lastSlashProjectileHit: false,
+  lastSlashProjectileCritical: false,
   lastItemAt: 0,
   lastItemId: null,
   lastSkillAt: 0,
@@ -584,6 +597,85 @@ function buildBattleStore() {
       // Reload is now mandatory — the player must explicitly press R or
       // right-click. Empty mag → bumps lastEmptyClickAt elsewhere to fire
       // the warning HUD instead.
+    },
+    fireSlashProjectile: (didHit, critical = false) => {
+      // Mid-range crescent for windBlade right click. Same applyShot math
+      // as `shoot` (so damage / gauge / combo / minion patch all behave
+      // consistently), but writes to lastSlashProjectile* fields so:
+      //   - PlayerView's blade swing doesn't fire (it watches lastShotAt)
+      //   - SlashTrails (close-range carve line) doesn't fire either
+      //   - SlashProjectiles can spawn the flying blade independently
+      const state = get();
+      const now = performance.now();
+      const weapon = findWeapon(state.selectedWeaponId);
+      if (state.status !== "battle" || weapon.id !== "windBlade") {
+        return;
+      }
+      const character = findCharacter(state.selectedCharacterId);
+      const patch = applyShot({
+        didHit,
+        critical,
+        weapon,
+        character,
+        enemyId: state.selectedEnemyId,
+        state: {
+          enemyHp: state.enemyHp,
+          pressureGauge: state.pressureGauge,
+          enemyBarrierUntil: state.enemyBarrierUntil,
+          combo: state.combo,
+          comboBest: state.comboBest,
+          lastComboAt: state.lastComboAt,
+        },
+        now,
+      });
+      const minionDmgMul = state.minions.length > 0
+        ? Math.pow(findMinionType(state.minions[0].typeId).bossDamageReceivedMul, state.minions.length)
+        : 1;
+      const adjustedDamage = patch.damage * minionDmgMul;
+      const adjustedEnemyHp = Math.max(state.enemyHp - adjustedDamage, 0);
+      const becomesClear = adjustedEnemyHp === 0 && state.enemyHp > 0;
+      const staggerPatch = nextStaggerPatch(
+        state.enemyHp,
+        adjustedEnemyHp,
+        state.enemyMaxHp,
+        state.staggerThresholdsHit,
+        now,
+      );
+      const prevRatio = state.enemyHp / Math.max(state.enemyMaxHp, 1);
+      const nextRatio = adjustedEnemyHp / Math.max(state.enemyMaxHp, 1);
+      const minionPatch = spawnMinionsForRatio(
+        state.selectedEnemyId,
+        prevRatio,
+        nextRatio,
+        state.minionThresholdsSpawned,
+        state.minions,
+        state.selectedDifficulty,
+        now,
+      );
+      set({
+        shotsFired: state.shotsFired + 1,
+        shotsHit: state.shotsHit + (didHit ? 1 : 0),
+        enemyHp: adjustedEnemyHp,
+        pressureGauge: patch.pressureGauge,
+        status: adjustedEnemyHp === 0 ? "clear" : state.status,
+        lastSlashProjectileAt: now,
+        lastSlashProjectileHit: didHit,
+        lastSlashProjectileCritical: patch.effectiveCritical,
+        lastShotDamage: adjustedDamage,
+        lastBlockedAt: patch.blocked ? now : state.lastBlockedAt,
+        lastDefeatAt: becomesClear ? Date.now() : state.lastDefeatAt,
+        combo: patch.combo,
+        comboBest: patch.comboBest,
+        lastComboAt: patch.lastComboAt,
+        ...(staggerPatch ?? {}),
+        ...(minionPatch
+          ? {
+              minions: minionPatch.minions,
+              minionThresholdsSpawned: minionPatch.thresholds,
+              ...(minionPatch.additionsCount > 0 ? { lastMinionSpawnAt: now } : {}),
+            }
+          : {}),
+      });
     },
     reload: () => {
       const state = get();

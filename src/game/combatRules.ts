@@ -15,9 +15,13 @@ export const COMBAT_CONSTANTS = {
   PLAYER_MAX_HP: 1000,
   ENEMY_TICK_DAMAGE_BASE: 2,
   ENEMY_REGULAR_ATTACK_RATIO: 0.45,
-  HIT_GAUGE_GAIN: 8,
-  CRITICAL_GAUGE_GAIN: 14,
-  MISS_GAUGE_GAIN: 2,
+  HIT_GAUGE_GAIN: 6,
+  CRITICAL_GAUGE_GAIN: 10,
+  MISS_GAUGE_GAIN: 1,
+  // Melee weapons (windBlade) trade ranged safety for closing distance —
+  // each hit grants a bonus on top of the base gain so the skill gauge
+  // doesn't feel disproportionately slow despite needing point-blank range.
+  MELEE_GAUGE_MULTIPLIER: 1.6,
   HEAL_AMOUNT: 350,
   STABILIZER_GAUGE_GAIN: 60,
   DECOY_DURATION_MS: 5000,
@@ -137,8 +141,9 @@ export function applyShot({
     ? (critical ? COMBAT_CONSTANTS.CRITICAL_GAUGE_GAIN : COMBAT_CONSTANTS.HIT_GAUGE_GAIN)
     : COMBAT_CONSTANTS.MISS_GAUGE_GAIN;
   const gaugeMul = blocked ? COMBAT_CONSTANTS.BARRIER_GAUGE_MUL : 1;
+  const meleeMul = weapon.id === "windBlade" ? COMBAT_CONSTANTS.MELEE_GAUGE_MULTIPLIER : 1;
   const pressureGauge = Math.min(
-    state.pressureGauge + baseGauge * character.gaugeGainMultiplier * gaugeMul,
+    state.pressureGauge + baseGauge * character.gaugeGainMultiplier * gaugeMul * meleeMul,
     100,
   );
   const becomesClear = enemyHp === 0 && state.enemyHp > 0;
