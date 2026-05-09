@@ -3,7 +3,7 @@ import { Sky, Stars, useAnimations, useGLTF, useTexture } from "@react-three/dre
 import { SceneLoader } from "../features/loader/SceneLoader";
 import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh } from "three";
-import { LoopOnce, RepeatWrapping, SRGBColorSpace } from "three";
+import { DoubleSide, LoopOnce, RepeatWrapping, SRGBColorSpace } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
 import { characters, findCharacter, findStage, findWeapon, stages, weapons, weatherEnemies } from "../game/data";
@@ -11,7 +11,7 @@ import { useGeolocationWeather } from "../features/weather/useGeolocationWeather
 import type { CharacterId, DifficultyLevel, LoadoutTab, Stage } from "../game/types";
 import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
 import { fitObjectToHeight, tintCharacterMaterials } from "../entities/fitObject";
-import { STAGE_PLACEMENTS } from "../entities/stagePlacements";
+import { STAGE_PLACEMENTS, inferFootprint } from "../entities/stagePlacements";
 import { AudioToggle } from "../features/audio/AudioToggle";
 import { assetUrl } from "../shared/assets";
 import { HomeBackdropLayer, HomeHudLayer, HomeMenuLayer } from "./home/HomeLayers";
@@ -594,33 +594,93 @@ const BACKDROP_URLS = [
   assetUrl("/models/space-kit/structure_detailed.glb"),
 ];
 
-// Outer backdrop ring (z = -8 to -10.5). All neighbour pairs are 8.5+
-// units apart so the scale 2.0-2.2 hangars never touch. Outermost two are
-// closer to camera (-8) so they read as the "scene wall"; inner two sit
-// further back (-10.5) for depth.
+// Outer backdrop ring (z = -10 / -10.5). Every neighbour pair clears
+// hangar+hangar footprint sums (5.28 + 5.28 = 10.56 for smallA/B, sum
+// 3.20 for structure pair) with comfortable margin. Outer pair pushed
+// to ±14 so they don't crowd the inner tower line.
 const BACKDROP_PLACEMENTS: Array<{ x: number; z: number; rotY: number; scale: number; idx: number }> = [
-  { x: -13.0, z: -8.0, rotY: 0.4, scale: 2.2, idx: 0 },   // hangar_smallA
+  { x: -14.0, z: -10.0, rotY: 0.4, scale: 2.2, idx: 0 },  // hangar_smallA
   { x: -4.5, z: -10.5, rotY: -0.3, scale: 2.0, idx: 4 },  // structure
   { x: 4.5, z: -10.5, rotY: -0.5, scale: 2.0, idx: 5 },   // structure_detailed
-  { x: 13.0, z: -8.0, rotY: 0.2, scale: 2.2, idx: 1 },    // hangar_smallB
+  { x: 14.0, z: -10.0, rotY: 0.2, scale: 2.2, idx: 1 },   // hangar_smallB
 ];
 
-// Mid layer: 4 vertical accent towers in a row at z = -5.5. Together with
-// the satellite dish they form 5 vertical silhouettes between the hero and
-// the back wall. Spacings of 5-5.5 units leave footprint margin against
-// each other and against the outer hangars.
+// Mid layer: 4 vertical accent towers in a row at z = -5.5. Spacings
+// chosen against the keyword-inferred tower footprint (1.76) and the
+// satellite dish (2.56) so all neighbour pairs stay clear without
+// relying on Box3 measurements being smaller than keyword inference.
 const TOWER_PLACEMENTS: Array<[number, number, number]> = [
-  [-8.5, 0, -5.5],
+  [-7.0, 0, -5.5],
   [-3.0, 0, -5.5],
   [3.0, 0, -5.5],
-  [8.5, 0, -5.5],
+  [7.0, 0, -5.5],
 ];
 
-// Front-mid: the satellite dish sits one row in front of the towers (z=-3)
-// so the silhouette layers — dish (front), towers (mid), hangars (back) —
-// read as three depth bands.
-const SATELLITE_DISH_POSITION: [number, number, number] = [6.0, 0, -3.0];
+// Front anchor: dish sits forward and to the right (z=-1, x=5). Far
+// enough from all 4 towers to clear the dish radius (2.56) + tower
+// (1.76), and far enough from hero (radius 1) to not crowd the
+// silhouette.
+const SATELLITE_DISH_POSITION: [number, number, number] = [5.0, 0, -1.0];
 const SATELLITE_DISH_SCALE = 1.6;
+
+// Inline disc list used by HomeColliderDebug. Hero is the central
+// keep-out; the rest mirror the placement constants above. Footprint
+// values are derived at render time from inferFootprint to keep this in
+// sync with whatever is in the cache.
+function homeDebugDiscs(): Array<{ x: number; z: number; r: number; kind: "hero" | "tower" | "dish" | "hangar" }> {
+  const out: Array<{ x: number; z: number; r: number; kind: "hero" | "tower" | "dish" | "hangar" }> = [
+    { x: 0, z: 0, r: 1.0, kind: "hero" },
+    {
+      x: SATELLITE_DISH_POSITION[0],
+      z: SATELLITE_DISH_POSITION[2],
+      r: inferFootprint(SATELLITE_DISH_URL.replace(/^.*\/models\//, "/models/"), SATELLITE_DISH_SCALE),
+      kind: "dish",
+    },
+  ];
+  for (const [x, , z] of TOWER_PLACEMENTS) {
+    out.push({ x, z, r: inferFootprint("/models/tower-defense-kit/tower-round-base.glb", 1.1), kind: "tower" });
+  }
+  for (const p of BACKDROP_PLACEMENTS) {
+    out.push({
+      x: p.x,
+      z: p.z,
+      r: inferFootprint(BACKDROP_URLS[p.idx % BACKDROP_URLS.length].replace(/^.*\/models\//, "/models/"), p.scale),
+      kind: "hangar",
+    });
+  }
+  return out;
+}
+
+function HomeColliderDebug() {
+  const enabled = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("debug") === "placement";
+  }, []);
+  if (!enabled) return null;
+  const discs = homeDebugDiscs();
+  const colorFor: Record<string, string> = {
+    hero: "#ff3b6b",
+    tower: "#3bd6ff",
+    dish: "#ffd83b",
+    hangar: "#ff63d1",
+  };
+  return (
+    <>
+      {discs.map((d, i) => (
+        <group key={i} position={[d.x, 0.05, d.z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh>
+            <ringGeometry args={[Math.max(d.r - 0.05, 0.02), d.r, 48]} />
+            <meshBasicMaterial color={colorFor[d.kind]} transparent opacity={0.95} side={DoubleSide} toneMapped={false} />
+          </mesh>
+          <mesh>
+            <ringGeometry args={[0, Math.max(d.r - 0.05, 0.02), 48]} />
+            <meshBasicMaterial color={colorFor[d.kind]} transparent opacity={0.18} side={DoubleSide} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+    </>
+  );
+}
 
 function BackdropStructures() {
   return (
@@ -717,6 +777,7 @@ function HomeStage({
           <WarningTower key={`${position[0]}_${position[2]}`} position={position} />
         ))}
         <BackdropStructures />
+        <HomeColliderDebug />
         <RotatingScenery>
           {[3, 5, 8].map((radius) => (
             <mesh key={radius} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
