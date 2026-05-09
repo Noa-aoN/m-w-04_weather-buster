@@ -14,6 +14,7 @@ import { SkillBurstVFX } from "../entities/SkillBurstVFX";
 import { SlashProjectiles } from "../entities/SlashProjectiles";
 import { SlashTrails } from "../entities/SlashTrails";
 import { StageColliderDebug } from "../entities/StageColliderDebug";
+import type { StageCollider } from "../entities/stagePlacements";
 import { useStageColliders } from "../entities/useStageColliders";
 import { FovController, PlayerBackAvatar, PlayerShield, PlayerWeapon } from "../entities/PlayerView";
 import { StageTerrain } from "../entities/StageTerrain";
@@ -78,12 +79,14 @@ function ExperimentField({
   isClear,
   enemyRef,
   enemyPositionRef,
+  colliders,
 }: {
   enemyId: WeatherEnemyId;
   stage: Stage;
   isClear: boolean;
   enemyRef: React.RefObject<Group | null>;
   enemyPositionRef: React.RefObject<Vector3>;
+  colliders: readonly StageCollider[];
 }) {
   const enemy = weatherEnemies.find((candidate) => candidate.id === enemyId) ?? weatherEnemies[0];
   const selectedDifficulty = useBattleStore((state) => state.selectedDifficulty);
@@ -149,6 +152,7 @@ function ExperimentField({
         arenaZFront={stage.arena.zFront}
         arenaZBack={stage.arena.zBack}
         difficulty={selectedDifficulty}
+        colliders={colliders}
       />
 
       {!isClear && enemy.id === "thunderstorm" ? <ThunderstormStrikes /> : null}
@@ -180,24 +184,39 @@ function ExperimentField({
 
 /** Lives inside the Canvas because useStageColliders subscribes to the
  *  footprint cache (a module-level Map mutated by GLTF measurement
- *  components rendered down-tree). Owning the colliders here keeps the
- *  re-render cost local rather than re-rendering the entire BattleScene. */
+ *  components rendered down-tree). Owns ExperimentField + PlayerController
+ *  together so both share the same `colliders` instance and re-render
+ *  costs stay local to this subtree. */
 function CollisionWiring({
   stage,
+  enemyId,
+  isClear,
   enemyGroupRef,
   enemyPositionRef,
 }: {
   stage: Stage;
+  enemyId: WeatherEnemyId;
+  isClear: boolean;
   enemyGroupRef: React.RefObject<Group | null>;
   enemyPositionRef: React.RefObject<Vector3>;
 }) {
   const colliders = useStageColliders(stage);
   return (
-    <PlayerController
-      enemyRef={enemyGroupRef}
-      enemyPositionRef={enemyPositionRef}
-      colliders={colliders}
-    />
+    <>
+      <ExperimentField
+        enemyId={enemyId}
+        stage={stage}
+        isClear={isClear}
+        enemyRef={enemyGroupRef}
+        enemyPositionRef={enemyPositionRef}
+        colliders={colliders}
+      />
+      <PlayerController
+        enemyRef={enemyGroupRef}
+        enemyPositionRef={enemyPositionRef}
+        colliders={colliders}
+      />
+    </>
   );
 }
 
@@ -227,14 +246,13 @@ export function BattleScene({
       >
         <FovController />
         <ClearSkyCameraPan />
-        <ExperimentField
-          enemyId={selectedEnemyId}
+        <CollisionWiring
           stage={stage}
-          isClear={isClear}
-          enemyRef={enemyGroupRef}
+          enemyGroupRef={enemyGroupRef}
           enemyPositionRef={enemyPositionRef}
+          isClear={isClear}
+          enemyId={selectedEnemyId}
         />
-        <CollisionWiring stage={stage} enemyGroupRef={enemyGroupRef} enemyPositionRef={enemyPositionRef} />
       </Canvas>
 
       <BattleHud onBack={onBack} onShowResult={onShowResult} />

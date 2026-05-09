@@ -5,6 +5,8 @@ import { useBattleStore } from "../game/battleStore";
 import { difficultyModifiers, findMinionType } from "../game/data";
 import { isDebugEnabled, writeDebug } from "../features/debug/debugBus";
 import type { DifficultyLevel, WeatherEnemy } from "../game/types";
+import { resolveCircleVsCircles } from "./stageColliders";
+import type { StageCollider } from "./stagePlacements";
 
 // Per-enemy AI motion. When evolving, see AGENTS.md "敵 AI を触るとき" — the
 // four points (AiPhase / phaseDurations / next / lerpRate) must always move
@@ -45,6 +47,11 @@ const ENEMY_VERTICAL_TIER: Record<
   typhoon:      { base: 3.4, amp: 1.2,  freq: 1.3 },
 };
 
+// Enemy bounding radius for static-prop push-out. Enemies render larger
+// than the player but the AI orbit logic already keeps them ≥ MIN_DISTANCE
+// away, so we use a moderate disc that just covers the body silhouette.
+const ENEMY_COLLIDER_RADIUS = 1.2;
+
 export function EnemyMotion({
   enemy,
   enemyRef,
@@ -54,6 +61,7 @@ export function EnemyMotion({
   arenaZFront,
   arenaZBack,
   difficulty,
+  colliders,
 }: {
   enemy: WeatherEnemy;
   enemyRef: React.RefObject<Group | null>;
@@ -63,6 +71,7 @@ export function EnemyMotion({
   arenaZFront: number;
   arenaZBack: number;
   difficulty: DifficultyLevel;
+  colliders: readonly StageCollider[];
 }) {
   const { camera } = useThree();
   const status = useBattleStore((state) => state.status);
@@ -299,6 +308,14 @@ export function EnemyMotion({
     if (distClamp < MIN_DISTANCE && distClamp > 0.001) {
       targetX = playerX + (dxClamp / distClamp) * MIN_DISTANCE;
       targetZ = playerZ + (dzClamp / distClamp) * MIN_DISTANCE;
+    }
+
+    // Push the boss out of any static prop disc before the arena clamp,
+    // so AI orbit logic can't drop them inside a hangar / tower / outcrop.
+    if (colliders.length > 0) {
+      const resolved = resolveCircleVsCircles(targetX, targetZ, ENEMY_COLLIDER_RADIUS, colliders);
+      targetX = resolved.x;
+      targetZ = resolved.z;
     }
 
     targetX = Math.max(-arenaX + 1, Math.min(arenaX - 1, targetX));
