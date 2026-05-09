@@ -446,21 +446,43 @@ export function PlayerController({
         const dz = camera.position.z - marker.z;
         const distance = Math.sqrt(dx * dx + dz * dz);
         if (distance <= marker.radius) {
-          state.takeMarkerDamage(marker.damage);
-          const markerEnemyId = (marker as { enemyId?: typeof marker.enemyId }).enemyId;
-          const pat = markerEnemyId ? enemyAttackPatterns[markerEnemyId] : null;
-          if (pat && pat.knockback > 0) {
-            const len = Math.max(distance, 0.0001);
-            // Tornado pulls player TOWARD impact (and toward the enemy in
-            // the case of a colocated marker) — that's its signature feel.
-            const direction = markerEnemyId === "tornado" ? -1 : 1;
-            const nx = (dx / len) * direction;
-            const nz = (dz / len) * direction;
-            state.applyKnockback(nx * pat.knockback * 6, nz * pat.knockback * 6);
+          // Static prop occlusion: cast a 3D ray from the marker's
+          // origin (boss / minion / sky) to the player. If a static
+          // collider is in the way and tall enough to intercept the
+          // ray's Y at that point, the attack is blocked.
+          const ox = marker.fromX;
+          const oy = marker.fromY;
+          const oz = marker.fromZ;
+          const rx = camera.position.x - ox;
+          const ry = camera.position.y - oy;
+          const rz = camera.position.z - oz;
+          const rayDist = Math.sqrt(rx * rx + ry * ry + rz * rz);
+          let blocked = false;
+          if (colliders.length > 0 && rayDist > 0.001) {
+            const blockerT = rayToFirstCollider(
+              ox, oy, oz,
+              rx / rayDist, ry / rayDist, rz / rayDist,
+              colliders,
+            );
+            if (blockerT < rayDist) blocked = true;
           }
-          // RainySeason marker leaves a temporary slow on the player.
-          if (markerEnemyId === "rainySeason") {
-            useBattleStore.setState({ slowUntil: now + 2200 });
+          if (!blocked) {
+            state.takeMarkerDamage(marker.damage);
+            const markerEnemyId = (marker as { enemyId?: typeof marker.enemyId }).enemyId;
+            const pat = markerEnemyId ? enemyAttackPatterns[markerEnemyId] : null;
+            if (pat && pat.knockback > 0) {
+              const len = Math.max(distance, 0.0001);
+              // Tornado pulls player TOWARD impact (and toward the enemy in
+              // the case of a colocated marker) — that's its signature feel.
+              const direction = markerEnemyId === "tornado" ? -1 : 1;
+              const nx = (dx / len) * direction;
+              const nz = (dz / len) * direction;
+              state.applyKnockback(nx * pat.knockback * 6, nz * pat.knockback * 6);
+            }
+            // RainySeason marker leaves a temporary slow on the player.
+            if (markerEnemyId === "rainySeason") {
+              useBattleStore.setState({ slowUntil: now + 2200 });
+            }
           }
         }
         state.removeLightning(marker.id);
