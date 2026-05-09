@@ -285,26 +285,27 @@ canvas {
 .titleBlock {
   position: absolute;
   z-index: 4;
-  /* Center-pin to the top edge with a viewport-aware offset, so the title
-     stays comfortably high but never clips out on short screens. */
-  top: clamp(28px, 4vh, 64px);
+  /* Pinned slightly higher than before — feels less crowded against the
+     top HUD chrome, and the (now wide) image needs less vertical room. */
+  top: clamp(8px, 2vh, 28px);
   left: 50%;
-  /* Width tracks viewport so 4-character + Japanese / English subtitle stays
-     on one line whenever physically possible, falling back gracefully. */
-  width: min(960px, calc(100vw - 80px));
   transform: translateX(-50%);
+  /* No fixed width: the img sizes itself responsively below, and the
+     parent just centers it. text-align kept for any future text fallback. */
   text-align: center;
   pointer-events: none;
 }
 
-/* Image-based title logo. The PNG now ships with a real alpha channel
-   (background removed), so we composite normally without blend-mode
-   tricks. Cyan + dark drop-shadows give the title some depth against
-   the home scene without fighting the image's own glow. */
+/* Image-based title logo. PNG ships with a real alpha channel, so the
+   composite is straight overlay. Width uses a 3-way min:
+     - 1100px cap on wide desktops
+     - viewport width - 40px gutter on narrow screens
+     - 36vh × aspect (3.47:1 for the current image) on short screens
+   so the logo never dominates a short window vertically. */
 .titleLogoImg {
   display: block;
   margin: 0 auto;
-  width: min(1100px, calc(100vw - 40px));
+  width: min(1100px, calc(100vw - 40px), calc(36vh * 3.47));
   height: auto;
   filter:
     drop-shadow(0 0 18px rgba(98, 219, 255, 0.45))
