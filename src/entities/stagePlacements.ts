@@ -127,12 +127,12 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // KayKit ResourceBits: industrial pallets / fuel barrels / parts piles
       // line the side aisles. Pallets sit flat (no height) so they don't
       // block the player line of sight; barrels add silhouette.
-      // Pallets are flat ground items: skip placement reservation (the
-      // barrel on top owns the disc) and skip collision (player walks
-      // over the pallet).
-      { url: "/models/resource-bits/Pallet_Wood_Covered_A.gltf", x: -5.5, z: -2.5, scale: 1.2, rotY: 0.3, footprint: 0, solid: false },
+      // Pallets get solid:true (default) so the player bumps into the
+      // pallet edge instead of sliding through it. footprint:0 still
+      // applies — the barrel on top owns the placement disc.
+      { url: "/models/resource-bits/Pallet_Wood_Covered_A.gltf", x: -5.5, z: -2.5, scale: 1.2, rotY: 0.3, footprint: 0 },
       { url: "/models/resource-bits/Fuel_A_Barrels.gltf", x: -5.5, z: -2.5, scale: 1.0, rotY: 0.3 },
-      { url: "/models/resource-bits/Pallet_Wood.gltf", x: 5.5, z: -2.5, scale: 1.2, rotY: -0.4, footprint: 0, solid: false },
+      { url: "/models/resource-bits/Pallet_Wood.gltf", x: 5.5, z: -2.5, scale: 1.2, rotY: -0.4, footprint: 0 },
       { url: "/models/resource-bits/Fuel_C_Barrels.gltf", x: 5.5, z: -2.5, scale: 1.0, rotY: -0.4 },
       { url: "/models/resource-bits/Iron_Bars_Stack_Large.gltf", x: -3, z: 0, scale: 1.0, rotY: 0.5 },
       { url: "/models/resource-bits/Copper_Bars_Stack_Medium.gltf", x: 3, z: 0, scale: 1.0, rotY: -0.4 },
@@ -258,10 +258,12 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-base-bits/windturbine_tall.gltf", x: -16, z: -8, scale: 2.2, rotY: 0.4 },
       { url: "/models/space-base-bits/windturbine_tall.gltf", x: 18, z: -7, scale: 2.0, rotY: -0.3 },
       { url: "/models/space-base-bits/windturbine_low.gltf", x: 18, z: 10, scale: 1.8, rotY: 0.8 },
-      // Landing pads are flat ground-level pieces — opt out of disc
-      // reservation AND collision (player walks on them).
-      { url: "/models/space-base-bits/landingpad_large.gltf", x: -10, z: 14, scale: 2.0, rotY: 0, footprint: 0, solid: false },
-      { url: "/models/space-base-bits/landingpad_small.gltf", x: 6, z: 18, scale: 1.6, rotY: 0.5, footprint: 0, solid: false },
+      // Landing pads are flat raised platforms (~0.4m). Solid so the
+      // player can hop on with the new step-up logic and use them as
+      // elevated firing positions. footprint:0 keeps placement clean
+      // around their large XZ extent.
+      { url: "/models/space-base-bits/landingpad_large.gltf", x: -10, z: 14, scale: 2.0, rotY: 0, footprint: 0 },
+      { url: "/models/space-base-bits/landingpad_small.gltf", x: 6, z: 18, scale: 1.6, rotY: 0.5, footprint: 0 },
       // Roof solar panels — tall structure with supporting legs. Keep
       // solid so the legs block movement (2D collision can't model
       // walking-under-the-canopy anyway).
