@@ -115,10 +115,10 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-base-bits/containers_B.gltf", x: -3.5, z: 7.4, scale: 2.4, rotY: -0.2, footprint: 0 },
       { url: "/models/space-base-bits/containers_C.gltf", x: 4.6, z: 7.6, scale: 2.4, rotY: 0.4 },
       // Floor lamps + small detail props (KayKit lights mark walking lanes)
-      // Lab lane-marker lights — thin posts, treat as non-blocking like
-      // their highland counterparts so the player isn't randomly stopped.
-      { url: "/models/space-base-bits/lights.gltf", x: -2.4, z: 4.5, scale: 1.0, rotY: 0, solid: false },
-      { url: "/models/space-base-bits/lights.gltf", x: 2.4, z: 4.5, scale: 1.0, rotY: 0, solid: false },
+      // Lab lane-marker lights have a visible post + base — keep solid
+      // so players bump into them rather than walking through.
+      { url: "/models/space-base-bits/lights.gltf", x: -2.4, z: 4.5, scale: 1.0, rotY: 0 },
+      { url: "/models/space-base-bits/lights.gltf", x: 2.4, z: 4.5, scale: 1.0, rotY: 0 },
       // Hanging from the ceiling, no floor footprint, no collision.
       { url: "/models/factory-kit/screen-hanging-small.glb", x: 0, z: 6.0, scale: 0.9, rotY: 0, footprint: 0, solid: false },
       // Wall-mounted, no floor footprint, no collision.
@@ -169,14 +169,13 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // A few young trees breaking through the rubble (color = recovery)
       { url: "/models/forest-nature/Tree_3_A_Color1.gltf", x: -2, z: -13, scale: 0.45, rotY: 0.3 },
       { url: "/models/forest-nature/Tree_2_A_Color1.gltf", x: 14, z: -2, scale: 0.4, rotY: -0.7 },
-      // Bushes hugging cargo wreckage — intentionally clipped against
-      // craft / cargodepot / structure_low so they read as overgrowth.
-      // solid:false (foliage you walk through), footprint:0 where they
-      // sit on top of another prop's disc.
-      { url: "/models/forest-nature/Bush_1_C_Color1.gltf", x: -6, z: 11, scale: 1.4, rotY: 0.2, footprint: 0, solid: false },
-      { url: "/models/forest-nature/Bush_2_A_Color1.gltf", x: 5, z: 10, scale: 1.6, rotY: -0.3, solid: false },
-      { url: "/models/forest-nature/Bush_3_A_Color1.gltf", x: 9.5, z: 13, scale: 1.4, rotY: 0.5, footprint: 0, solid: false },
-      { url: "/models/forest-nature/Bush_1_A_Color1.gltf", x: -3, z: -10.5, scale: 2.0, rotY: -0.4, footprint: 0, solid: false },
+      // Bushes hugging cargo wreckage. Solid (player blocked by foliage
+      // mass) but footprint:0 where they sit on top of another prop's
+      // disc — placement uses the host wreckage's reservation.
+      { url: "/models/forest-nature/Bush_1_C_Color1.gltf", x: -6, z: 11, scale: 1.4, rotY: 0.2, footprint: 0 },
+      { url: "/models/forest-nature/Bush_2_A_Color1.gltf", x: 5, z: 10, scale: 1.6, rotY: -0.3 },
+      { url: "/models/forest-nature/Bush_3_A_Color1.gltf", x: 9.5, z: 13, scale: 1.4, rotY: 0.5, footprint: 0 },
+      { url: "/models/forest-nature/Bush_1_A_Color1.gltf", x: -3, z: -10.5, scale: 2.0, rotY: -0.4, footprint: 0 },
     ],
     scattered: [
       // Small rubble scattered across the field
@@ -263,9 +262,10 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // reservation AND collision (player walks on them).
       { url: "/models/space-base-bits/landingpad_large.gltf", x: -10, z: 14, scale: 2.0, rotY: 0, footprint: 0, solid: false },
       { url: "/models/space-base-bits/landingpad_small.gltf", x: 6, z: 18, scale: 1.6, rotY: 0.5, footprint: 0, solid: false },
-      // Roof solar panels are mounted high; no real ground footprint, no
-      // collision (player passes underneath).
-      { url: "/models/space-base-bits/roofmodule_solarpanels.gltf", x: -2, z: -8, scale: 2.0, rotY: 0, footprint: 0, solid: false },
+      // Roof solar panels — tall structure with supporting legs. Keep
+      // solid so the legs block movement (2D collision can't model
+      // walking-under-the-canopy anyway).
+      { url: "/models/space-base-bits/roofmodule_solarpanels.gltf", x: -2, z: -8, scale: 2.0, rotY: 0, footprint: 0 },
       { url: "/models/space-base-bits/solarpanel.gltf", x: 3, z: -8, scale: 1.6, rotY: -0.2 },
       // Anchor base: drum-shaped basemodules behind the central hangar so the
       // turbines/solar field reads as a connected research outpost. They are
@@ -274,13 +274,12 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-base-bits/basemodule_E.gltf", x: -8, z: -19, scale: 2.4, rotY: 0.2, footprint: 0 },
       { url: "/models/space-base-bits/basemodule_garage.gltf", x: 9, z: -19, scale: 2.4, rotY: -0.2, footprint: 0 },
       { url: "/models/space-base-bits/basemodule_C.gltf", x: -16, z: -16, scale: 2.0, rotY: 0.6, footprint: 0 },
-      // Marker lights flanking the landing pads (visual lane cues at
-      // altitude). Mounted on top of the pads, thin posts — no floor
-      // footprint, no collision.
-      { url: "/models/space-base-bits/lights.gltf", x: -12.5, z: 14, scale: 1.4, rotY: 0, footprint: 0, solid: false },
-      { url: "/models/space-base-bits/lights.gltf", x: -7.5, z: 14, scale: 1.4, rotY: 0, footprint: 0, solid: false },
-      { url: "/models/space-base-bits/lights.gltf", x: 4, z: 18, scale: 1.2, rotY: 0, footprint: 0, solid: false },
-      { url: "/models/space-base-bits/lights.gltf", x: 8, z: 18, scale: 1.2, rotY: 0, footprint: 0, solid: false },
+      // Marker lights flanking the landing pads. Solid (visible posts
+      // you bump into), footprint:0 because they sit on the pad's disc.
+      { url: "/models/space-base-bits/lights.gltf", x: -12.5, z: 14, scale: 1.4, rotY: 0, footprint: 0 },
+      { url: "/models/space-base-bits/lights.gltf", x: -7.5, z: 14, scale: 1.4, rotY: 0, footprint: 0 },
+      { url: "/models/space-base-bits/lights.gltf", x: 4, z: 18, scale: 1.2, rotY: 0, footprint: 0 },
+      { url: "/models/space-base-bits/lights.gltf", x: 8, z: 18, scale: 1.2, rotY: 0, footprint: 0 },
       // Tall pines for vertical silhouette against the horizon
       { url: "/models/forest-nature/Tree_4_B_Color1.gltf", x: 19, z: 4, scale: 0.55, rotY: 0.5 },
       { url: "/models/forest-nature/Tree_4_B_Color1.gltf", x: -20, z: 0, scale: 0.5, rotY: -0.7 },
