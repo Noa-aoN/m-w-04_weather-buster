@@ -14,6 +14,7 @@ import { SkillBurstVFX } from "../entities/SkillBurstVFX";
 import { SlashProjectiles } from "../entities/SlashProjectiles";
 import { SlashTrails } from "../entities/SlashTrails";
 import { StageColliderDebug } from "../entities/StageColliderDebug";
+import { useStageColliders } from "../entities/useStageColliders";
 import { FovController, PlayerBackAvatar, PlayerShield, PlayerWeapon } from "../entities/PlayerView";
 import { StageTerrain } from "../entities/StageTerrain";
 import { RainStreaks, SnowDrift, ThunderstormStrikes } from "../entities/WeatherFx";
@@ -177,6 +178,29 @@ function ExperimentField({
   );
 }
 
+/** Lives inside the Canvas because useStageColliders subscribes to the
+ *  footprint cache (a module-level Map mutated by GLTF measurement
+ *  components rendered down-tree). Owning the colliders here keeps the
+ *  re-render cost local rather than re-rendering the entire BattleScene. */
+function CollisionWiring({
+  stage,
+  enemyGroupRef,
+  enemyPositionRef,
+}: {
+  stage: Stage;
+  enemyGroupRef: React.RefObject<Group | null>;
+  enemyPositionRef: React.RefObject<Vector3>;
+}) {
+  const colliders = useStageColliders(stage);
+  return (
+    <PlayerController
+      enemyRef={enemyGroupRef}
+      enemyPositionRef={enemyPositionRef}
+      colliders={colliders}
+    />
+  );
+}
+
 export function BattleScene({
   onBack,
   onShowResult,
@@ -210,7 +234,7 @@ export function BattleScene({
           enemyRef={enemyGroupRef}
           enemyPositionRef={enemyPositionRef}
         />
-        <PlayerController enemyRef={enemyGroupRef} enemyPositionRef={enemyPositionRef} />
+        <CollisionWiring stage={stage} enemyGroupRef={enemyGroupRef} enemyPositionRef={enemyPositionRef} />
       </Canvas>
 
       <BattleHud onBack={onBack} onShowResult={onShowResult} />

@@ -10,6 +10,7 @@ import type { Object3D } from "three";
 // placement's scale at use time.
 
 const cache = new Map<string, number>();
+const subscribers = new Set<() => void>();
 
 export function getMeasuredFootprint(url: string): number | undefined {
   return cache.get(url);
@@ -17,7 +18,8 @@ export function getMeasuredFootprint(url: string): number | undefined {
 
 /** Measure the horizontal (X / Z) extents of `scene` and store half of the
  *  larger one as the URL's footprint radius. Idempotent — re-calls return
- *  the cached value. */
+ *  the cached value. Notifies subscribers on the first measurement so
+ *  React consumers can recompute their derived placement / collider data. */
 export function recordMeasuredFootprint(url: string, scene: Object3D): number {
   const cached = cache.get(url);
   if (cached !== undefined) {
@@ -28,6 +30,7 @@ export function recordMeasuredFootprint(url: string, scene: Object3D): number {
   box.getSize(size);
   const r = Math.max(size.x, size.z) / 2;
   cache.set(url, r);
+  subscribers.forEach((fn) => fn());
   return r;
 }
 
@@ -40,7 +43,16 @@ export function isFootprintCacheWarm(urls: readonly string[]): boolean {
   return true;
 }
 
-/** Test-only helper to drop all cached values. */
+/** Subscribe to cache mutations. Returns an unsubscribe function. */
+export function subscribeFootprintCache(fn: () => void): () => void {
+  subscribers.add(fn);
+  return () => {
+    subscribers.delete(fn);
+  };
+}
+
+/** Test-only helper to drop all cached values + subscribers. */
 export function _resetFootprintCache(): void {
   cache.clear();
+  subscribers.clear();
 }
