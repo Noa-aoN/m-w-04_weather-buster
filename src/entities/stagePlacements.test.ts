@@ -122,6 +122,61 @@ describe("expandCluster", () => {
   });
 });
 
+describe("buildPlacements colliders semantics", () => {
+  it("includes fixed props with footprint:0 when solid is not false", () => {
+    // Mimic a cargo cluster: secondary item opts out of placement
+    // reservation but is still solid for runtime collision.
+    const stage = findStage("lab");
+    const synthetic = {
+      ...STAGE_PLACEMENTS.lab,
+      fixed: [
+        { url: "/models/space-base-bits/cargo_A_packed.gltf", x: 0, z: 0, scale: 1, rotY: 0 },
+        { url: "/models/space-base-bits/cargo_A_stacked.gltf", x: 0.2, z: 0, scale: 1, rotY: 0, footprint: 0 },
+      ],
+      scattered: [],
+      platforms: [],
+    };
+    const built = buildPlacements(stage, synthetic as typeof STAGE_PLACEMENTS.lab);
+    const fixedColliders = built.colliders.filter((c) => c.kind === "fixed");
+    expect(fixedColliders).toHaveLength(2); // both included
+    expect(fixedColliders.every((c) => c.r > 0)).toBe(true);
+  });
+
+  it("excludes fixed props marked solid:false", () => {
+    const stage = findStage("lab");
+    const synthetic = {
+      ...STAGE_PLACEMENTS.lab,
+      fixed: [
+        { url: "/models/factory-kit/screen-panel-wide.glb", x: 0, z: 0, scale: 1, rotY: 0, solid: false },
+        { url: "/models/space-base-bits/cargo_A_packed.gltf", x: 5, z: 0, scale: 1, rotY: 0 },
+      ],
+      scattered: [],
+      platforms: [],
+    };
+    const built = buildPlacements(stage, synthetic as typeof STAGE_PLACEMENTS.lab);
+    const fixedColliders = built.colliders.filter((c) => c.kind === "fixed");
+    expect(fixedColliders).toHaveLength(1);
+    expect(fixedColliders[0].x).toBe(5);
+  });
+
+  it("collider radius uses inferFootprint regardless of footprint:0", () => {
+    const stage = findStage("lab");
+    const synthetic = {
+      ...STAGE_PLACEMENTS.lab,
+      fixed: [
+        { url: "/models/space-base-bits/cargo_A_packed.gltf", x: 0, z: 0, scale: 2, rotY: 0, footprint: 0 },
+      ],
+      scattered: [],
+      platforms: [],
+    };
+    const built = buildPlacements(stage, synthetic as typeof STAGE_PLACEMENTS.lab);
+    const fixedColliders = built.colliders.filter((c) => c.kind === "fixed");
+    expect(fixedColliders).toHaveLength(1);
+    // cargo_ keyword base 1.1 * scale 2 = 2.2
+    expect(fixedColliders[0].r).toBeCloseTo(2.2, 5);
+  });
+});
+
 describe("buildPlacements (live stages)", () => {
   for (const stageId of ["lab", "ruins", "highland"] as const) {
     it(`${stageId}: scattered pieces respect arena bounds and prior props`, () => {

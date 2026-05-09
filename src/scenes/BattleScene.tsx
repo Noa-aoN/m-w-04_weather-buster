@@ -116,15 +116,15 @@ function ExperimentField({
         intensity={isClear ? 6.6 : 1.85}
         color={isClear ? "#fffae0" : stage.ringColor}
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={512}
+        shadow-mapSize-height={512}
         shadow-camera-near={1}
         shadow-camera-far={50}
         shadow-camera-left={-22}
         shadow-camera-right={22}
         shadow-camera-top={22}
         shadow-camera-bottom={-22}
-        shadow-bias={-0.0008}
+        shadow-bias={-0.0015}
       />
       <hemisphereLight args={[isClear ? "#fffbe8" : "#bdeeff", isClear ? "#dceffd" : "#1c2a36", isClear ? 1.35 : 0.55]} />
       <pointLight position={[0, 1.4, -3]} intensity={isClear ? 0.6 : 3.2} color={isClear ? "#fffbe8" : enemy.coreColor} />
@@ -252,7 +252,7 @@ export function BattleScene({
       <Canvas
         camera={{ position: [0, 2.15, 7.1], fov: initialFov }}
         dpr={[1, 1.5]}
-        shadows="soft"
+        shadows="basic"
         gl={{ antialias: true, powerPreference: "high-performance" }}
       >
         <FovController />
