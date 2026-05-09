@@ -47,7 +47,7 @@ export function BossStatusBar({
   return (
     <div className={`bossBar ${staggered ? "bossBar--staggered" : ""}`}>
       <strong>{enemyName}</strong>
-      {staggered ? <span className="bossBarStagger">気象核 露出</span> : null}
+      {staggered ? <span className="bossBarStagger">硬直反応</span> : null}
       <div><i style={{ width: `${Math.max(0, Math.min(1, hpRatio)) * 100}%` }} /></div>
     </div>
   );

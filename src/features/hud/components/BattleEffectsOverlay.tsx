@@ -265,7 +265,7 @@ function StaggerBurst() {
     <>
       <div className="staggerFlash" key={`flash-${activeKey}`} aria-hidden="true" />
       <div className={`staggerBanner ${tick % 2 === 0 ? "on" : ""}`} aria-hidden="true">
-        <span>気象核 露出</span>
+        <span>天侵体 硬直反応</span>
         <small>核を狙え</small>
       </div>
     </>
