@@ -268,11 +268,32 @@ export function playShoot() {
 }
 
 export function playSlash() {
-  noiseBurst({ duration: 0.08, volume: 0.3, filter: 7200 });
-  noiseBurst({ duration: 0.16, volume: 0.18, filter: 2600, delay: 0.02 });
-  tone({ freq: 980, duration: 0.05, type: "sawtooth", volume: 0.16, attack: 0.001, release: 0.08 });
-  tone({ freq: 420, duration: 0.08, type: "triangle", volume: 0.14, attack: 0.001, release: 0.12, delay: 0.035 });
-  tone({ freq: 180, duration: 0.05, type: "sine", volume: 0.12, attack: 0.001, release: 0.12, delay: 0.08 });
+  // Katana cut: focused on (1) a pitched "schwing" sweep, (2) an air-cut
+  // whoosh, (3) a dry contact thud — and very little sustained metal ring,
+  // so the sound reads as "cleanly slicing through" rather than "clanging
+  // off something". Total length ≤180ms so a 3-hit combo at 130ms intervals
+  // doesn't pile up.
+
+  // 1) Schwing sweep — three quick descending tones fake a downward
+  //    frequency glide. This is the signature "the blade sings as it cuts
+  //    air" cue. Triangle wave is bright but not as harsh as sawtooth.
+  tone({ freq: 3200, duration: 0.025, type: "triangle", volume: 0.22, attack: 0.001, release: 0.04 });
+  tone({ freq: 2400, duration: 0.030, type: "triangle", volume: 0.18, attack: 0.001, release: 0.05, delay: 0.012 });
+  tone({ freq: 1700, duration: 0.040, type: "triangle", volume: 0.14, attack: 0.001, release: 0.06, delay: 0.026 });
+
+  // 2) Air-cut whoosh — high-passed-feel noise. Shorter and brighter than
+  //    a generic slash so it reads as "fast blade", not "wide swipe".
+  noiseBurst({ duration: 0.07, volume: 0.26, filter: 8200 });
+  noiseBurst({ duration: 0.10, volume: 0.16, filter: 5400, delay: 0.018 });
+
+  // 3) Contact thud — the brief low impact when the edge bites. Kept
+  //    short and dry (no release tail) so it punches without lingering.
+  tone({ freq: 110, duration: 0.04, type: "sine", volume: 0.22, attack: 0.001, release: 0.06, delay: 0.038 });
+
+  // 4) Tiny sparkle on impact — single bright transient that gives the
+  //    "tip catches the light" feel of a sharpened edge. Volume is low
+  //    so it adds shimmer without metal-on-metal clang.
+  tone({ freq: 5200, duration: 0.012, type: "sine", volume: 0.10, attack: 0.001, release: 0.02, delay: 0.040 });
 }
 
 export function playHit(critical = false) {

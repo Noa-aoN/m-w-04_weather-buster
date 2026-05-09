@@ -5,15 +5,17 @@ import { Object3D, Raycaster, Vector3 } from "three";
 import { useBattleStore } from "../../game/battleStore";
 import { COMBAT_CONSTANTS } from "../../game/combatRules";
 import {
+  CONTACT_RADIUS,
   difficultyModifiers,
   enemyAttackPatterns,
+  enemyContactReactions,
   findCharacter,
   findMinionType,
   findStage,
   findWeapon,
   weatherEnemies,
 } from "../../game/data";
-import { findMinionByObject, getMinionRoot, getMinionWorldPosition } from "../../entities/MinionField";
+import { findMinionByObject, getMinionRoot, getMinionWorldPosition } from "../../entities/minionRegistry";
 import { setLockTarget } from "./lockControls";
 import { useKeyboardInput } from "./useKeyboardInput";
 
@@ -24,6 +26,12 @@ const JUMP_DURATION = 0.55;
 const GROUND_Y = 2.15;
 const WIND_BLADE_REACH = 4.8;
 const WIND_BLADE_DOT = 0.62;
+// Right-click crescent: longer reach than the close swing so the player can
+// answer enemies that have stepped out of melee range. Cooldown is much
+// slower than left-click so the projectile can't replace gunplay entirely.
+const WIND_BLADE_PROJECTILE_REACH = 22;
+const WIND_BLADE_PROJECTILE_DOT = 0.82;
+const WIND_BLADE_PROJECTILE_COOLDOWN_MS = 1000;
 
 function getSpecialDelay(enemyId: string): number {
   // Larger / scarier enemies fire specials more often
@@ -84,6 +92,7 @@ export function PlayerController({
   const nextSpecialAt = useRef(0);
   const battleStartedAtRef = useRef<number | null>(null);
   const bobPhaseRef = useRef(0);
+  const lastContactAt = useRef(0);
 
   useEffect(() => {
     setLockTarget(gl.domElement);
@@ -212,8 +221,69 @@ export function PlayerController({
     }
 
     const now = performance.now();
+      // Skill animation pacing: each step fires at startedAt + k*interval,
+      // and `advanceSkillStep` applies that step's damage + bumps the
+      // per-shot signals so the existing muzzle-flash / tracer / blade
+      // swing reactions all play on cadence. Loop in case multiple steps
+      // came due in the same frame after a long stall.
+      const skillAnim = state.skillAnimation;
+      if (skillAnim !== null) {
+        let steps = skillAnim.completedSteps;
+        while (steps < skillAnim.totalSteps) {
+          const fireAt = skillAnim.startedAt + steps * skillAnim.stepIntervalMs;
+          if (now < fireAt) break;
+          state.advanceSkillStep();
+          steps += 1;
+        }
+      }
       const enemy = weatherEnemies.find((candidate) => candidate.id === state.selectedEnemyId);
       const pattern = enemy ? enemyAttackPatterns[enemy.id] : null;
+
+      // Body-contact reaction — when the player walks into the boss the
+      // store applies a per-enemy damage + knockback (and optional slow).
+      // Cooldown prevents spam while still in range. The high-altitude
+      // bosses (thunderstorm / typhoon) hover well above the player so we
+      // include a y check — otherwise standing under them would trigger
+      // contact damage repeatedly even though they're nowhere near.
+      // The wind-blade buster skill cancels the contact reaction entirely.
+      const blockContact = state.lastSkillAt > 0
+        && state.selectedWeaponId === "windBlade"
+        && now - state.lastSkillAt < 4000;
+      if (enemy && !blockContact) {
+        const ePos = enemyPositionRef.current;
+        const dx = camera.position.x - ePos.x;
+        const dy = camera.position.y - ePos.y;
+        const dz = camera.position.z - ePos.z;
+        const distSq = dx * dx + dy * dy + dz * dz;
+        if (distSq < CONTACT_RADIUS * CONTACT_RADIUS) {
+          const reaction = enemyContactReactions[enemy.id];
+          if (reaction && now - lastContactAt.current > reaction.cooldownMs) {
+            lastContactAt.current = now;
+            state.takeMarkerDamage(reaction.damage);
+            const dist = Math.max(Math.sqrt(distSq), 0.0001);
+            state.applyKnockback(
+              (dx / dist) * reaction.knockback * 6,
+              (dz / dist) * reaction.knockback * 6,
+            );
+            // Toast lives at least until cooldown ends OR the slow expires,
+            // whichever is later — so the player sees the status while it
+            // still affects them.
+            const toastUntil = Math.max(
+              now + reaction.cooldownMs,
+              reaction.slowMs ? now + reaction.slowMs : 0,
+            );
+            const stateUpdate: { slowUntil?: number; lastContactAt: number; contactEnemyId: typeof enemy.id; contactToastUntil: number } = {
+              lastContactAt: now,
+              contactEnemyId: enemy.id,
+              contactToastUntil: toastUntil,
+            };
+            if (reaction.slowMs) {
+              stateUpdate.slowUntil = now + reaction.slowMs;
+            }
+            useBattleStore.setState(stateUpdate);
+          }
+        }
+      }
       // While the boss is staggered, push the next attack windows out so they
       // don't fire on resume. A small grace (200ms) keeps a clear pocket of
       // peace before normal patterns return.
@@ -364,7 +434,11 @@ export function PlayerController({
     // Minion attacks — each minion fires its own ranged marker on its own
     // cadence, originating from the minion's world position so it reads as
     // "they are shooting from over there" rather than from the boss.
-    if (!staggered && state.minions.length > 0) {
+    // Boss stagger no longer pauses minion fire: while the boss is
+    // exposed the screen feels too quiet without minions still pressing,
+    // and the player still gets a clear "boss is open" cue from the boss
+    // itself going still.
+    if (state.minions.length > 0) {
       for (const minion of state.minions) {
         const type = findMinionType(minion.typeId);
         if (now - minion.lastAttackAt < type.attackIntervalMs) continue;
@@ -415,17 +489,35 @@ export function PlayerController({
   });
 
   const lastTriggerAtRef = useRef(0);
+  const lastSlashProjectileAtRef = useRef(0);
 
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
       if (document.pointerLockElement !== gl.domElement) return;
       const store = useBattleStore.getState();
       if (store.status !== "battle") return;
-      // Right click → reload (was shield). Reload is now mandatory; the
-      // player must explicitly press right click or R to reload.
+      // Right click:
+      //   - non-windBlade → reload (mandatory; no auto-reload anymore)
+      //   - windBlade     → fire mid-range crescent projectile
       if (event.button === 2) {
         event.preventDefault();
-        if (store.selectedWeaponId !== "windBlade") {
+        if (store.selectedWeaponId === "windBlade") {
+          const now = performance.now();
+          if (now - lastSlashProjectileAtRef.current < WIND_BLADE_PROJECTILE_COOLDOWN_MS) {
+            return;
+          }
+          lastSlashProjectileAtRef.current = now;
+          const dir = forward.current;
+          camera.getWorldDirection(dir);
+          const toEnemy = enemyPositionRef.current.clone().sub(camera.position);
+          const distance = toEnemy.length();
+          const alignment = distance > 0 ? dir.dot(toEnemy.normalize()) : 0;
+          const didHit = distance <= WIND_BLADE_PROJECTILE_REACH && alignment >= WIND_BLADE_PROJECTILE_DOT;
+          // Crit when the crescent threads the boss tightly along its center
+          // line — narrower than melee so a clean ranged shot still rewards.
+          const critical = didHit && alignment >= 0.95;
+          store.fireSlashProjectile(didHit, critical);
+        } else {
           store.reload();
         }
         return;

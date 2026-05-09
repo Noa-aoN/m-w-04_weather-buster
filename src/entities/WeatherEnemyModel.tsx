@@ -1,10 +1,15 @@
 import { useFrame } from "@react-three/fiber";
-import { useGLTF } from "@react-three/drei";
+import { Line, useGLTF } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import type { Group, Mesh } from "three";
 import type { WeatherEnemy } from "../game/types";
 import { assetUrl } from "../shared/assets";
 import { fitObjectToHeight } from "./fitObject";
+
+// Decorative lightning lines must not absorb the player's shoot raycast —
+// the raycast targets the enemy mesh, and a Line2 hit closer than the body
+// would shadow the body's hit data. No-op raycast keeps these purely visual.
+const NOOP_RAYCAST: import("three").Object3D["raycast"] = () => {};
 
 const REX_BODY_URL: Partial<Record<WeatherEnemy["id"], string>> = {
   cloudy: assetUrl("/models/custom-enemies/tiny-rex.glb"),
@@ -174,22 +179,56 @@ function HeavyRainModel({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean 
   );
 }
 
-function ThunderboltSpark({ side, color }: { side: -1 | 1; color: string }) {
-  const ref = useRef<Mesh>(null);
+// Hand-tuned zigzag paths used for the thunderstorm's surrounding bolts.
+// Each path is a sequence of [x, y, z] points; segments naturally jag in
+// alternating directions so the line reads as lightning, not a stick.
+type BoltPath = Array<[number, number, number]>;
+
+const THUNDER_BOLT_PATHS: BoltPath[] = [
+  // Long left bolt — runs from upper-left down past mid.
+  [[-0.95, 0.7, 0.1], [-0.78, 0.32, 0.05], [-0.95, 0.04, -0.02], [-0.72, -0.28, 0.08], [-0.88, -0.6, 0.02], [-0.7, -0.86, 0.06]],
+  // Short right shoulder bolt.
+  [[0.78, 0.55, 0.08], [0.94, 0.28, 0.02], [0.74, 0.02, -0.04], [0.92, -0.22, 0.05]],
+  // Front-centre bolt that snakes down past the chest.
+  [[0.18, 0.5, 0.36], [0.02, 0.22, 0.42], [0.22, -0.06, 0.4], [0.06, -0.34, 0.46], [0.18, -0.62, 0.4]],
+  // Tiny accent bolt near the head.
+  [[-0.42, 0.74, 0.18], [-0.3, 0.58, 0.22], [-0.45, 0.38, 0.16]],
+  // Back side wraparound.
+  [[0.55, 0.42, -0.34], [0.4, 0.18, -0.42], [0.6, -0.08, -0.36], [0.45, -0.32, -0.4]],
+];
+
+function LightningBolt({
+  path,
+  color,
+  phase,
+}: {
+  path: BoltPath;
+  color: string;
+  phase: number;
+}) {
+  // useRef typed loosely — `Line` from drei wraps three's Line2; we only need
+  // mutable access to .visible / per-frame side effects.
+  const ref = useRef<{ visible: boolean } | null>(null);
   useFrame(({ clock }) => {
     if (!ref.current) return;
     const t = clock.getElapsedTime();
-    const flicker = (Math.sin(t * 14 + side * 1.7) + 1) * 0.5;
-    const mat = ref.current.material as { emissiveIntensity?: number; opacity?: number };
-    if (mat.emissiveIntensity !== undefined) mat.emissiveIntensity = 1.2 + flicker * 2.4;
-    if (mat.opacity !== undefined) mat.opacity = 0.85 + flicker * 0.15;
-    ref.current.scale.x = 0.85 + flicker * 0.4;
+    // Flickering on/off pattern — sub-second windows where the bolt vanishes
+    // entirely. Combined across multiple bolts this reads as "static
+    // electricity flashing around the body".
+    const cycle = (t * 5 + phase) % 1;
+    ref.current.visible = cycle > 0.18;
   });
   return (
-    <mesh ref={ref} position={[side * 0.9, -0.5, 0.1]} rotation={[0, 0, side * 0.25]}>
-      <coneGeometry args={[0.18, 1.3, 4]} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.6} transparent opacity={0.95} toneMapped={false} />
-    </mesh>
+    <Line
+      ref={ref as never}
+      points={path}
+      color={color}
+      lineWidth={1.6}
+      transparent
+      opacity={0.92}
+      toneMapped={false}
+      raycast={NOOP_RAYCAST}
+    />
   );
 }
 
@@ -199,8 +238,14 @@ function ThunderstormModel({ enemy, clear }: { enemy: WeatherEnemy; clear: boole
       <RexBody url={REX_BODY_URL.thunderstorm!} accent={enemy.accentColor} />
       {!clear ? (
         <>
-          <ThunderboltSpark side={-1} color={enemy.accentColor} />
-          <ThunderboltSpark side={1} color={enemy.accentColor} />
+          {THUNDER_BOLT_PATHS.map((path, idx) => (
+            <LightningBolt
+              key={idx}
+              path={path}
+              color={enemy.accentColor}
+              phase={idx * 1.13}
+            />
+          ))}
         </>
       ) : null}
     </>
@@ -242,7 +287,13 @@ function TornadoModel({ enemy, clear }: { enemy: WeatherEnemy; clear: boolean })
   return (
     <>
       <RexBody url={REX_BODY_URL.tornado!} accent={enemy.accentColor} />
-      {!clear ? <Vortex enemy={enemy} clear={clear} layers={3} /> : null}
+      {/* Tornado's swirl is intentionally tighter and more transparent than
+          the typhoon's, so the core (RexBody) reads first. */}
+      {!clear ? (
+        <group scale={[0.55, 0.55, 0.55]}>
+          <Vortex enemy={enemy} clear={clear} layers={3} />
+        </group>
+      ) : null}
     </>
   );
 }
@@ -348,7 +399,7 @@ const CORE_OVERRIDE: Partial<Record<WeatherEnemy["id"], { y: number; scale?: num
   heavyRain: { y: 0.9 },
   thunderstorm: { y: 0.9 },
   rainySeason: { y: 0.9 },
-  tornado: { y: 0.7, scale: 0.45 },
+  tornado: { y: 0.42, scale: 0.5 },
   blizzard: { y: 0.9 },
 };
 

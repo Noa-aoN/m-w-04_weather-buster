@@ -2,9 +2,10 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useAnimations, useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh, PerspectiveCamera, PointLight } from "three";
-import { Vector3 } from "three";
+import { AdditiveBlending, Vector3 } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
+import { isDebugEnabled, writeDebug } from "../features/debug/debugBus";
 import { CHARACTER_MODEL_URL } from "./CharacterModel";
 import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
 import { WeaponObject, weaponModelRotation, weaponModelScale } from "./WeaponModel";
@@ -15,8 +16,81 @@ import { WeaponObject, weaponModelRotation, weaponModelScale } from "./WeaponMod
 // For windBlade, left click triggers one of four varied slash animations
 // (right→left swipe, diagonal cross, forward thrust, vertical chop) cycled
 // through so consecutive clicks visibly differ.
-const SLASH_DURATION_MS = 320;
+const SLASH_DURATION_MS = 180;
 const SLASH_VARIANTS = 4;
+
+/**
+ * Muzzle flash. Layered additive bloom in warm orange/yellow tones —
+ * matches the prior look the player preferred. Layers:
+ *  - hot white pin-prick core
+ *  - inner yellow energy bloom
+ *  - outer orange corona
+ *  - anamorphic horizontal + vertical lens streaks (4-point star)
+ *  - 45° diagonal streaks softening the star
+ *  - short forward plume cone
+ *  - warm point light
+ *
+ * Decoupled into its own component so a sprite-based flash (Kenney's
+ * particle pack etc.) can drop in here without touching the gun's
+ * transform / recoil math.
+ */
+function MuzzleFlash({
+  flashRef,
+  flashLightRef,
+}: {
+  flashRef: React.RefObject<Mesh | null>;
+  flashLightRef: React.RefObject<PointLight | null>;
+}) {
+  const FLASH_Z = -0.62;
+  return (
+    <>
+      {/* Hot pin-prick core — pure white, additive so it punches through. */}
+      <mesh position={[0, 0, FLASH_Z]}>
+        <sphereGeometry args={[0.05, 14, 14]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={1} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Inner yellow energy bloom. */}
+      <mesh ref={flashRef} position={[0, 0, FLASH_Z]}>
+        <sphereGeometry args={[0.16, 16, 16]} />
+        <meshBasicMaterial color="#ffe28a" transparent opacity={0.95} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Outer orange corona. */}
+      <mesh position={[0, 0, FLASH_Z]}>
+        <sphereGeometry args={[0.34, 14, 14]} />
+        <meshBasicMaterial color="#ff8a3a" transparent opacity={0.42} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Anamorphic horizontal streak — signature lens flare. */}
+      <mesh position={[0, 0, FLASH_Z + 0.005]}>
+        <planeGeometry args={[1.6, 0.05]} />
+        <meshBasicMaterial color="#fff0b8" transparent opacity={0.75} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Vertical streak — completes the cross. */}
+      <mesh position={[0, 0, FLASH_Z + 0.005]} rotation={[0, 0, Math.PI / 2]}>
+        <planeGeometry args={[0.7, 0.04]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.6} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Diagonal streaks — soften the cross into a 4-point star. */}
+      {[Math.PI / 4, -Math.PI / 4].map((rot) => (
+        <mesh key={rot} position={[0, 0, FLASH_Z + 0.004]} rotation={[0, 0, rot]}>
+          <planeGeometry args={[0.95, 0.025]} />
+          <meshBasicMaterial color="#ffd9a0" transparent opacity={0.55} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+        </mesh>
+      ))}
+      {/* Forward plume — short cone receding from the muzzle. */}
+      <mesh position={[0, 0, FLASH_Z - 0.32]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.14, 0.4, 16, 1, true]} />
+        <meshBasicMaterial color="#ffb060" transparent opacity={0.32} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      <pointLight
+        ref={flashLightRef}
+        position={[0, 0, FLASH_Z + 0.05]}
+        intensity={12}
+        color="#ffd56a"
+        distance={7}
+      />
+    </>
+  );
+}
 
 export function PlayerWeapon() {
   const { camera } = useThree();
@@ -56,39 +130,45 @@ export function PlayerWeapon() {
       node.translateY(-0.54);
       node.translateZ(-0.72);
       node.rotateZ(-0.28);
-      // Slash animation: pose the blade through one of four arcs over
-      // SLASH_DURATION_MS. We use eased t (1 - cos π t / 2 type curves) so
-      // the swing feels weighty — fast wind-up, slower follow-through.
+      // Slash animation: every variant is now an "off-screen above → fast
+      // downstrike" so the chop reads as decisive regardless of which
+      // variant the rotation lands on. Variants only differ in the slight
+      // angle / cross-direction the blade lands at, so a 3-hit combo still
+      // has visual variety.
+      //
+      // Curve: ease-in (t² acceleration). The blade is parked off-frame
+      // above with the tip pointed up at t=0, then falls fast through the
+      // crosshair to a forward-down landing pose by t=1.
       const slashElapsed = slashStartedAt.current > 0
         ? performance.now() - slashStartedAt.current
         : Infinity;
       if (slashElapsed < SLASH_DURATION_MS) {
         const t = slashElapsed / SLASH_DURATION_MS;
-        // Bell curve so peak is in the middle of the swing.
-        const swing = Math.sin(t * Math.PI);
-        const arc = Math.sin(t * Math.PI * 0.5);
+        const eased = t * t;
+        const w = 1 - eased; // wind-up coefficient (1 at start, 0 at end)
+        // Y travels from off-screen high (t=0) → below the rest pose (t=1)
+        // so the tip clearly carves past the crosshair on the way down.
+        const liftY = 1.7 * w - 0.45 * eased;
+        // X rotation: tip pointing up-back at t=0 → strongly forward-down at
+        // t=1. The bigger end angle (0.95 rad ≈ 54°) plants the tip well
+        // below the camera line for a decisive landing.
+        const tiltX = -1.1 * w + eased * 0.95;
+        node.translateY(liftY);
+        node.rotateX(tiltX);
         switch (slashVariantRef.current) {
-          case 0: // horizontal right → left
-            node.rotateY(swing * 1.4);
-            node.rotateZ(arc * 0.5);
-            node.translateX(-swing * 0.36);
-            node.translateZ(-arc * 0.18);
+          case 0: // straight-down centered chop
             break;
-          case 1: // diagonal upper-right → lower-left
-            node.rotateZ(-swing * 1.5);
-            node.rotateY(arc * 0.8);
-            node.translateY(arc * 0.22);
-            node.translateZ(-swing * 0.2);
+          case 1: // down + slight left landing
+            node.rotateZ(-w * 0.35 + eased * 0.18);
+            node.translateX(-eased * 0.32);
             break;
-          case 2: // forward thrust
-            node.translateZ(-swing * 0.95);
-            node.rotateX(-arc * 0.32);
-            node.rotateZ(swing * 0.18);
+          case 2: // down + slight right landing (mirror of 1)
+            node.rotateZ(w * 0.35 - eased * 0.18);
+            node.translateX(eased * 0.32);
             break;
-          case 3: // vertical chop top → bottom
-            node.rotateX(-swing * 1.6);
-            node.translateY(arc * 0.32);
-            node.translateZ(-arc * 0.18);
+          case 3: // overhead slam — adds forward thrust on impact
+            node.translateZ(-eased * 0.55);
+            node.translateY(-eased * 0.30);
             break;
         }
       }
@@ -121,41 +201,7 @@ export function PlayerWeapon() {
         <WeaponObject id={selectedWeaponId} targetSize={selectedWeaponId === "windBlade" ? 1.05 : 0.6} />
       </group>
       {flashVisible && selectedWeaponId !== "windBlade" ? (
-        <>
-          {/* Tight white-hot core */}
-          <mesh position={[0, 0, -0.62]}>
-            <sphereGeometry args={[0.06, 12, 12]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={1} toneMapped={false} />
-          </mesh>
-          {/* Bright orange-yellow halo around the core */}
-          <mesh ref={flashRef} position={[0, 0, -0.62]}>
-            <sphereGeometry args={[0.18, 14, 14]} />
-            <meshBasicMaterial color="#ffd56a" transparent opacity={0.9} toneMapped={false} />
-          </mesh>
-          {/* Outer wide soft glow — sells volumetric muzzle blast */}
-          <mesh position={[0, 0, -0.62]}>
-            <sphereGeometry args={[0.34, 12, 12]} />
-            <meshBasicMaterial color="#ff8a3a" transparent opacity={0.32} toneMapped={false} depthWrite={false} />
-          </mesh>
-          {/* 6-pointed cross of flame petals (ratio'd plane sprites) */}
-          {[0, Math.PI / 6, Math.PI / 3, Math.PI / 2, (Math.PI * 2) / 3, (Math.PI * 5) / 6].map((rot, i) => (
-            <mesh key={rot} position={[0, 0, -0.62]} rotation={[0, 0, rot]}>
-              <planeGeometry args={[0.78 - (i % 2) * 0.18, 0.13 - (i % 2) * 0.04]} />
-              <meshBasicMaterial color={i % 2 === 0 ? "#ffe9a8" : "#ffaa42"} transparent opacity={0.78 - (i % 3) * 0.12} toneMapped={false} depthWrite={false} />
-            </mesh>
-          ))}
-          {/* Forward smoke / heat-distort cone hint (a darker, smaller plane) */}
-          <mesh position={[0, 0, -0.92]} rotation={[Math.PI / 2, 0, 0]}>
-            <coneGeometry args={[0.18, 0.45, 12, 1, true]} />
-            <meshBasicMaterial color="#ffb060" transparent opacity={0.32} toneMapped={false} depthWrite={false} />
-          </mesh>
-          {/* Distant pinpoint to give parallax depth */}
-          <mesh position={[0, 0, -1.05]}>
-            <sphereGeometry args={[0.05, 8, 8]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.85} toneMapped={false} />
-          </mesh>
-          <pointLight ref={flashLightRef} position={[0, 0, -0.55]} intensity={11} color="#ffd56a" distance={6.5} />
-        </>
+        <MuzzleFlash flashRef={flashRef} flashLightRef={flashLightRef} />
       ) : null}
     </group>
   );
@@ -396,6 +442,15 @@ export function FovController() {
     const skillPunch = lastSkillAt > 0 ? Math.max(0, 1 - (now - lastSkillAt) / 360) * 3.5 : 0;
     perspective.fov = fov + shotPunch + skillPunch;
     perspective.updateProjectionMatrix();
+    if (isDebugEnabled()) {
+      writeDebug({
+        cameraFov: perspective.fov,
+        shotPunch,
+        skillPunch,
+        lastSkillAt,
+        sinceSkill: lastSkillAt > 0 ? now - lastSkillAt : 0,
+      });
+    }
   });
   return null;
 }

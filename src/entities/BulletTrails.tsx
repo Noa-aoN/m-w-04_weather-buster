@@ -38,13 +38,13 @@ function BulletTrail({ bullet, onExpire }: { bullet: Bullet; onExpire: (id: numb
     // Travel growth — fast initial extend, then asymptote.
     const travel = TRAIL_MAX_LENGTH * Math.min(1, ratio * 3.0);
     const halfDistance = travel / 2;
-    const cx = bullet.origin.x + bullet.direction.x * halfDistance;
-    const cy = bullet.origin.y + bullet.direction.y * halfDistance;
-    const cz = bullet.origin.z + bullet.direction.z * halfDistance;
     const fade = Math.max(0, 1 - ratio * 1.05);
 
+    // Positions are in the group's local frame: the group is parked at
+    // bullet.origin and rotated so local +Z points along bullet.direction,
+    // so we just walk the meshes along local +Z here.
     if (coreRef.current) {
-      coreRef.current.position.set(cx, cy, cz);
+      coreRef.current.position.set(0, 0, halfDistance);
       coreRef.current.scale.set(1, 1, travel);
       const m = coreRef.current.material as { opacity?: number };
       if (m.opacity !== undefined) m.opacity = fade;
@@ -52,19 +52,14 @@ function BulletTrail({ bullet, onExpire }: { bullet: Bullet; onExpire: (id: numb
     if (haloRef.current) {
       // Halo grows in width as it dissipates — sells velocity smear.
       const widen = 1 + ratio * 1.4;
-      haloRef.current.position.set(cx, cy, cz);
+      haloRef.current.position.set(0, 0, halfDistance);
       haloRef.current.scale.set(widen, widen, travel);
       const m = haloRef.current.material as { opacity?: number };
       if (m.opacity !== undefined) m.opacity = fade * 0.55;
     }
     if (tipRef.current) {
       // Bright tip rides the leading edge.
-      const tipDist = travel;
-      tipRef.current.position.set(
-        bullet.origin.x + bullet.direction.x * tipDist,
-        bullet.origin.y + bullet.direction.y * tipDist,
-        bullet.origin.z + bullet.direction.z * tipDist,
-      );
+      tipRef.current.position.set(0, 0, travel);
       const tipFade = Math.max(0, 1 - ratio * 1.4);
       const m = tipRef.current.material as { opacity?: number };
       if (m.opacity !== undefined) m.opacity = tipFade;
@@ -73,7 +68,10 @@ function BulletTrail({ bullet, onExpire }: { bullet: Bullet; onExpire: (id: numb
   });
 
   return (
-    <group quaternion={initialQuaternion}>
+    <group
+      quaternion={initialQuaternion}
+      position={[bullet.origin.x, bullet.origin.y, bullet.origin.z]}
+    >
       {/* Bright white-hot core trail */}
       <mesh ref={coreRef}>
         <boxGeometry args={[0.025, 0.025, 1]} />
@@ -106,10 +104,18 @@ export function BulletTrails() {
       if (state.selectedWeaponId === "windBlade") {
         return;
       }
-      const direction = new Vector3();
-      camera.getWorldDirection(direction);
-      const offset = new Vector3(0.34, -0.3, 0).applyQuaternion(camera.quaternion);
-      const muzzle = camera.position.clone().add(offset).add(direction.clone().multiplyScalar(0.5));
+      // Match the gun's muzzle in PlayerWeapon: gun group sits at
+      // (0.42, -0.36, -0.62) in camera-local, and the muzzle flash lives
+      // another -0.62 forward inside that group. Putting the bullet origin
+      // at that combined offset makes the trail leave the actual barrel.
+      // Direction goes from the muzzle toward a far point along the
+      // camera's forward axis from the camera — so all shots converge on
+      // the crosshair regardless of the lateral barrel offset.
+      const aim = new Vector3();
+      camera.getWorldDirection(aim);
+      const muzzle = new Vector3(0.42, -0.36, -1.24).applyQuaternion(camera.quaternion).add(camera.position);
+      const aimPoint = camera.position.clone().add(aim.clone().multiplyScalar(120));
+      const direction = aimPoint.sub(muzzle).normalize();
       counter.current += 1;
       const bullet: Bullet = {
         id: counter.current,

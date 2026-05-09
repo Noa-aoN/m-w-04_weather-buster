@@ -1,7 +1,14 @@
 import { useFrame } from "@react-three/fiber";
+import { Line } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import type { Group } from "three";
 import type { WeatherEnemyId } from "../game/types";
+
+// Decorative lightning bolts must not steal the shoot raycast from the
+// enemy body. The aura sits inside the enemy group, so without this no-op
+// the bolts could be picked up first and the bullet would register a hit
+// against an aura line instead of the boss.
+const NOOP_RAYCAST: import("three").Object3D["raycast"] = () => {};
 
 function RainAura({ color }: { color: string }) {
   const groupRef = useRef<Group>(null);
@@ -84,41 +91,75 @@ function SnowAura({ color }: { color: string }) {
   );
 }
 
+// Tall zigzag lightning bolts arranged like a cage around the thunderstorm.
+// Each path is anchored at top / bottom to the same x so the bolt looks
+// like a proper vertical stroke, with intermediate jags at randomised
+// offsets. Two passes per bolt — a thick outer halo and a thin bright
+// core — give the bolts proper electric depth.
+function makeBoltPath(baseX: number, baseZ: number, jitter: number): Array<[number, number, number]> {
+  const segments = 7;
+  const points: Array<[number, number, number]> = [];
+  for (let i = 0; i <= segments; i += 1) {
+    const t = i / segments;
+    const y = 1.4 - t * 2.8;
+    const wobble = i === 0 || i === segments ? 0 : (Math.random() - 0.5) * jitter;
+    const dz = i === 0 || i === segments ? 0 : (Math.random() - 0.5) * jitter * 0.7;
+    points.push([baseX + wobble, y, baseZ + dz]);
+  }
+  return points;
+}
+
 function LightningAura({ color }: { color: string }) {
+  const bolts = useMemo(
+    () => [
+      { path: makeBoltPath(-0.95, -0.45, 0.28), phase: 0 },
+      { path: makeBoltPath(-0.5, -0.55, 0.3), phase: 0.5 },
+      { path: makeBoltPath(-0.15, -0.6, 0.34), phase: 1.0 },
+      { path: makeBoltPath(0.2, -0.6, 0.34), phase: 1.5 },
+      { path: makeBoltPath(0.55, -0.55, 0.3), phase: 2.0 },
+      { path: makeBoltPath(0.95, -0.45, 0.28), phase: 2.6 },
+    ],
+    [],
+  );
   const groupRef = useRef<Group>(null);
 
   useFrame(({ clock }) => {
     const node = groupRef.current;
-    if (!node) {
-      return;
-    }
+    if (!node) return;
     const t = clock.getElapsedTime();
-    for (let i = 0; i < node.children.length; i += 1) {
-      const child = node.children[i];
-      child.scale.x = 0.6 + (Math.sin(t * 9 + i) + 1) * 0.45;
-      child.scale.z = 0.6 + (Math.cos(t * 11 + i) + 1) * 0.45;
-      const mat = (child as { material?: { emissiveIntensity?: number } }).material;
-      if (mat) {
-        mat.emissiveIntensity = 1.4 + Math.abs(Math.sin(t * 14 + i)) * 2.6;
-      }
-    }
+    // Each bolt is rendered as a pair (halo + core) inside one sub-group.
+    node.children.forEach((child, i) => {
+      const phase = bolts[i]?.phase ?? 0;
+      const cycle = (t * 6 + phase) % 1;
+      child.visible = cycle > 0.18;
+    });
   });
-
-  const bolts = [
-    { x: -0.8, angle: 0.15 },
-    { x: 0.0, angle: -0.08 },
-    { x: 0.78, angle: 0.18 },
-    { x: -0.4, angle: -0.22 },
-    { x: 0.4, angle: 0.22 },
-  ];
 
   return (
     <group ref={groupRef}>
       {bolts.map((bolt, index) => (
-        <mesh key={index} position={[bolt.x, 0, -0.5]} rotation={[0, 0, bolt.angle]}>
-          <boxGeometry args={[0.07, 2.6, 0.07]} />
-          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2.4} toneMapped={false} />
-        </mesh>
+        <group key={index}>
+          {/* Soft outer halo — wider, low opacity, gives the volumetric glow. */}
+          <Line
+            points={bolt.path}
+            color={color}
+            lineWidth={6}
+            transparent
+            opacity={0.45}
+            toneMapped={false}
+            raycast={NOOP_RAYCAST}
+          />
+          {/* Bright core — narrow and near-white for the actual stroke. */}
+          <Line
+            points={bolt.path}
+            color="#fffce0"
+            lineWidth={2.2}
+            transparent
+            opacity={1}
+            toneMapped={false}
+            raycast={NOOP_RAYCAST}
+          />
+        </group>
       ))}
     </group>
   );

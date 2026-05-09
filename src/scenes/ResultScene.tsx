@@ -160,7 +160,7 @@ export function ResultScene({
       </section>
 
       <footer className="resultFooter">
-        <button type="button" onClick={onRetry}>再観測 (R / Enter)</button>
+        <button type="button" onClick={onRetry}>再出撃 (R / Enter)</button>
         <button type="button" className="primaryMenuButton" onClick={onHome}>タイトルへ戻る (H)</button>
       </footer>
     </main>

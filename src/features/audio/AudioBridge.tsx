@@ -77,6 +77,9 @@ export function AudioBridge() {
       if (interactive.closest("[data-no-ui-sound]")) {
         return;
       }
+      // Two-class mapping (current setup):
+      //   pico  : primary CTAs (`.primaryMenuButton`, dialog confirms)
+      //   click : everything else
       if (interactive.classList.contains("primaryMenuButton")) {
         playUiPico();
         return;
@@ -127,6 +130,20 @@ export function AudioBridge() {
         }
         if (state.ammo === 5 && prev.ammo > 5) {
           playLowAmmoBeep();
+        }
+      }
+      // windBlade right-click crescent — same swing SFX so it reads as a
+      // sword move, plus hit / miss feedback.
+      if (
+        state.lastSlashProjectileAt !== prev.lastSlashProjectileAt
+        && state.lastSlashProjectileAt !== 0
+      ) {
+        playSlash();
+        if (state.lastSlashProjectileHit) {
+          playHit(state.lastSlashProjectileCritical);
+          playEnemyStagger(state.lastSlashProjectileCritical);
+        } else {
+          playMiss();
         }
       }
       if (state.reloadingStartedAt !== prev.reloadingStartedAt && state.reloadingStartedAt !== 0) {

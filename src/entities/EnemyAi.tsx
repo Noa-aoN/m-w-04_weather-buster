@@ -51,6 +51,8 @@ export function EnemyMotion({
   enemyPositionRef,
   baseZ,
   arenaX,
+  arenaZFront,
+  arenaZBack,
   difficulty,
 }: {
   enemy: WeatherEnemy;
@@ -58,6 +60,8 @@ export function EnemyMotion({
   enemyPositionRef: React.RefObject<Vector3>;
   baseZ: number;
   arenaX: number;
+  arenaZFront: number;
+  arenaZBack: number;
   difficulty: DifficultyLevel;
 }) {
   const { camera } = useThree();
@@ -298,13 +302,22 @@ export function EnemyMotion({
     }
 
     targetX = Math.max(-arenaX + 1, Math.min(arenaX - 1, targetX));
-    targetZ = Math.max(baseZ * 1.8, Math.min(baseZ * 0.1 + 5, targetZ));
+    // Keep the boss inside (or just past) the player's reachable z range.
+    // Player is clamped to [arenaZFront, arenaZBack]; allow the boss a small
+    // buffer past arenaZFront so retreat is meaningful but never sends them
+    // far enough to be unreachable.
+    const enemyZMin = arenaZFront - 14;
+    const enemyZMax = arenaZBack - 1.5;
+    targetZ = Math.max(enemyZMin, Math.min(enemyZMax, targetZ));
 
-    const lerpRate = phase.mode === "idle" ? 0.4
+    // Tornado is the only ground-bound rusher — bump its lerp rate so it
+    // tracks the player faster than the floating types.
+    const speedBoost = enemy.id === "tornado" ? 1.6 : 1;
+    const lerpRate = (phase.mode === "idle" ? 0.4
       : phase.mode === "dodge" ? 4.2 + aggression * 1.4
       : phase.mode === "zigzag" ? 1.6 + aggression * 0.9
       : phase.mode === "evade" ? 1.5 + aggression * 0.8
-      : (0.9 + aggression * 0.7);
+      : (0.9 + aggression * 0.7)) * speedBoost;
     const factor = 1 - Math.exp(-lerpRate * delta);
     node.position.x += (targetX - node.position.x) * factor;
     node.position.z += (targetZ - node.position.z) * factor;
