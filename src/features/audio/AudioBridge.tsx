@@ -123,25 +123,26 @@ export function AudioBridge() {
         } else {
           playShoot();
         }
-        // Discriminate the outcome SFX:
-        //   hit → playHit + stagger
-        //   blocked by static prop → playPropHit (set in the same frame
-        //     by PlayerController; lastShotBlockedAt matches lastShotAt)
-        //   clean miss → playMiss
+        // Outcome SFX = original 2-branch (hit / else playMiss).
+        // The blocked-by-prop case ALSO triggers playMiss (clean wiff)
+        // and stacks an additional playPropHit "thunk" on top so the
+        // player gets both auditory cues.
         if (state.lastShotHit) {
           playHit(state.lastShotCritical);
           playEnemyStagger(state.lastShotCritical);
-        } else if (state.lastShotBlockedAt === state.lastShotAt) {
-          playPropHit();
         } else {
           playMiss();
+        }
+        if (state.lastShotBlockedAt === state.lastShotAt) {
+          playPropHit();
         }
         if (state.ammo === 5 && prev.ammo > 5) {
           playLowAmmoBeep();
         }
       }
       // windBlade right-click crescent — same swing SFX so it reads as a
-      // sword move, plus hit / miss / prop-block feedback.
+      // sword move, plus hit / miss feedback. playPropHit stacks on top
+      // when the crescent was occluded.
       if (
         state.lastSlashProjectileAt !== prev.lastSlashProjectileAt
         && state.lastSlashProjectileAt !== 0
@@ -150,10 +151,11 @@ export function AudioBridge() {
         if (state.lastSlashProjectileHit) {
           playHit(state.lastSlashProjectileCritical);
           playEnemyStagger(state.lastSlashProjectileCritical);
-        } else if (state.lastShotBlockedAt === state.lastSlashProjectileAt) {
-          playPropHit();
         } else {
           playMiss();
+        }
+        if (state.lastShotBlockedAt === state.lastSlashProjectileAt) {
+          playPropHit();
         }
       }
       if (state.reloadingStartedAt !== prev.reloadingStartedAt && state.reloadingStartedAt !== 0) {
