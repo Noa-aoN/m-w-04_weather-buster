@@ -464,14 +464,21 @@ function platformToDisc(p: RaisedPlatform): Disc {
   return { x: p.x, z: p.z, r: Math.max(p.w, p.d) / 2 };
 }
 
+/** Disc collider tagged with its source layer — drives debug visualization
+ *  and lets push-out / occlusion code apply per-layer rules later. */
+export type StageCollider = Disc & { kind: "platform" | "fixed" | "scattered" };
+
 /** Build the final placement set for a stage: returns fixed + scattered
  *  prop arrays after running the cluster pieces through the overlap-aware
  *  placer. `platforms` is returned untouched — they're authored by hand
- *  and reserve their own discs so scatter avoids them. */
+ *  and reserve their own discs so scatter avoids them. `colliders` is the
+ *  union of every disc that should block player / enemy / projectiles
+ *  (footprint:0 entries are excluded). */
 export function buildPlacements(stage: Stage, placement: StagePlacement): {
   fixed: GltfPlacement[];
   scattered: GltfPlacement[];
   platforms: RaisedPlatform[];
+  colliders: StageCollider[];
 } {
   const platforms = placement.platforms ?? [];
   // Order matters: platforms first (largest immovable footprints), then
@@ -486,5 +493,19 @@ export function buildPlacements(stage: Stage, placement: StagePlacement): {
   for (const cluster of placement.scattered) {
     scattered.push(...expandCluster(cluster, { existing, arena: stage.arena }));
   }
-  return { fixed: placement.fixed, scattered, platforms };
+  // Build the public collider list from the resolved data. Drop r === 0
+  // (intentional layer markers) so they don't block movement.
+  const colliders: StageCollider[] = [
+    ...platforms.map((p) => ({ ...platformToDisc(p), kind: "platform" as const })),
+    ...placement.fixed
+      .map((f) => ({ ...fixedToDisc(f), kind: "fixed" as const }))
+      .filter((d) => d.r > 0),
+    ...scattered.map((s) => ({
+      x: s.x,
+      z: s.z,
+      r: inferFootprint(s.url, s.scale),
+      kind: "scattered" as const,
+    })),
+  ];
+  return { fixed: placement.fixed, scattered, platforms, colliders };
 }

@@ -13,6 +13,7 @@ import { MinionSpawnBurst } from "../entities/MinionSpawnBurst";
 import { SkillBurstVFX } from "../entities/SkillBurstVFX";
 import { SlashProjectiles } from "../entities/SlashProjectiles";
 import { SlashTrails } from "../entities/SlashTrails";
+import { StageColliderDebug } from "../entities/StageColliderDebug";
 import { FovController, PlayerBackAvatar, PlayerShield, PlayerWeapon } from "../entities/PlayerView";
 import { StageTerrain } from "../entities/StageTerrain";
 import { RainStreaks, SnowDrift, ThunderstormStrikes } from "../entities/WeatherFx";
@@ -123,6 +124,11 @@ function ExperimentField({
       <Suspense fallback={null}>
         <StageTerrain stage={stage} isClear={isClear} />
       </Suspense>
+
+      {/* Renders nothing unless ?debug=placement is in the URL. Lives
+          outside the Suspense above so the rings appear as soon as the
+          footprint cache is warm, even mid-load. */}
+      <StageColliderDebug stage={stage} />
 
       {/* Suspense isolation around EnemyFigure: rex GLBs are 9-19MB after
           optimization (much larger before). Without this boundary the
