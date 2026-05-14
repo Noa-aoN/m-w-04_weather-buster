@@ -134,7 +134,7 @@ export function CodexLayout<T extends string>({
         <div className="codexPreviewCanvas">
           <Canvas
             camera={{ position: camPos, fov }}
-            dpr={[1, 1.5]}
+            dpr={[1, 1.25]}
             gl={{ antialias: true, powerPreference: "high-performance" }}
           >
             <color attach="background" args={["#06121d"]} />
