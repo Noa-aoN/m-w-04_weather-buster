@@ -25,7 +25,7 @@ function SkillFlash() {
   }
   return (
     <>
-      <div className="skillFlash" key={`flash-${lastSkillAt}`} aria-hidden="true" />
+      <div className="fullscreenFlash skillFlash" key={`flash-${lastSkillAt}`} aria-hidden="true" />
       <div className="skillBurst" key={`burst-${lastSkillAt}`} aria-hidden="true">
         <span className="skillBurstRing" />
         <span className="skillBurstRing skillBurstRing--two" />
@@ -195,7 +195,7 @@ function BattleStartFlash() {
   if (flash === 0) {
     return null;
   }
-  return <div className="battleStartFlash" key={flash} aria-hidden="true" />;
+  return <div className="fullscreenFlash battleStartFlash" key={flash} aria-hidden="true" />;
 }
 
 function ClearSkyBurst() {
@@ -263,7 +263,7 @@ function StaggerBurst() {
   }
   return (
     <>
-      <div className="staggerFlash" key={`flash-${activeKey}`} aria-hidden="true" />
+      <div className="fullscreenFlash staggerFlash" key={`flash-${activeKey}`} aria-hidden="true" />
       <div className={`staggerBanner ${tick % 2 === 0 ? "on" : ""}`} aria-hidden="true">
         <span>天侵体 硬直反応</span>
         <small>核を狙え</small>
@@ -292,7 +292,7 @@ function DamageFlash() {
   }
   return (
     <div
-      className="damageFlash"
+      className="fullscreenFlash damageFlash"
       key={flash.key}
       style={{ ["--flash-strength" as string]: flash.intensity.toString() }}
       aria-hidden="true"
@@ -493,7 +493,7 @@ function CriticalFlash() {
   if (flashAt === 0) {
     return null;
   }
-  return <div className="criticalFlash" key={flashAt} aria-hidden="true" />;
+  return <div className="fullscreenFlash criticalFlash" key={flashAt} aria-hidden="true" />;
 }
 
 function ReloadFlash() {
@@ -528,7 +528,7 @@ function HealFlash() {
   if (flashAt === 0) {
     return null;
   }
-  return <div className="healFlash" key={flashAt} aria-hidden="true" />;
+  return <div className="fullscreenFlash healFlash" key={flashAt} aria-hidden="true" />;
 }
 
 export function BattleEffectsOverlay({

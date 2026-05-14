@@ -3697,11 +3697,18 @@ canvas {
   to { opacity: 0; transform: translate(-50%, -10px); }
 }
 
-.skillFlash {
+/* 全画面 flash の共通 base。位置とポインタ扱いだけまとめ、色 / z-index /
+   アニメ / blend-mode は各派生クラスが持つ。
+   .skillFlash / .battleStartFlash / .staggerFlash / .damageFlash /
+   .healFlash / .criticalFlash の 6 種が利用。 */
+.fullscreenFlash {
   position: absolute;
   inset: 0;
-  z-index: 6;
   pointer-events: none;
+}
+
+.skillFlash {
+  z-index: 6;
   background:
     radial-gradient(circle at 50% 50%, rgba(255, 240, 110, 0.7) 0%, rgba(255, 200, 70, 0.3) 30%, transparent 65%),
     linear-gradient(180deg, rgba(255, 200, 70, 0.18), transparent 35%, transparent 65%, rgba(255, 200, 70, 0.18));
@@ -4116,10 +4123,7 @@ canvas {
    pulse expands from the centre outward like a concentric ring before
    fading off the edges. */
 .battleStartFlash {
-  position: absolute;
-  inset: 0;
   z-index: 8;
-  pointer-events: none;
   transform-origin: 50% 50%;
   background:
     radial-gradient(circle at 50% 50%, rgba(255, 247, 216, 0.6) 0%, rgba(255, 217, 87, 0.32) 28%, transparent 62%),
@@ -4199,10 +4203,7 @@ canvas {
 /* Stagger break — quick warm yellow flash + center banner so the player
    immediately reads the boss as frozen and switches to "go for the core". */
 .staggerFlash {
-  position: absolute;
-  inset: 0;
   z-index: 7;
-  pointer-events: none;
   background: radial-gradient(circle at 50% 38%,
     rgba(255, 240, 160, 0.45) 0%,
     rgba(255, 200, 90, 0.28) 30%,
@@ -4460,10 +4461,7 @@ canvas {
 
 .damageFlash {
   --flash-strength: 0.6;
-  position: absolute;
-  inset: 0;
   z-index: 6;
-  pointer-events: none;
   background:
     radial-gradient(ellipse at center, transparent 30%, rgba(220, 30, 50, calc(var(--flash-strength) * 0.55)) 95%),
     linear-gradient(180deg, rgba(255, 60, 80, calc(var(--flash-strength) * 0.4)), transparent 30%, transparent 70%, rgba(255, 60, 80, calc(var(--flash-strength) * 0.4)));
@@ -4477,10 +4475,7 @@ canvas {
 }
 
 .healFlash {
-  position: absolute;
-  inset: 0;
   z-index: 6;
-  pointer-events: none;
   background:
     radial-gradient(ellipse at center, transparent 30%, rgba(120, 255, 180, 0.35) 95%),
     linear-gradient(180deg, rgba(255, 232, 130, 0.32), transparent 28%, transparent 72%, rgba(120, 255, 180, 0.28));
@@ -4519,10 +4514,7 @@ canvas {
 }
 
 .criticalFlash {
-  position: absolute;
-  inset: 0;
   z-index: 6;
-  pointer-events: none;
   background:
     radial-gradient(circle at center, transparent 35%, rgba(255, 220, 80, 0.34) 80%),
     linear-gradient(180deg, transparent 38%, rgba(255, 200, 70, 0.22) 50%, transparent 62%);
