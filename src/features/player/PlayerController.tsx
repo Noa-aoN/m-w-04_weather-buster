@@ -731,6 +731,16 @@ export function PlayerController({
           lastShotBlockedZ: blockedContact.z,
         });
       }
+      // 敵命中時は raycast の最初の交差点を hit spark の発生位置として記録。
+      if (didHit && closestEnemy) {
+        useBattleStore.setState({
+          lastShotHitAt: useBattleStore.getState().lastShotAt,
+          lastShotHitCritical: critical,
+          lastShotHitX: closestEnemy.point.x,
+          lastShotHitY: closestEnemy.point.y,
+          lastShotHitZ: closestEnemy.point.z,
+        });
+      }
     };
     const onMouseUp = (_event: MouseEvent) => {
       // Shield no longer lives on right click; nothing to release here.

@@ -140,6 +140,14 @@ type BattleState = {
   lastShotBlockedX: number;
   lastShotBlockedY: number;
   lastShotBlockedZ: number;
+  /** 敵に命中したショットの座標。EnemyHitSparks が subscribe して
+   *  そのフレームに hit spark を立てるためのチャネル。critical 時は
+   *  サイズと色が変わる。 */
+  lastShotHitAt: number;
+  lastShotHitCritical: boolean;
+  lastShotHitX: number;
+  lastShotHitY: number;
+  lastShotHitZ: number;
   /** Timestamp of the last windBlade ranged-slash projectile (right click).
    *  Kept separate from lastShotAt so close-range slash visuals (PlayerView
    *  blade swing, SlashTrails carve line) don't fire on a ranged cast. */
@@ -264,6 +272,11 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   lastShotBlockedX: 0,
   lastShotBlockedY: 0,
   lastShotBlockedZ: 0,
+  lastShotHitAt: 0,
+  lastShotHitCritical: false,
+  lastShotHitX: 0,
+  lastShotHitY: 0,
+  lastShotHitZ: 0,
   lastShotCritical: false,
   lastShotDamage: 0,
   lastSlashProjectileAt: 0,
