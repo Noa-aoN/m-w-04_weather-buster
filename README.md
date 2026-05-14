@@ -47,6 +47,19 @@ URL: https://noa-aon.github.io/m-w-04_weather-buster/
 
 `風切ブレード` は弾を持たない近接武器。間合いに踏み込んで正面から斬った時のみダメージが入ります。
 
+## 動作環境
+
+WebGL2 が動く最近のブラウザ(Chrome / Edge / Safari / Firefox)で動きます。3D アリーナを毎フレーム描画するため、ある程度のスペックがあった方が快適です。
+
+| | 推奨 | 最低 |
+| --- | --- | --- |
+| PC | デスクトップ GPU 搭載機 / 2020 年以降の MacBook Pro クラス | 統合 GPU の薄型ノート(Intel Iris Xe・Apple M1 以降) |
+| スマホ | iPhone 13 以降 / Snapdragon 8 系の Android | iPhone 11 / ミドルレンジ Android |
+| ブラウザ | Chrome / Edge 最新版 | WebGL2 が動く最新ブラウザ |
+| 解像度 | フル HD 程度 | - |
+
+カクつきが気になる場合は、ブラウザ拡張(特に映像系)を切る・他のタブを閉じる・OS の省電力モードを切る、で改善することがあります。
+
 ## 登場要素
 
 ### 天侵体(敵)
