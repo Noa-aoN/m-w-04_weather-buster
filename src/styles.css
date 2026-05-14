@@ -561,11 +561,11 @@ canvas {
   font-size: clamp(11px, 0.55vw + 0.4vh, 15px);
   max-height: calc(100vh - clamp(160px, 26vh, 240px));
   overflow: hidden;
-  /* Same accent border + cyan gradient as the left main-menu buttons, with
-     the same 90deg direction and identical alpha endpoints — so the home
-     screen's left-menu items and the right briefing read as one set. */
+  /* 左の main-menu とは逆向きのグラデーション（薄→濃を左→右）。
+     画面中央に向かって明るく開ける構図にして、左右パネルで「中心に向かって開く」
+     対称感を出している。 */
   border: 1px solid rgba(40, 210, 255, 0.7);
-  background: linear-gradient(90deg, rgba(2, 26, 39, 0.92), rgba(4, 56, 73, 0.68));
+  background: linear-gradient(90deg, rgba(4, 56, 73, 0.68), rgba(2, 26, 39, 0.92));
   box-shadow: inset 0 0 22px rgba(34, 216, 255, 0.12), 0 0 22px rgba(40, 217, 255, 0.18);
   clip-path: polygon(0 18px, 18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px));
 }
