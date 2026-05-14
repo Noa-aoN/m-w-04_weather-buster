@@ -6,6 +6,7 @@ import { Color, Euler, Vector3 } from "three";
 import { BulletTrails } from "../entities/BulletTrails";
 import { EnemyFigure } from "../entities/EnemyFigure";
 import { EnemyMotion, ENEMY_SCALE } from "../entities/EnemyAi";
+import { BossDefeatRings } from "../entities/BossDefeatRings";
 import { BossShatterBurst } from "../entities/BossShatterBurst";
 import { LightningWarnings } from "../entities/LightningWarnings";
 import { MinionField } from "../entities/MinionField";
@@ -169,6 +170,7 @@ function ExperimentField({
       <MinionField enemyPositionRef={enemyPositionRef} />
       <MinionSpawnBurst enemyPositionRef={enemyPositionRef} />
       <BossShatterBurst enemyPositionRef={enemyPositionRef} />
+      <BossDefeatRings enemyPositionRef={enemyPositionRef} />
       <SkillBurstVFX enemyPositionRef={enemyPositionRef} />
       <BulletTrails />
       <SlashTrails />
