@@ -423,7 +423,10 @@ function FloorGrid({ stage, ringColor }: { stage: Stage; ringColor: string }) {
   const placement = STAGE_PLACEMENTS[stage.id];
   const floor = placement.floor;
   const textureKey = floor.texture ?? "lab";
-  const repeat = floor.textureRepeat ?? 6;
+  // 地平線方向まで地面を伸ばすために 36 → 180 に拡張。テクスチャの
+  // 1 タイルが ~6m になるよう repeat も比例スケール（180/6 = 30）。
+  const FLOOR_SIZE = 180;
+  const repeat = (floor.textureRepeat ?? 6) * (FLOOR_SIZE / 36);
   const [colorMap, normalMap, roughMap, aoMap] = useTexture([
     assetUrl(`/textures/field/${textureKey}/color.jpg`),
     assetUrl(`/textures/field/${textureKey}/normal.jpg`),
@@ -442,7 +445,7 @@ function FloorGrid({ stage, ringColor }: { stage: Stage; ringColor: string }) {
   return (
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
-        <planeGeometry args={[36, 36]} />
+        <planeGeometry args={[FLOOR_SIZE, FLOOR_SIZE]} />
         <meshStandardMaterial
           color="#ffffff"
           map={colorMap}
@@ -753,8 +756,10 @@ function HomeStage({
   const isClear = weatherCode === 0;
 
   const fogColor = isThunder ? "#0a0c14" : isSnow ? "#a7c8d8" : isFog ? "#525c66" : "#06121d";
-  const fogNear = isFog ? 4 : 8;
-  const fogFar = isFog ? 18 : 30;
+  const fogNear = isFog ? 4 : 12;
+  // 床を伸ばした分、霧も遠くまで引いて地平線が見えるように。霧が伸びると
+  // CSS 側の vignette と相まって「遠景の暗雲」っぽく見える。
+  const fogFar = isFog ? 32 : 80;
 
   return (
     <>
