@@ -308,11 +308,11 @@ canvas {
 }
 
 /* Image-based title logo. Sized to feel right across screen sizes:
- *   - 980px cap on huge monitors (24"+ desktops)
- *   - 50vw + 60px primary responsive — MacBook クラスで控えめなサイズ
- *     (1440 → ~780, 1100 → ~610) になるよう係数を抑えめに
+ *   - 1040px cap on huge monitors (24"+ desktops)
+ *   - 52vw + 70px primary responsive — MacBook クラスで控えめなサイズ
+ *     (1440 → ~819, 1100 → ~642) になるよう係数を抑えめに
  *   - 100vw - 40px hard gutter for very narrow windows
- *   - 36vh × 3.47 (image aspect) cap so short windows aren't dominated
+ *   - 38vh × 3.47 (image aspect) cap so short windows aren't dominated
  *     vertically
  * The smallest of the four wins. */
 .titleLogoStack {
@@ -320,10 +320,10 @@ canvas {
   display: block;
   margin: 0 auto;
   width: min(
-    980px,
-    calc(50vw + 60px),
+    1040px,
+    calc(52vw + 70px),
     calc(100vw - 40px),
-    calc(36vh * 3.47)
+    calc(38vh * 3.47)
   );
 }
 
