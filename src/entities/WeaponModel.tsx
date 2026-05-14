@@ -4,6 +4,7 @@ import { useMemo, useRef } from "react";
 import type { Group } from "three";
 import type { WeaponId } from "../game/types";
 import { assetUrl } from "../shared/assets";
+import { schedulePreload } from "../shared/preload";
 import { fitObjectToSize } from "./fitObject";
 
 type WeaponModelType = "fbx" | "gltf";
@@ -103,10 +104,13 @@ export function WeaponModel({
   );
 }
 
-Object.values(WEAPON_MODEL).forEach((model) => {
-  if (model.type === "gltf") {
-    useGLTF.preload(model.url);
-  } else {
-    useFBX.preload(model.url);
-  }
+// Battle 専用モデル群。Home の初期描画と争わないよう idle 後に遅延 preload。
+schedulePreload(() => {
+  Object.values(WEAPON_MODEL).forEach((model) => {
+    if (model.type === "gltf") {
+      useGLTF.preload(model.url);
+    } else {
+      useFBX.preload(model.url);
+    }
+  });
 });
