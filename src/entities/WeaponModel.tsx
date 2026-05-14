@@ -22,10 +22,6 @@ export const WEAPON_MODEL: Record<WeaponId, { url: string; type: WeaponModelType
 
 export const weaponModelScale = (id: WeaponId) => (id === "windBlade" ? [1, 1, 1] : [1, 1, -1]) as [number, number, number];
 
-export const WEAPON_MODEL_URL = Object.fromEntries(
-  Object.entries(WEAPON_MODEL).map(([id, model]) => [id, model.url]),
-) as Record<WeaponId, string>;
-
 export const weaponModelRotation = (id: WeaponId) => WEAPON_MODEL[id].rotation;
 
 function FbxWeaponObject({ url, targetSize }: { url: string; targetSize: number }) {
