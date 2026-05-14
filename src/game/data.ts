@@ -269,7 +269,7 @@ export const characters: Character[] = [
     moveSpeedMultiplier: 0.8,
     accentColor: "#ffd84d",
     description: "装甲スーツを纏った重装アタッカー。機動性は捨て、圧倒的な火力と粘り強さで短期決戦を仕掛ける。にんじん片手に踏み込む独自スタイル。",
-    flavor: "にんじん齧って、撃ち抜くぜ",
+    flavor: "俺が土手っ腹に風穴空けてやるよ",
   },
 ];
 
