@@ -3476,14 +3476,16 @@ canvas {
   gap: clamp(8px, 0.9vw, 14px);
 }
 
-.missionStartLabel {
+/* .missionPreview span のグローバル cyan rule に specificity 負けするので、
+   親階層を一つ含めて優先度を上げて黄色を確定させる。 */
+.missionPreview .missionStartLabel {
   color: #ffe15a;
   font-size: clamp(16px, 1.55vw, 21px);
   font-weight: 900;
   letter-spacing: 0.18em;
 }
 
-.missionStartHint {
+.missionPreview .missionStartHint {
   padding: 2px 8px;
   border: 1px solid #ffe15a;
   border-radius: 3px;
