@@ -1087,26 +1087,23 @@ export function HomeScene({
 
         <div className="missionCycler">
           <button type="button" className="cyclerArrow" aria-label="前のステージ" onClick={() => cycleStage(-1)}>◀</button>
-          <div className="cyclerLabel">
+          <button type="button" className="cyclerLabel cyclerDetailButton" onClick={() => onOpenLoadout("stage")}>
             <small>ステージ</small>
-            <strong className="stageNameRow">
-              <span>{stage.name}</span>
-              <button type="button" className="stageDetailLink" onClick={() => onOpenLoadout("stage")}>詳細</button>
-            </strong>
-          </div>
+            <strong>{stage.name}</strong>
+          </button>
           <button type="button" className="cyclerArrow" aria-label="次のステージ" onClick={() => cycleStage(1)}>▶</button>
         </div>
 
         <div className="missionCycler">
           <button type="button" className="cyclerArrow" aria-label="前の敵" onClick={() => cycleEnemy(-1)}>◀</button>
-          <div className="cyclerLabel cyclerEnemy">
+          <button type="button" className="cyclerLabel cyclerEnemy cyclerDetailButton" onClick={onOpenEnemyGrid}>
             <small>天候性侵害体</small>
             <strong>
               <span className="enemyMiniIcon" style={{ color: selectedEnemy.accentColor }}>{selectedEnemy.icon}</span>
               {selectedEnemy.name}
             </strong>
             <em>{selectedEnemy.trait}</em>
-          </div>
+          </button>
           <button type="button" className="cyclerArrow" aria-label="次の敵" onClick={() => cycleEnemy(1)}>▶</button>
         </div>
 
