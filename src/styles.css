@@ -4892,13 +4892,11 @@ canvas {
   100% { transform: scale(1.08); box-shadow: 0 0 18px rgba(255, 220, 110, 0.95); }
 }
 
-/* Boss intro panel: tucked under the radar so the center view (where the boss
-   actually is) stays clear during the first 2 seconds of battle. Background
-   is intentionally faint — the colored borders + glowing name carry the
-   reveal, the body color is just there to keep the text readable.
-   skillReadyToast と同じ縦位置 (radar 直下) に置く。両者は時間的に排他
-   (bossIntro = battle 開始 2 秒、skillReadyToast = gauge MAX タイミング)
-   なので同居 OK。playerStatus との上下マージンに余裕を確保。 */
+/* Boss intro panel: skillReadyToast と同じ縦位置 (radar 直下) + 同じ
+   ビジュアル言語 (暗い茶系グラデ + 黄色枠 + 黄色グロー、左から滑り込み
+   2.2 秒で消える)。両者は時間的に排他 (bossIntro = battle 開始 2 秒、
+   skillReadyToast = gauge MAX タイミング) なので同居 OK。
+   playerStatus との上下マージンに余裕を確保。 */
 .bossIntro {
   position: absolute;
   top: clamp(260px, 32vh, 320px);
@@ -4909,15 +4907,15 @@ canvas {
   gap: 4px;
   width: clamp(230px, 26vw, 330px);
   padding: 10px 16px 12px;
-  background: linear-gradient(180deg, rgba(120, 22, 40, 0.32), rgba(40, 6, 14, 0.48));
-  border-top: 2px solid rgba(255, 210, 90, 0.85);
-  border-bottom: 2px solid rgba(255, 210, 90, 0.85);
-  box-shadow: 0 0 28px rgba(255, 90, 90, 0.32), inset 0 0 22px rgba(255, 90, 110, 0.08);
+  border: 1px solid rgba(255, 220, 110, 0.85);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(60, 28, 8, 0.92), rgba(40, 20, 6, 0.95));
+  box-shadow: 0 0 28px rgba(255, 200, 70, 0.55), inset 0 0 18px rgba(255, 220, 110, 0.22);
   backdrop-filter: blur(2px);
   pointer-events: none;
   font-family: "Kenney Future", "Bebas Neue", "Oswald", sans-serif;
-  letter-spacing: 0.14em;
-  animation: bossIntroAnim 2s cubic-bezier(0.18, 0.9, 0.3, 1) forwards;
+  letter-spacing: 0.16em;
+  animation: skillReadyToastAnim 2.2s cubic-bezier(0.18, 0.9, 0.3, 1) forwards;
 }
 
 .bossIntroLabel {

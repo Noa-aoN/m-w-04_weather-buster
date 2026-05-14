@@ -306,7 +306,7 @@ function BossIntro({ enemyName, enemyTrait, threat }: { enemyName: string; enemy
   useEffect(() => {
     if (status === "battle") {
       setIntroAt(Date.now());
-      const t = window.setTimeout(() => setIntroAt(0), 2000);
+      const t = window.setTimeout(() => setIntroAt(0), 2200);
       return () => window.clearTimeout(t);
     }
   }, [status]);
