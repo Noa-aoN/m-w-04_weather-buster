@@ -140,7 +140,7 @@ function PbrFloor({
 
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
-      <planeGeometry args={[floor.size, floor.size, 32, 32]} />
+      <planeGeometry args={[floor.size, floor.size]} />
       <meshStandardMaterial
         // tint the texture toward the stage's clear color so the PBR map
         // doesn't fight the clear-sky atmosphere
@@ -168,7 +168,7 @@ function PlainFloor({
   const floor = placement.floor;
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
-      <planeGeometry args={[floor.size, floor.size, 32, 32]} />
+      <planeGeometry args={[floor.size, floor.size]} />
       <meshStandardMaterial
         color={isClear ? floor.clearColor : stage.groundColor}
         metalness={floor.metalness}
