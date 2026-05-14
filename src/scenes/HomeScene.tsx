@@ -423,10 +423,10 @@ function FloorGrid({ stage, ringColor }: { stage: Stage; ringColor: string }) {
   const placement = STAGE_PLACEMENTS[stage.id];
   const floor = placement.floor;
   const textureKey = floor.texture ?? "lab";
-  // 円形フロアで「四角い端」を見せず自然な地平線に。半径 40m なら直径
-  // 80m。テクスチャの 1 タイル ~6m を保ちたいので repeat は半径相当
+  // 円形フロアで「四角い端」を見せず自然な地平線に。半径 30m なら直径
+  // 60m。テクスチャの 1 タイル ~6m を保ちたいので repeat は半径相当
   // (radius/3) に揃える。circleGeometry の segments は 64 程度で十分。
-  const FLOOR_RADIUS = 40;
+  const FLOOR_RADIUS = 30;
   const repeat = (floor.textureRepeat ?? 6) * (FLOOR_RADIUS / 18);
   const [colorMap, normalMap, roughMap, aoMap] = useTexture([
     assetUrl(`/textures/field/${textureKey}/color.jpg`),
@@ -758,9 +758,9 @@ function HomeStage({
 
   const fogColor = isThunder ? "#0a0c14" : isSnow ? "#a7c8d8" : isFog ? "#525c66" : "#06121d";
   const fogNear = isFog ? 4 : 10;
-  // 円形フロアの直径 80m に合わせ、霧は遠端より少し手前で完全に閉じる
+  // 円形フロアの直径 60m に合わせ、霧は遠端より少し手前で完全に閉じる
   // 程度に調整（地平線を残しつつ床の端が霧で自然に消えるように）。
-  const fogFar = isFog ? 20 : 38;
+  const fogFar = isFog ? 16 : 29;
 
   return (
     <>
