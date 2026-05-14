@@ -18,20 +18,7 @@ import { isFootprintCacheWarm, recordMeasuredFootprint } from "./footprintCache"
 
 function GLTFInstance({ url, ...props }: { url: string } & Record<string, unknown>) {
   const { scene } = useGLTF(assetUrl(url));
-  const cloned = useMemo(() => {
-    const clone = scene.clone(true);
-    // Enable shadow casting on every mesh in the prop. Cloned scenes
-    // start with castShadow=false; toggle on the duplicate so the source
-    // scene used for measurement / preload stays untouched.
-    clone.traverse((child) => {
-      const mesh = child as { isMesh?: boolean; castShadow?: boolean; receiveShadow?: boolean };
-      if (mesh.isMesh) {
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-      }
-    });
-    return clone;
-  }, [scene]);
+  const cloned = useMemo(() => scene.clone(true), [scene]);
   // Side-effect: record the model-local footprint the first time this URL
   // is seen so subsequent buildPlacements calls get accurate disc radii.
   recordMeasuredFootprint(url, scene);
@@ -112,11 +99,11 @@ function HighlandPlatform({ p, isClear }: { p: RaisedPlatform; isClear: boolean 
   const metalness = variant === "metal" ? 0.45 : 0.2;
   return (
     <group position={[p.x, 0, p.z]} rotation={[p.tilt ?? 0, p.rotY ?? 0, (p.tilt ?? 0) * 0.5]}>
-      <mesh position={[0, p.height / 2, 0]} castShadow receiveShadow>
+      <mesh position={[0, p.height / 2, 0]}>
         <boxGeometry args={[p.w, p.height, p.d]} />
         <meshStandardMaterial color={sideColor} roughness={roughness} metalness={metalness} />
       </mesh>
-      <mesh position={[0, p.height + 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh position={[0, p.height + 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[p.w * 0.94, p.d * 0.94]} />
         <meshStandardMaterial color={topColor} roughness={roughness} />
       </mesh>
@@ -152,8 +139,8 @@ function PbrFloor({
   }, [colorMap, normalMap, roughMap, aoMap, repeat]);
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow>
-      <planeGeometry args={[floor.size, floor.size, 32, 32]} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
+      <planeGeometry args={[floor.size, floor.size]} />
       <meshStandardMaterial
         // tint the texture toward the stage's clear color so the PBR map
         // doesn't fight the clear-sky atmosphere
@@ -180,8 +167,8 @@ function PlainFloor({
 }) {
   const floor = placement.floor;
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow>
-      <planeGeometry args={[floor.size, floor.size, 32, 32]} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
+      <planeGeometry args={[floor.size, floor.size]} />
       <meshStandardMaterial
         color={isClear ? floor.clearColor : stage.groundColor}
         metalness={floor.metalness}

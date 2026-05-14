@@ -5,7 +5,7 @@ import { useBattleStore } from "../game/battleStore";
 import { difficultyModifiers, findMinionType } from "../game/data";
 import { isDebugEnabled, writeDebug } from "../features/debug/debugBus";
 import type { DifficultyLevel, WeatherEnemy } from "../game/types";
-import { resolveCircleVsCircles } from "./stageColliders";
+import { blockingColliders, resolveCircleVsCircles } from "./stageColliders";
 import type { StageCollider } from "./stagePlacements";
 
 // Per-enemy AI motion. When evolving, see AGENTS.md "敵 AI を触るとき" — the
@@ -310,10 +310,21 @@ export function EnemyMotion({
       targetZ = playerZ + (dzClamp / distClamp) * MIN_DISTANCE;
     }
 
-    // Push the boss out of any static prop disc before the arena clamp,
-    // so AI orbit logic can't drop them inside a hangar / tower / outcrop.
-    if (colliders.length > 0) {
-      const resolved = resolveCircleVsCircles(targetX, targetZ, ENEMY_COLLIDER_RADIUS, colliders);
+    // Filter colliders by the enemy's vertical extent — high-flying
+    // bosses (thunderstorm at y≈3.6, typhoon at y≈3.4) shouldn't be
+    // walled off by short pads / barrels they fly cleanly over. Approx
+    // the enemy as a vertical extent of [y - radius, y + radius] using
+    // the same disc radius as the XZ collider.
+    const enemyFeetY = node.position.y - ENEMY_COLLIDER_RADIUS;
+    const enemyHeadY = node.position.y + ENEMY_COLLIDER_RADIUS;
+    const enemyBlockers = colliders.length > 0
+      ? blockingColliders(enemyFeetY, enemyHeadY, colliders)
+      : [];
+
+    // Push the AI's intended target out of any blocking prop before the
+    // arena clamp, so the steering target itself isn't inside a building.
+    if (enemyBlockers.length > 0) {
+      const resolved = resolveCircleVsCircles(targetX, targetZ, ENEMY_COLLIDER_RADIUS, enemyBlockers);
       targetX = resolved.x;
       targetZ = resolved.z;
     }
@@ -338,6 +349,20 @@ export function EnemyMotion({
     const factor = 1 - Math.exp(-lerpRate * delta);
     node.position.x += (targetX - node.position.x) * factor;
     node.position.z += (targetZ - node.position.z) * factor;
+
+    // Final push-out on the *actual* (post-lerp) position. Without this
+    // step the lerp can interpolate THROUGH a building when target was
+    // outside but the previous frame's position was on the other side.
+    if (enemyBlockers.length > 0) {
+      const resolved = resolveCircleVsCircles(
+        node.position.x,
+        node.position.z,
+        ENEMY_COLLIDER_RADIUS,
+        enemyBlockers,
+      );
+      node.position.x = resolved.x;
+      node.position.z = resolved.z;
+    }
 
     const t = state.clock.getElapsedTime();
     const tier = ENEMY_VERTICAL_TIER[enemy.id] ?? { base: 1.6, amp: 0.6, freq: 1.0 };

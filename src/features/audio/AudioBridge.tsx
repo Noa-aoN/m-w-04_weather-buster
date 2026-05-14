@@ -14,6 +14,7 @@ import {
   playEnemyChargeStart,
   playLowAmmoBeep,
   playMiss,
+  playPropHit,
   playReload,
   playSlash,
   playMinionSummon,
@@ -122,6 +123,10 @@ export function AudioBridge() {
         } else {
           playShoot();
         }
+        // Hit / miss original 2-branch. playPropHit is fired by the
+        // separate lastShotBlockedAt subscription below so it can stack
+        // cleanly on top (PlayerController writes that field AFTER the
+        // shoot setState, so it lands in a follow-up notification).
         if (state.lastShotHit) {
           playHit(state.lastShotCritical);
           playEnemyStagger(state.lastShotCritical);
@@ -145,6 +150,16 @@ export function AudioBridge() {
         } else {
           playMiss();
         }
+      }
+      // Static-prop block notification — fires on its own setState in
+      // PlayerController immediately after shoot/fireSlashProjectile, so
+      // playPropHit reliably stacks on top of the shot SE rather than
+      // depending on equal timestamps.
+      if (
+        state.lastShotBlockedAt !== prev.lastShotBlockedAt
+        && state.lastShotBlockedAt !== 0
+      ) {
+        playPropHit();
       }
       if (state.reloadingStartedAt !== prev.reloadingStartedAt && state.reloadingStartedAt !== 0) {
         playReload();

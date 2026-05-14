@@ -27,7 +27,7 @@ export type WeaponId =
 
 export type ItemId = "clearTonic" | "decoyUmbrella" | "lightningRod" | "pressureStabilizer";
 
-export type CharacterId = "noa" | "saka";
+export type CharacterId = "noa" | "saka" | "metappi";
 
 export type StageId = "lab" | "ruins" | "highland";
 

@@ -16,7 +16,12 @@ import {
   weatherEnemies,
 } from "../../game/data";
 import { findMinionByObject, getMinionRoot, getMinionWorldPosition } from "../../entities/minionRegistry";
-import { rayToFirstCollider, resolveCircleVsCircles } from "../../entities/stageColliders";
+import {
+  blockingColliders,
+  groundYAt,
+  rayToFirstCollider,
+  resolveCircleVsCircles,
+} from "../../entities/stageColliders";
 import type { StageCollider } from "../../entities/stagePlacements";
 import { setLockTarget } from "./lockControls";
 import { useKeyboardInput } from "./useKeyboardInput";
@@ -25,7 +30,10 @@ const MOVE_SPEED = 5.4;
 const DASH_MULTIPLIER = 1.55;
 const JUMP_HEIGHT = 1.25;
 const JUMP_DURATION = 0.55;
-const GROUND_Y = 2.15;
+// Camera height above the player's "feet" plane. Eye height — the camera
+// sits this far above whichever ground they're standing on (floor or a
+// platform top).
+const EYE_HEIGHT = 2.15;
 const WIND_BLADE_REACH = 4.8;
 const WIND_BLADE_DOT = 0.62;
 // Player capsule radius for static-prop collision. ~30cm closer to the
@@ -196,18 +204,26 @@ export function PlayerController({
       camera.position.x += move.current.x;
       camera.position.z += move.current.z;
     }
-    // Push the player back out of any static prop they slid into. Done
-    // before the arena clamp so a collider near the wall can't "trap" the
-    // player by pushing them past the boundary.
+    // Push the player back out of any static prop they slid into. Filter
+    // colliders by current vertical extent so a low platform / pad doesn't
+    // block sideways approach (player steps on top) and an overhead
+    // hanging sign doesn't block at all (player walks under). Done before
+    // the arena clamp so a collider near the wall can't trap the player
+    // past the boundary.
     if (colliders.length > 0) {
-      const resolved = resolveCircleVsCircles(
-        camera.position.x,
-        camera.position.z,
-        PLAYER_COLLIDER_RADIUS,
-        colliders,
-      );
-      camera.position.x = resolved.x;
-      camera.position.z = resolved.z;
+      const feetY = camera.position.y - EYE_HEIGHT;
+      const headY = camera.position.y;
+      const blockers = blockingColliders(feetY, headY, colliders);
+      if (blockers.length > 0) {
+        const resolved = resolveCircleVsCircles(
+          camera.position.x,
+          camera.position.z,
+          PLAYER_COLLIDER_RADIUS,
+          blockers,
+        );
+        camera.position.x = resolved.x;
+        camera.position.z = resolved.z;
+      }
     }
     camera.position.x = Math.max(-arena.x, Math.min(arena.x, camera.position.x));
     camera.position.z = Math.max(arena.zFront, Math.min(arena.zBack, camera.position.z));
@@ -228,17 +244,25 @@ export function PlayerController({
     }
     const bobAmplitude = isMoving ? (dash > 1 ? 0.045 : 0.028) : 0;
     const verticalBob = Math.sin(bobPhaseRef.current) * bobAmplitude;
+    // Compute the ground level under the player: floor (y=0) by default,
+    // or the top of any short collider whose disc contains them and that
+    // their current feet are at-or-above (so they "step up" onto low
+    // pads / platforms automatically). Jump arc adds on top of this.
+    const currentFeetY = camera.position.y - EYE_HEIGHT;
+    const groundY = colliders.length > 0
+      ? groundYAt(camera.position.x, camera.position.z, currentFeetY, colliders)
+      : 0;
     if (jumpStartedAt.current !== null) {
       const elapsed = (performance.now() - jumpStartedAt.current) / 1000;
       const t = elapsed / JUMP_DURATION;
       if (t >= 1) {
-        camera.position.y = GROUND_Y;
+        camera.position.y = groundY + EYE_HEIGHT;
         jumpStartedAt.current = null;
       } else {
-        camera.position.y = GROUND_Y + Math.sin(t * Math.PI) * JUMP_HEIGHT;
+        camera.position.y = groundY + EYE_HEIGHT + Math.sin(t * Math.PI) * JUMP_HEIGHT;
       }
     } else {
-      camera.position.y = GROUND_Y + verticalBob;
+      camera.position.y = groundY + EYE_HEIGHT + verticalBob;
     }
 
     const now = performance.now();
@@ -422,21 +446,43 @@ export function PlayerController({
         const dz = camera.position.z - marker.z;
         const distance = Math.sqrt(dx * dx + dz * dz);
         if (distance <= marker.radius) {
-          state.takeMarkerDamage(marker.damage);
-          const markerEnemyId = (marker as { enemyId?: typeof marker.enemyId }).enemyId;
-          const pat = markerEnemyId ? enemyAttackPatterns[markerEnemyId] : null;
-          if (pat && pat.knockback > 0) {
-            const len = Math.max(distance, 0.0001);
-            // Tornado pulls player TOWARD impact (and toward the enemy in
-            // the case of a colocated marker) — that's its signature feel.
-            const direction = markerEnemyId === "tornado" ? -1 : 1;
-            const nx = (dx / len) * direction;
-            const nz = (dz / len) * direction;
-            state.applyKnockback(nx * pat.knockback * 6, nz * pat.knockback * 6);
+          // Static prop occlusion: cast a 3D ray from the marker's
+          // origin (boss / minion / sky) to the player. If a static
+          // collider is in the way and tall enough to intercept the
+          // ray's Y at that point, the attack is blocked.
+          const ox = marker.fromX;
+          const oy = marker.fromY;
+          const oz = marker.fromZ;
+          const rx = camera.position.x - ox;
+          const ry = camera.position.y - oy;
+          const rz = camera.position.z - oz;
+          const rayDist = Math.sqrt(rx * rx + ry * ry + rz * rz);
+          let blocked = false;
+          if (colliders.length > 0 && rayDist > 0.001) {
+            const blockerT = rayToFirstCollider(
+              ox, oy, oz,
+              rx / rayDist, ry / rayDist, rz / rayDist,
+              colliders,
+            );
+            if (blockerT < rayDist) blocked = true;
           }
-          // RainySeason marker leaves a temporary slow on the player.
-          if (markerEnemyId === "rainySeason") {
-            useBattleStore.setState({ slowUntil: now + 2200 });
+          if (!blocked) {
+            state.takeMarkerDamage(marker.damage);
+            const markerEnemyId = (marker as { enemyId?: typeof marker.enemyId }).enemyId;
+            const pat = markerEnemyId ? enemyAttackPatterns[markerEnemyId] : null;
+            if (pat && pat.knockback > 0) {
+              const len = Math.max(distance, 0.0001);
+              // Tornado pulls player TOWARD impact (and toward the enemy in
+              // the case of a colocated marker) — that's its signature feel.
+              const direction = markerEnemyId === "tornado" ? -1 : 1;
+              const nx = (dx / len) * direction;
+              const nz = (dz / len) * direction;
+              state.applyKnockback(nx * pat.knockback * 6, nz * pat.knockback * 6);
+            }
+            // RainySeason marker leaves a temporary slow on the player.
+            if (markerEnemyId === "rainySeason") {
+              useBattleStore.setState({ slowUntil: now + 2200 });
+            }
           }
         }
         state.removeLightning(marker.id);
@@ -534,22 +580,43 @@ export function PlayerController({
           const distance = toEnemy.length();
           const alignment = distance > 0 ? dir.dot(toEnemy.normalize()) : 0;
           let didHit = distance <= WIND_BLADE_PROJECTILE_REACH && alignment >= WIND_BLADE_PROJECTILE_DOT;
-          // Static prop occlusion: if a static disc sits between the camera
-          // and the enemy along the aim direction, the crescent can't pass.
+          // Static prop occlusion: if a static collider sits between the
+          // camera and the enemy along the aim direction *and* its body
+          // intercepts the shot Y at that point, the crescent can't pass.
+          // Stash contact and apply the store update AFTER fireSlashProjectile
+          // so the lastShotBlockedAt timestamp can match the projectile's.
+          let blockedContact: { x: number; y: number; z: number } | null = null;
           if (didHit && colliders.length > 0) {
             const blockerT = rayToFirstCollider(
               camera.position.x,
+              camera.position.y,
               camera.position.z,
               dir.x,
+              dir.y,
               dir.z,
               colliders,
             );
-            if (blockerT < distance) didHit = false;
+            if (blockerT < distance) {
+              didHit = false;
+              blockedContact = {
+                x: camera.position.x + dir.x * blockerT,
+                y: camera.position.y + dir.y * blockerT,
+                z: camera.position.z + dir.z * blockerT,
+              };
+            }
           }
           // Crit when the crescent threads the boss tightly along its center
           // line — narrower than melee so a clean ranged shot still rewards.
           const critical = didHit && alignment >= 0.95;
           store.fireSlashProjectile(didHit, critical);
+          if (blockedContact) {
+            useBattleStore.setState({
+              lastShotBlockedAt: useBattleStore.getState().lastSlashProjectileAt,
+              lastShotBlockedX: blockedContact.x,
+              lastShotBlockedY: blockedContact.y,
+              lastShotBlockedZ: blockedContact.z,
+            });
+          }
         } else {
           store.reload();
         }
@@ -587,17 +654,45 @@ export function PlayerController({
       const closestEnemy = enemyHits[0];
       const closestMinion = minionHits[0];
       // Static prop occlusion: anything closer than the nearest collider
-      // along the aim ray is reachable; anything further is blocked.
+      // along the 3D aim ray is reachable; anything further is blocked.
+      // Height-aware — a low pad won't kill a horizontal shot from
+      // standing eye level.
       const occlusionT = colliders.length > 0
-        ? rayToFirstCollider(camera.position.x, camera.position.z, dir.x, dir.z, colliders)
+        ? rayToFirstCollider(
+            camera.position.x,
+            camera.position.y,
+            camera.position.z,
+            dir.x,
+            dir.y,
+            dir.z,
+            colliders,
+          )
         : Infinity;
+      // Stash block contact (don't setState yet) — applied AFTER shoot so
+      // lastShotBlockedAt can be set to the same timestamp as lastShotAt
+      // (the AudioBridge uses equality to gate the prop-hit SE).
+      const blockContact = (): { x: number; y: number; z: number } => ({
+        x: camera.position.x + dir.x * occlusionT,
+        y: camera.position.y + dir.y * occlusionT,
+        z: camera.position.z + dir.z * occlusionT,
+      });
+      let blockedContact: { x: number; y: number; z: number } | null = null;
       // Closer object wins. If a minion is in front of the boss the player
       // gets to chip it down first; otherwise the boss takes the shot.
       // Skip the minion shot too if a static prop is in the way.
       if (closestMinion && (!closestEnemy || closestMinion.distance < closestEnemy.distance)) {
         if (closestMinion.distance >= occlusionT) {
           // Blocked by a static prop — register a miss instead.
+          blockedContact = blockContact();
           store.shoot(false, false);
+          if (blockedContact) {
+            useBattleStore.setState({
+              lastShotBlockedAt: useBattleStore.getState().lastShotAt,
+              lastShotBlockedX: blockedContact.x,
+              lastShotBlockedY: blockedContact.y,
+              lastShotBlockedZ: blockedContact.z,
+            });
+          }
           return;
         }
         const minionId = findMinionByObject(closestMinion.object);
@@ -608,6 +703,12 @@ export function PlayerController({
       }
       const enemyDist = closestEnemy ? closestEnemy.distance : Infinity;
       const didHit = enemyHits.length > 0 && enemyDist < occlusionT;
+      // Enemy was hit by the raycast but a static prop is in the way →
+      // stash a block contact so the impact-spark VFX + prop-hit SE show
+      // the player WHY the shot didn't connect.
+      if (closestEnemy && enemyDist >= occlusionT && occlusionT < Infinity) {
+        blockedContact = blockContact();
+      }
       const critical = didHit && enemyHits.some((hit) => {
         let node: Object3D | null = hit.object;
         while (node) {
@@ -622,6 +723,14 @@ export function PlayerController({
         return false;
       });
       store.shoot(didHit, critical);
+      if (blockedContact) {
+        useBattleStore.setState({
+          lastShotBlockedAt: useBattleStore.getState().lastShotAt,
+          lastShotBlockedX: blockedContact.x,
+          lastShotBlockedY: blockedContact.y,
+          lastShotBlockedZ: blockedContact.z,
+        });
+      }
     };
     const onMouseUp = (_event: MouseEvent) => {
       // Shield no longer lives on right click; nothing to release here.

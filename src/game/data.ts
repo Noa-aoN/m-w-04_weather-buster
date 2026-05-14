@@ -252,7 +252,7 @@ export const characters: Character[] = [
     damageTakenMultiplier: 1.0,
     gaugeGainMultiplier: 1.0,
     moveSpeedMultiplier: 1.1,
-    accentColor: "#28d9ff",
+    accentColor: "#ff5e6e",
     description: "気象観測局所属のバスター。長く続いた雨の記憶を胸に、湿度系天侵体の観測と制圧に強いこだわりを持つ。軽装の機動力で間合いを支配する。",
     flavor: "梅雨を、ゆるさない",
   },
@@ -267,9 +267,24 @@ export const characters: Character[] = [
     damageTakenMultiplier: 0.85,
     gaugeGainMultiplier: 1.0,
     moveSpeedMultiplier: 0.8,
-    accentColor: "#ffd84d",
+    accentColor: "#ffa540",
     description: "装甲スーツを纏った重装アタッカー。機動性は捨て、圧倒的な火力と粘り強さで短期決戦を仕掛ける。にんじん片手に踏み込む独自スタイル。",
-    flavor: "にんじん齧って、撃ち抜くぜ",
+    flavor: "俺が土手っ腹に風穴空けてやるよ",
+  },
+  {
+    id: "metappi",
+    codename: "メタピー",
+    callSign: "METP",
+    role: "気圧特化型",
+    passiveName: "圧縮豆装填",
+    passiveDescription: "気圧 +45% / 与ダメ -10% / 被ダメ +10%",
+    damageMultiplier: 0.9,
+    damageTakenMultiplier: 1.1,
+    gaugeGainMultiplier: 1.45,
+    moveSpeedMultiplier: 1.0,
+    accentColor: "#7be8c4",
+    description: "気圧特性強化型バスター。特殊素材スーツで圧縮した気圧を吸収し、武器スキル発動までの時間を短縮。気候変動で栽培が厳しくなっている豆を使った、故郷のスープが好き。",
+    flavor: "故郷のスープを守りたい",
   },
 ];
 
@@ -286,7 +301,9 @@ export const stages: Stage[] = [
     skyRayleigh: 3.2,
     buildingColor: "#1f2f3a",
     buildingEmissive: "#0aa0d7",
-    arena: { x: 11, zFront: -3, zBack: 9 },
+    // Arena z は ring 最大半径 (0.95 * arena.x = 10.45) に合わせて
+    // ±10.5 に拡張。プレイヤーが床のリングの全周に到達できる。
+    arena: { x: 11, zFront: -10.5, zBack: 10.5 },
   },
   {
     id: "ruins",
@@ -300,7 +317,8 @@ export const stages: Stage[] = [
     skyRayleigh: 1.4,
     buildingColor: "#3a2a26",
     buildingEmissive: "#d76a2e",
-    arena: { x: 19, zFront: -6, zBack: 16 },
+    // ring 最大半径 18.05 に合わせて zFront -18 / zBack 18.5 へ拡張。
+    arena: { x: 19, zFront: -18, zBack: 18.5 },
   },
   {
     id: "highland",
@@ -314,7 +332,9 @@ export const stages: Stage[] = [
     skyRayleigh: 0.8,
     buildingColor: "#2c4453",
     buildingEmissive: "#7ab5d7",
-    arena: { x: 21, zFront: -7, zBack: 18 },
+    // ring 最大半径 19.95 に合わせて ±20 へ拡張。highland の固定
+    // basemodule は z=-19 にあるが新 arena に収まる。
+    arena: { x: 21, zFront: -20, zBack: 20 },
   },
 ];
 

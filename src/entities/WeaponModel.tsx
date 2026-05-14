@@ -4,6 +4,7 @@ import { useMemo, useRef } from "react";
 import type { Group } from "three";
 import type { WeaponId } from "../game/types";
 import { assetUrl } from "../shared/assets";
+import { schedulePreload } from "../shared/preload";
 import { fitObjectToSize } from "./fitObject";
 
 type WeaponModelType = "fbx" | "gltf";
@@ -20,10 +21,6 @@ export const WEAPON_MODEL: Record<WeaponId, { url: string; type: WeaponModelType
 };
 
 export const weaponModelScale = (id: WeaponId) => (id === "windBlade" ? [1, 1, 1] : [1, 1, -1]) as [number, number, number];
-
-export const WEAPON_MODEL_URL = Object.fromEntries(
-  Object.entries(WEAPON_MODEL).map(([id, model]) => [id, model.url]),
-) as Record<WeaponId, string>;
 
 export const weaponModelRotation = (id: WeaponId) => WEAPON_MODEL[id].rotation;
 
@@ -103,10 +100,13 @@ export function WeaponModel({
   );
 }
 
-Object.values(WEAPON_MODEL).forEach((model) => {
-  if (model.type === "gltf") {
-    useGLTF.preload(model.url);
-  } else {
-    useFBX.preload(model.url);
-  }
+// Battle 専用モデル群。Home の初期描画と争わないよう idle 後に遅延 preload。
+schedulePreload(() => {
+  Object.values(WEAPON_MODEL).forEach((model) => {
+    if (model.type === "gltf") {
+      useGLTF.preload(model.url);
+    } else {
+      useFBX.preload(model.url);
+    }
+  });
 });

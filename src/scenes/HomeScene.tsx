@@ -1,8 +1,8 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Sky, Stars, useAnimations, useGLTF, useTexture } from "@react-three/drei";
+import { Instance, Instances, Sky, Stars, useAnimations, useGLTF, useTexture } from "@react-three/drei";
 import { SceneLoader } from "../features/loader/SceneLoader";
 import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { AnimationClip, Group, Mesh } from "three";
+import type { AnimationClip, Group, Mesh, Object3D } from "three";
 import { DoubleSide, LoopOnce, RepeatWrapping, SRGBColorSpace } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
@@ -15,15 +15,6 @@ import { STAGE_PLACEMENTS, inferFootprint } from "../entities/stagePlacements";
 import { AudioToggle } from "../features/audio/AudioToggle";
 import { assetUrl } from "../shared/assets";
 import { HomeBackdropLayer, HomeHudLayer, HomeMenuLayer } from "./home/HomeLayers";
-
-function StartIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <polygon points="6,4 28,16 6,28" fill="currentColor" opacity="0.92" />
-      <polygon points="6,4 28,16 6,28" fill="none" stroke="currentColor" strokeWidth="1.4" opacity="0.6" />
-    </svg>
-  );
-}
 
 function StoryIcon() {
   return (
@@ -96,7 +87,7 @@ const HERO_TELEMETRY_LINES = [
   "天侵体スキャン / 待機",
 ];
 
-const HeroTelemetry = forwardRef<HTMLDivElement>(function HeroTelemetry(_, ref) {
+const HeroTelemetry = forwardRef<HTMLDivElement, { accent: string }>(function HeroTelemetry({ accent }, ref) {
   const [index, setIndex] = useState(0);
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -105,7 +96,12 @@ const HeroTelemetry = forwardRef<HTMLDivElement>(function HeroTelemetry(_, ref) 
     return () => window.clearInterval(id);
   }, []);
   return (
-    <div ref={ref} className="heroTelemetry" aria-hidden="true">
+    <div
+      ref={ref}
+      className="heroTelemetry"
+      style={{ ["--telemetry-accent" as string]: accent }}
+      aria-hidden="true"
+    >
       <span className="heroTelemetryDot" />
       <span className="heroTelemetryLine" key={index}>{HERO_TELEMETRY_LINES[index]}</span>
     </div>
@@ -477,7 +473,9 @@ function FloorGrid({ stage, ringColor }: { stage: Stage; ringColor: string }) {
 }
 
 function RainStreaks({ count = 60, color = "#7adcff", opacity = 0.42 }: { count?: number; color?: string; opacity?: number }) {
-  const groupRef = useRef<Group>(null);
+  // drei <Instances> でまとめて 1 draw call。各 <Instance> の ref を保持し
+  // useFrame で position.y を直接更新する（drei が instanceMatrix を再構築）。
+  const refs = useRef<Array<Object3D | null>>([]);
   const streaks = useMemo(
     () =>
       Array.from({ length: count }, () => ({
@@ -490,33 +488,35 @@ function RainStreaks({ count = 60, color = "#7adcff", opacity = 0.42 }: { count?
   );
 
   useFrame((_, delta) => {
-    const node = groupRef.current;
-    if (!node) {
-      return;
-    }
-    for (let i = 0; i < node.children.length; i += 1) {
-      const child = node.children[i];
-      child.position.y -= streaks[i].speed * delta;
-      if (child.position.y < 0) {
-        child.position.y = 11;
+    for (let i = 0; i < refs.current.length; i += 1) {
+      const inst = refs.current[i];
+      if (!inst) continue;
+      inst.position.y -= streaks[i].speed * delta;
+      if (inst.position.y < 0) {
+        inst.position.y = 11;
       }
     }
   });
 
   return (
-    <group ref={groupRef}>
+    <Instances limit={count} range={count}>
+      <boxGeometry args={[0.02, 0.55, 0.02]} />
+      <meshBasicMaterial color={color} transparent opacity={opacity} toneMapped={false} />
       {streaks.map((streak, index) => (
-        <mesh key={index} position={[streak.x, streak.y, streak.z]}>
-          <boxGeometry args={[0.02, 0.55, 0.02]} />
-          <meshBasicMaterial color={color} transparent opacity={opacity} toneMapped={false} />
-        </mesh>
+        <Instance
+          key={index}
+          ref={(el) => {
+            refs.current[index] = el as Object3D | null;
+          }}
+          position={[streak.x, streak.y, streak.z]}
+        />
       ))}
-    </group>
+    </Instances>
   );
 }
 
 function HomeSnowDrift() {
-  const groupRef = useRef<Group>(null);
+  const refs = useRef<Array<Object3D | null>>([]);
   const flakes = useMemo(
     () =>
       Array.from({ length: 90 }, () => ({
@@ -530,30 +530,32 @@ function HomeSnowDrift() {
   );
 
   useFrame((state, delta) => {
-    const node = groupRef.current;
-    if (!node) {
-      return;
-    }
     const t = state.clock.getElapsedTime();
-    for (let i = 0; i < node.children.length; i += 1) {
-      const child = node.children[i];
-      child.position.y -= flakes[i].speed * delta;
-      child.position.x += Math.sin(t * 1.0 + flakes[i].sway) * delta * 0.4;
-      if (child.position.y < 0) {
-        child.position.y = 11;
+    for (let i = 0; i < refs.current.length; i += 1) {
+      const inst = refs.current[i];
+      if (!inst) continue;
+      inst.position.y -= flakes[i].speed * delta;
+      inst.position.x += Math.sin(t * 1.0 + flakes[i].sway) * delta * 0.4;
+      if (inst.position.y < 0) {
+        inst.position.y = 11;
       }
     }
   });
 
   return (
-    <group ref={groupRef}>
+    <Instances limit={flakes.length} range={flakes.length}>
+      <sphereGeometry args={[0.05, 6, 6]} />
+      <meshStandardMaterial color="#dff8ff" emissive="#dff8ff" emissiveIntensity={0.45} toneMapped={false} />
       {flakes.map((flake, index) => (
-        <mesh key={index} position={[flake.x, flake.y, flake.z]}>
-          <sphereGeometry args={[0.05, 6, 6]} />
-          <meshStandardMaterial color="#dff8ff" emissive="#dff8ff" emissiveIntensity={0.45} toneMapped={false} />
-        </mesh>
+        <Instance
+          key={index}
+          ref={(el) => {
+            refs.current[index] = el as Object3D | null;
+          }}
+          position={[flake.x, flake.y, flake.z]}
+        />
       ))}
-    </group>
+    </Instances>
   );
 }
 
@@ -962,7 +964,7 @@ export function HomeScene({
         <Canvas
           camera={{ position: [-1.8, 4.6, 7.0], fov: 50 }}
           onCreated={({ camera }) => camera.lookAt(0, 1.0, 0)}
-          dpr={[1, 1.5]}
+          dpr={[1, 1.25]}
           gl={{ antialias: true, powerPreference: "high-performance" }}
         >
           <HomeStage
@@ -988,12 +990,17 @@ export function HomeScene({
         </header>
 
         <section className="titleBlock">
-          <h1 className="titleMain" data-text="ウェザー・バスターズ"><span>ウェザー・バスターズ</span></h1>
-          <strong className="titleSub" data-text="CLEAR THE SKY"><span>CLEAR THE SKY</span></strong>
-          <span className="titleTag">荒れた天候を撃ち抜き、空を晴らせ</span>
+          {/* Combined title art (main + subtitle + tagline). The PNG already
+              contains all three strings so we don't need separate text
+              layers — the alt attr keeps it readable for screen readers. */}
+          <img
+            className="titleLogoImg"
+            src={assetUrl("/images/title-logo.png")}
+            alt="ウェザー・バスターズ — CLEAR THE SKY — 荒れた天候を撃ち抜き、空を晴らせ"
+          />
         </section>
 
-        <HeroTelemetry ref={telemetryRef} />
+        <HeroTelemetry ref={telemetryRef} accent={character.accentColor} />
         <LeaderLine sourceRef={telemetryRef} anchor="top-center" accent={character.accentColor} lengthFactor={0.5} />
       </HomeHudLayer>
 
@@ -1003,11 +1010,6 @@ export function HomeScene({
           aria-label="メインメニュー"
           style={menuTopPx !== null ? { top: `${menuTopPx}px` } : undefined}
         >
-          <button className="primaryMenuButton menuItem" type="button" onClick={onStart}>
-            <span className="menuIcon"><StartIcon /></span>
-            <span className="menuLabel">ゲーム開始</span>
-            <span className="menuKey">Enter</span>
-          </button>
           <button className="menuItem" type="button" onClick={onOpenStory}>
             <span className="menuIcon"><StoryIcon /></span>
             <span className="menuLabel">世界レポート</span>
@@ -1085,26 +1087,23 @@ export function HomeScene({
 
         <div className="missionCycler">
           <button type="button" className="cyclerArrow" aria-label="前のステージ" onClick={() => cycleStage(-1)}>◀</button>
-          <div className="cyclerLabel">
+          <button type="button" className="cyclerLabel cyclerDetailButton" onClick={() => onOpenLoadout("stage")}>
             <small>ステージ</small>
-            <strong className="stageNameRow">
-              <span>{stage.name}</span>
-              <button type="button" className="stageDetailLink" onClick={() => onOpenLoadout("stage")}>詳細</button>
-            </strong>
-          </div>
+            <strong>{stage.name}</strong>
+          </button>
           <button type="button" className="cyclerArrow" aria-label="次のステージ" onClick={() => cycleStage(1)}>▶</button>
         </div>
 
         <div className="missionCycler">
           <button type="button" className="cyclerArrow" aria-label="前の敵" onClick={() => cycleEnemy(-1)}>◀</button>
-          <div className="cyclerLabel cyclerEnemy">
+          <button type="button" className="cyclerLabel cyclerEnemy cyclerDetailButton" onClick={onOpenEnemyGrid}>
             <small>天候性侵害体</small>
             <strong>
               <span className="enemyMiniIcon" style={{ color: selectedEnemy.accentColor }}>{selectedEnemy.icon}</span>
               {selectedEnemy.name}
             </strong>
             <em>{selectedEnemy.trait}</em>
-          </div>
+          </button>
           <button type="button" className="cyclerArrow" aria-label="次の敵" onClick={() => cycleEnemy(1)}>▶</button>
         </div>
 
@@ -1139,7 +1138,10 @@ export function HomeScene({
           ))}
         </div>
 
-        <button type="button" className="primaryMenuButton missionStartButton" onClick={onStart}>ゲーム開始</button>
+        <button type="button" className="primaryMenuButton missionStartButton" onClick={onStart}>
+          <span className="missionStartLabel">ゲーム開始</span>
+          <span className="missionStartHint">Enter</span>
+        </button>
         </div>
         </aside>
       </HomeMenuLayer>

@@ -1,6 +1,7 @@
 import { useFrame } from "@react-three/fiber";
+import { Instance, Instances } from "@react-three/drei";
 import { useMemo, useRef } from "react";
-import type { Group, Mesh, PointLight } from "three";
+import type { Group, Mesh, Object3D, PointLight } from "three";
 
 // Weather visual effects used inside the battle scene's <Canvas>. Pure visuals
 // (no store coupling), so they're easy to drop into other scenes / previews.
@@ -101,7 +102,7 @@ export function ThunderstormStrikes() {
 }
 
 export function RainStreaks({ color }: { color: string }) {
-  const groupRef = useRef<Group>(null);
+  const refs = useRef<Array<Object3D | null>>([]);
   const streaks = useMemo(() => {
     return Array.from({ length: 80 }, () => ({
       x: (Math.random() - 0.5) * 24,
@@ -112,33 +113,35 @@ export function RainStreaks({ color }: { color: string }) {
   }, []);
 
   useFrame((_, delta) => {
-    const node = groupRef.current;
-    if (!node) {
-      return;
-    }
-    for (let i = 0; i < node.children.length; i += 1) {
-      const child = node.children[i];
-      child.position.y -= streaks[i].speed * delta;
-      if (child.position.y < 0) {
-        child.position.y = 9;
+    for (let i = 0; i < refs.current.length; i += 1) {
+      const inst = refs.current[i];
+      if (!inst) continue;
+      inst.position.y -= streaks[i].speed * delta;
+      if (inst.position.y < 0) {
+        inst.position.y = 9;
       }
     }
   });
 
   return (
-    <group ref={groupRef}>
+    <Instances limit={streaks.length} range={streaks.length}>
+      <boxGeometry args={[0.02, 0.45, 0.02]} />
+      <meshBasicMaterial color={color} transparent opacity={0.55} toneMapped={false} />
       {streaks.map((streak, index) => (
-        <mesh key={index} position={[streak.x, streak.y, streak.z]}>
-          <boxGeometry args={[0.02, 0.45, 0.02]} />
-          <meshBasicMaterial color={color} transparent opacity={0.55} toneMapped={false} />
-        </mesh>
+        <Instance
+          key={index}
+          ref={(el) => {
+            refs.current[index] = el as Object3D | null;
+          }}
+          position={[streak.x, streak.y, streak.z]}
+        />
       ))}
-    </group>
+    </Instances>
   );
 }
 
 export function SnowDrift({ color }: { color: string }) {
-  const groupRef = useRef<Group>(null);
+  const refs = useRef<Array<Object3D | null>>([]);
   const flakes = useMemo(() => {
     return Array.from({ length: 90 }, () => ({
       x: (Math.random() - 0.5) * 26,
@@ -150,29 +153,31 @@ export function SnowDrift({ color }: { color: string }) {
   }, []);
 
   useFrame((state, delta) => {
-    const node = groupRef.current;
-    if (!node) {
-      return;
-    }
     const t = state.clock.getElapsedTime();
-    for (let i = 0; i < node.children.length; i += 1) {
-      const child = node.children[i];
-      child.position.y -= flakes[i].speed * delta;
-      child.position.x += Math.sin(t * 1.1 + flakes[i].sway) * delta * 0.4;
-      if (child.position.y < 0) {
-        child.position.y = 9;
+    for (let i = 0; i < refs.current.length; i += 1) {
+      const inst = refs.current[i];
+      if (!inst) continue;
+      inst.position.y -= flakes[i].speed * delta;
+      inst.position.x += Math.sin(t * 1.1 + flakes[i].sway) * delta * 0.4;
+      if (inst.position.y < 0) {
+        inst.position.y = 9;
       }
     }
   });
 
   return (
-    <group ref={groupRef}>
+    <Instances limit={flakes.length} range={flakes.length}>
+      <sphereGeometry args={[0.05, 6, 6]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} toneMapped={false} />
       {flakes.map((flake, index) => (
-        <mesh key={index} position={[flake.x, flake.y, flake.z]}>
-          <sphereGeometry args={[0.05, 6, 6]} />
-          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} toneMapped={false} />
-        </mesh>
+        <Instance
+          key={index}
+          ref={(el) => {
+            refs.current[index] = el as Object3D | null;
+          }}
+          position={[flake.x, flake.y, flake.z]}
+        />
       ))}
-    </group>
+    </Instances>
   );
 }

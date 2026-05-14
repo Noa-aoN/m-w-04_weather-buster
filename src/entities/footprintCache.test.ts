@@ -3,6 +3,7 @@ import { Box3, BoxGeometry, Mesh, MeshBasicMaterial, Object3D } from "three";
 import {
   _resetFootprintCache,
   getMeasuredFootprint,
+  getMeasuredTop,
   isFootprintCacheWarm,
   recordMeasuredFootprint,
 } from "./footprintCache";
@@ -46,6 +47,17 @@ describe("footprintCache", () => {
     const tall = new Mesh(new BoxGeometry(0.6, 8, 0.6), new MeshBasicMaterial());
     const r = recordMeasuredFootprint("/models/tower.glb", tall);
     expect(r).toBeCloseTo(0.3);
+  });
+
+  it("records the box's max Y as the top", () => {
+    // Default BoxGeometry centers at origin; max.y = height / 2.
+    const obj = new Mesh(new BoxGeometry(1, 4, 1), new MeshBasicMaterial());
+    recordMeasuredFootprint("/models/with-top.glb", obj);
+    expect(getMeasuredTop("/models/with-top.glb")).toBeCloseTo(2);
+  });
+
+  it("returns undefined for unmeasured top", () => {
+    expect(getMeasuredTop("/models/unknown.glb")).toBeUndefined();
   });
 
   it("uses world-space bounds via Box3.setFromObject (smoke test)", () => {

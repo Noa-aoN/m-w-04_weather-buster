@@ -138,7 +138,6 @@ export function WeaponScene({ onBack }: { onBack: () => void }) {
             .join(" / ");
           return (
             <>
-              <p>{previewWeapon.description}</p>
               <dl>
                 <div><dt>攻撃力</dt><dd>{previewWeapon.damage}</dd></div>
                 <div><dt>装弾</dt><dd>{previewWeapon.maxAmmo}</dd></div>
@@ -153,6 +152,7 @@ export function WeaponScene({ onBack }: { onBack: () => void }) {
                   <em className="weaponDetailKindMul">(×{previewWeapon.specialtyMultiplier.toFixed(2)})</em>
                 ) : null}
               </div>
+              <p>{previewWeapon.description}</p>
               <div className="weaponDetailSkill">
                 <span className="weaponDetailSkillLabel">スキル</span>
                 <strong className="weaponDetailSkillName">{previewWeapon.skillName}</strong>
@@ -221,16 +221,16 @@ export function PilotScene({ onBack }: { onBack: () => void }) {
         )}
         detailBody={(
           <>
-            <p>{previewCharacter.description}</p>
-            <q className="characterFlavor" style={{ color: previewCharacter.accentColor }}>
-              {previewCharacter.flavor}
-            </q>
             <dl>
               <div><dt>与ダメージ</dt><dd>×{previewCharacter.damageMultiplier.toFixed(2)}</dd></div>
               <div><dt>被ダメージ</dt><dd>×{previewCharacter.damageTakenMultiplier.toFixed(2)}</dd></div>
               <div><dt>気圧蓄積</dt><dd>×{previewCharacter.gaugeGainMultiplier.toFixed(2)}</dd></div>
               <div><dt>移動速度</dt><dd>×{previewCharacter.moveSpeedMultiplier.toFixed(2)}</dd></div>
             </dl>
+            <p>{previewCharacter.description}</p>
+            <q className="characterFlavor" style={{ color: previewCharacter.accentColor }}>
+              {previewCharacter.flavor}
+            </q>
             <button
               type="button"
               className="primaryMenuButton codexDetailAction"
@@ -284,7 +284,6 @@ export function StageScene({ onBack }: { onBack: () => void }) {
         )}
         detailBody={(
           <>
-            <p>{stage.description}</p>
             <dl>
               <div>
                 <dt>広さ</dt>
@@ -299,6 +298,7 @@ export function StageScene({ onBack }: { onBack: () => void }) {
                 <dd>{stage.id === "lab" ? "対称・平坦" : stage.id === "ruins" ? "瓦礫・遮蔽" : "起伏あり"}</dd>
               </div>
             </dl>
+            <p>{stage.description}</p>
             <button
               type="button"
               className="primaryMenuButton codexDetailAction"

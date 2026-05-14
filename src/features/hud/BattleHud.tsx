@@ -106,7 +106,11 @@ export function BattleHud({
           shieldEnergy={shieldEnergy}
         />
 
-        <BossStatusBar enemyName={enemy.name} hpRatio={enemyHpRatio} staggered={isStaggered} />
+        <BossStatusBar
+          enemyName={enemy.name}
+          hpRatio={enemyHpRatio}
+          staggered={isStaggered && status === "battle"}
+        />
 
         <ScorePanel elapsedLabel={formatTime(elapsedSeconds)} score={score} />
 

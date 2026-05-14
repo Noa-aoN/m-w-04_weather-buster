@@ -9,8 +9,20 @@ import type { Disc, StageCollider } from "./stagePlacements";
 //   - All positions are in world-space XZ (Y is altitude, ignored here)
 //   - radius / r are in world units
 //   - Solidity is binary (collider has r > 0 OR not in the array)
+//   - Per-collider top (StageCollider.top) is used by step-up / jump-on
+//     helpers (groundYAt / collidersTallerThan); the basic resolve helpers
+//     don't care about Y.
 
 const RESOLVE_ITERATIONS = 4;
+
+// Step tolerance: when computing whether a collider blocks a feet-Y
+// position, treat tops within this many units of (or below) the feet as
+// non-blocking. Lets the player walk smoothly onto low platforms / pads.
+const STEP_TOLERANCE = 0.35;
+// Head clearance: an overhead collider is treated as walk-under when its
+// bottom is at least this many units above the player's eye Y. Keeps
+// hanging signs / ceiling-mounted props from blocking foot traffic.
+const HEAD_CLEARANCE = 0.1;
 
 /** Push `(x, z)` (radius `r`) out of any overlapping `colliders`. Returns
  *  the corrected position. Stable across multiple overlaps via several
@@ -67,27 +79,36 @@ export function resolveCircleVsCircles(
   return { x: cx, z: cz };
 }
 
-/** Tightest entry distance along ray `(ox, oz) + t * (dx, dz)` to any
- *  collider in `colliders`. Returns `+Infinity` if nothing is hit. Used
- *  to occlude shots / projectiles by static props.
+/** Tightest entry distance along the 3D ray `(ox, oy, oz) + t * (dx, dy, dz)`
+ *  to any collider in `colliders`. Returns `+Infinity` if nothing is hit.
+ *  Used to occlude shots / projectiles by static props.
  *
- *  Direction `(dx, dz)` must be normalized. */
+ *  Height-aware: each collider is treated as a vertical cylinder with
+ *  radius `r` and top `top`. If the ray's Y at the disc-entry XZ point
+ *  is above the collider's top, the ray passes over and isn't blocked —
+ *  so a low pad / barrel won't kill a shot aimed at a tall enemy.
+ *
+ *  Direction `(dx, dy, dz)` must be normalized in 3D. */
 export function rayToFirstCollider(
   ox: number,
+  oy: number,
   oz: number,
   dx: number,
+  dy: number,
   dz: number,
-  colliders: readonly Disc[],
+  colliders: readonly StageCollider[],
 ): number {
   let nearest = Infinity;
   for (const c of colliders) {
     if (c.r <= 0) continue;
-    // Translate so collider is at origin
+    // Translate so collider is at origin (XZ only).
     const fx = ox - c.x;
     const fz = oz - c.z;
-    // Quadratic for ray-circle intersection: |f + t * d|^2 = r^2
-    // → (d.d) t^2 + 2(f.d) t + (f.f - r^2) = 0
-    const a = dx * dx + dz * dz; // == 1 if d is normalized
+    // Quadratic for 2D ray-circle intersection in the XZ plane. The 2D
+    // direction (dx, dz) is NOT unit length when the 3D direction has a
+    // Y component, so we keep `a` rather than collapsing to 1.
+    const a = dx * dx + dz * dz;
+    if (a < 1e-12) continue; // ray straight up/down, doesn't sweep XZ
     const b = 2 * (fx * dx + fz * dz);
     const cc = fx * fx + fz * fz - c.r * c.r;
     const disc = b * b - 4 * a * cc;
@@ -95,13 +116,67 @@ export function rayToFirstCollider(
     const sq = Math.sqrt(disc);
     const t1 = (-b - sq) / (2 * a);
     const t2 = (-b + sq) / (2 * a);
-    // Earliest non-negative entry
     const t = t1 >= 0 ? t1 : t2 >= 0 ? t2 : -1;
-    if (t >= 0 && t < nearest) {
-      nearest = t;
-    }
+    if (t < 0 || t >= nearest) continue;
+    // Y at the entry point along the original 3D ray (t is the 3D ray
+    // parameter — same scalar that scales (dx, dy, dz)).
+    const yAtEntry = oy + dy * t;
+    if (yAtEntry > c.top) continue; // ray clears the collider's roof
+    if (yAtEntry < c.bottom) continue; // ray slips under the collider
+    nearest = t;
   }
   return nearest;
 }
 
+/** Highest collider top under (x, z) that the player can stand on at the
+ *  given feet height. Returns 0 (the floor) if nothing supports them.
+ *
+ *  "Standable" = player's feet are at or above the top minus STEP_TOLERANCE
+ *  AND the (x, z) point is inside the collider disc. We pick the highest
+ *  such top so the player snaps to the tallest stack they're over. */
+export function groundYAt(
+  x: number,
+  z: number,
+  feetY: number,
+  colliders: readonly StageCollider[],
+): number {
+  let highest = 0;
+  for (const c of colliders) {
+    if (c.r <= 0 || c.top <= 0) continue;
+    if (feetY + STEP_TOLERANCE < c.top) continue; // can't stand on something above feet
+    const dx = x - c.x;
+    const dz = z - c.z;
+    if (dx * dx + dz * dz <= c.r * c.r) {
+      if (c.top > highest) highest = c.top;
+    }
+  }
+  return highest;
+}
+
+/** Subset of `colliders` that should block movement given the player's
+ *  current vertical extent (`feetY` to `headY`). A collider blocks when:
+ *
+ *  - its top is *above* the feet by more than STEP_TOLERANCE
+ *    (otherwise the player simply steps onto it), AND
+ *  - its bottom is *below* the head by more than HEAD_CLEARANCE
+ *    (otherwise the player walks underneath it).
+ *
+ *  Lets ground-mounted props block at body height while overhead-only
+ *  props (hanging signs, ceiling consoles) stay non-blocking. */
+export function blockingColliders(
+  feetY: number,
+  headY: number,
+  colliders: readonly StageCollider[],
+): StageCollider[] {
+  const out: StageCollider[] = [];
+  for (const c of colliders) {
+    if (c.r <= 0) continue;
+    if (c.top - feetY <= STEP_TOLERANCE) continue; // step over
+    if (c.bottom - headY >= HEAD_CLEARANCE) continue; // walk under
+    out.push(c);
+  }
+  return out;
+}
+
 export type { StageCollider };
+export { STEP_TOLERANCE };

@@ -285,16 +285,46 @@ canvas {
 .titleBlock {
   position: absolute;
   z-index: 4;
-  /* Center-pin to the top edge with a viewport-aware offset, so the title
-     stays comfortably high but never clips out on short screens. */
-  top: clamp(28px, 4vh, 64px);
+  /* Pinned just below the top edge — bumped slightly down from the
+     previous spot for a touch more breathing room above the logo. */
+  top: clamp(18px, 3vh, 40px);
   left: 50%;
-  /* Width tracks viewport so 4-character + Japanese / English subtitle stays
-     on one line whenever physically possible, falling back gracefully. */
-  width: min(960px, calc(100vw - 80px));
   transform: translateX(-50%);
   text-align: center;
   pointer-events: none;
+}
+
+/* Image-based title logo. Sized to feel right across screen sizes:
+ *   - 980px cap on huge monitors (24"+ desktops)
+ *   - 50vw + 60px primary responsive — MacBook クラスで控えめなサイズ
+ *     (1440 → ~780, 1100 → ~610) になるよう係数を抑えめに
+ *   - 100vw - 40px hard gutter for very narrow windows
+ *   - 36vh × 3.47 (image aspect) cap so short windows aren't dominated
+ *     vertically
+ * The smallest of the four wins. */
+.titleLogoImg {
+  display: block;
+  margin: 0 auto;
+  width: min(
+    980px,
+    calc(50vw + 60px),
+    calc(100vw - 40px),
+    calc(36vh * 3.47)
+  );
+  height: auto;
+  /* 浮かないように:
+     - 全体をわずかに透過してコントラストを下げる
+     - drop-shadow を黄色基調に変えてロゴと色味を揃える
+     - 左右の端を soft fade させて背景に溶かす */
+  opacity: 0.92;
+  filter:
+    drop-shadow(0 0 22px rgba(255, 220, 110, 0.32))
+    drop-shadow(0 10px 22px rgba(0, 0, 0, 0.4));
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 6%, black 94%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, black 6%, black 94%, transparent 100%);
+  animation: titleEnter 0.9s cubic-bezier(0.18, 0.9, 0.3, 1) both;
+  pointer-events: none;
+  user-select: none;
 }
 
 .titleBlock p,
@@ -484,7 +514,7 @@ canvas {
 .homeShell .missionStartButton {
   border-color: #ffe15a;
   color: #ffe15a;
-  background: linear-gradient(90deg, rgba(82, 72, 24, 0.9), rgba(30, 55, 61, 0.64));
+  background: linear-gradient(90deg, rgba(30, 55, 61, 0.64), rgba(82, 72, 24, 0.9));
   box-shadow: 0 0 24px rgba(255, 220, 73, 0.24), inset 0 0 22px rgba(255, 220, 73, 0.18);
   position: relative;
   overflow: hidden;
@@ -530,11 +560,11 @@ canvas {
   font-size: clamp(11px, 0.55vw + 0.4vh, 15px);
   max-height: calc(100vh - clamp(160px, 26vh, 240px));
   overflow: hidden;
-  /* Same accent border + cyan gradient as the left main-menu buttons, with
-     the same 90deg direction and identical alpha endpoints — so the home
-     screen's left-menu items and the right briefing read as one set. */
+  /* 左の main-menu とは逆向きのグラデーション（薄→濃を左→右）。
+     画面中央に向かって明るく開ける構図にして、左右パネルで「中心に向かって開く」
+     対称感を出している。 */
   border: 1px solid rgba(40, 210, 255, 0.7);
-  background: linear-gradient(90deg, rgba(2, 26, 39, 0.92), rgba(4, 56, 73, 0.68));
+  background: linear-gradient(90deg, rgba(4, 56, 73, 0.68), rgba(2, 26, 39, 0.92));
   box-shadow: inset 0 0 22px rgba(34, 216, 255, 0.12), 0 0 22px rgba(40, 217, 255, 0.18);
   clip-path: polygon(0 18px, 18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px));
 }
@@ -756,8 +786,11 @@ canvas {
 
 .pilotLog em {
   font-style: normal;
-  font-size: clamp(13px, 0.7vw + 0.55vh, 22px);
+  font-size: clamp(12px, 0.6vw + 0.5vh, 19px);
   line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .characterFlavor {
@@ -859,6 +892,8 @@ canvas {
 }
 
 .heroTelemetry {
+  /* --telemetry-accent はバスターのアクセント色。差し替え時は inline style 経由。 */
+  --telemetry-accent: #28d9ff;
   position: absolute;
   z-index: 5;
   left: 50%;
@@ -868,14 +903,14 @@ canvas {
   gap: 10px;
   padding: 6px 14px;
   transform: translateX(-50%);
-  border: 1px solid rgba(40, 217, 255, 0.45);
+  border: 1px solid color-mix(in srgb, var(--telemetry-accent) 45%, transparent);
   background: rgba(3, 16, 24, 0.55);
   color: #cfeaf3;
   font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: none;
   pointer-events: none;
-  box-shadow: inset 0 0 12px rgba(40, 217, 255, 0.16);
+  box-shadow: inset 0 0 12px color-mix(in srgb, var(--telemetry-accent) 16%, transparent);
   clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%);
 }
 
@@ -883,8 +918,8 @@ canvas {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #28d9ff;
-  box-shadow: 0 0 10px #28d9ff;
+  background: var(--telemetry-accent);
+  box-shadow: 0 0 10px var(--telemetry-accent);
   animation: heroTelemetryBlink 1.2s ease-in-out infinite;
 }
 
@@ -1007,13 +1042,6 @@ canvas {
   text-shadow: 0 0 6px rgba(255, 200, 80, 0.7);
   box-shadow: 0 0 10px rgba(255, 130, 60, 0.4);
   animation: weaponSpecialtyPulse 1.4s ease-in-out infinite alternate;
-}
-
-.stageNameRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 @keyframes weaponSpecialtyPulse {
@@ -3404,11 +3432,20 @@ canvas {
   border: 0;
   background: transparent;
   text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 .cyclerDetailButton:hover {
   box-shadow: none;
-  color: inherit;
+  background: rgba(255, 220, 73, 0.08);
+}
+
+.cyclerDetailButton:hover small,
+.cyclerDetailButton:hover strong,
+.cyclerDetailButton:hover em,
+.cyclerDetailButton:hover em > span {
+  color: #ffe15a;
 }
 
 .cyclerLabel small {
@@ -3428,22 +3465,34 @@ canvas {
   font-size: clamp(10px, 1vh + 0.1vw, 12px);
 }
 
-.stageDetailLink {
-  align-self: center;
-  min-height: 20px;
-  padding: 0 7px;
-  color: #ffd84d;
-  border: 1px solid rgba(255, 218, 75, 0.5);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  background: rgba(34, 28, 6, 0.65);
-}
-
 .missionStartButton {
   width: 100%;
-  min-height: clamp(36px, 4.6vh, 48px);
+  min-height: clamp(48px, 5.8vh, 62px);
   margin-top: clamp(8px, 1.4vh, 14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 0.9vw, 14px);
+}
+
+/* .missionPreview span のグローバル cyan rule に specificity 負けするので、
+   親階層を一つ含めて優先度を上げて黄色を確定させる。 */
+.missionPreview .missionStartLabel {
+  color: #ffe15a;
+  font-size: clamp(16px, 1.55vw, 21px);
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.missionPreview .missionStartHint {
+  padding: 2px 8px;
+  border: 1px solid #ffe15a;
+  border-radius: 3px;
+  color: #ffe15a;
+  font-size: clamp(9px, 0.78vw, 11px);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  opacity: 0.78;
 }
 
 .stageDetailLayout {

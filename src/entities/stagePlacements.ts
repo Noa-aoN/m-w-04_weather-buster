@@ -1,5 +1,5 @@
 import type { Stage, StageId } from "../game/types";
-import { getMeasuredFootprint } from "./footprintCache";
+import { getMeasuredBottom, getMeasuredFootprint, getMeasuredTop } from "./footprintCache";
 
 // Placement data for stage-specific decorations. Splitting out from
 // StageTerrain.tsx so adding "+1 satellite dish" or "move that tower" only
@@ -16,11 +16,18 @@ export type GltfPlacement = {
   scale: number;
   rotY: number;
   tilt?: number;
-  /** Optional disc footprint radius (model-local units, scaled at runtime).
-   *  Falls back to inferFootprint(url, scale). Set to 0 to opt out of
-   *  overlap reservation entirely (e.g. a flat pallet meant to be stacked
-   *  under another prop at the same coords). */
+  /** Placement-time disc reservation radius (model-local units, scaled at
+   *  runtime). Falls back to inferFootprint(url, scale). Set to 0 to opt
+   *  out of overlap reservation entirely — used for intentional layering
+   *  with another prop (a flat pallet under barrels, a cargo cluster,
+   *  building modules grouped against a hangar). Does NOT affect runtime
+   *  collision; that's controlled by `solid`. */
   footprint?: number;
+  /** Whether the prop blocks runtime player / enemy movement and occludes
+   *  ranged shots. Default true. Set false for wall-mounted, ceiling-hung,
+   *  flat-on-the-floor, or truly minor decorative props (screens, hanging
+   *  signs, pallets, landing pads, roof modules, marker lights, bushes). */
+  solid?: boolean;
 };
 
 export type ProceduralCluster = {
@@ -92,8 +99,9 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // a back-wall machinery cluster.
       { url: "/models/space-kit/structure_detailed.glb", x: -8, z: 6, scale: 1.4, rotY: -0.4, footprint: 0 },
       // Center backdrop: self-contained GLB consoles. The wall-mounted
-      // screens are visually behind the desk and don't actually occupy
-      // floor space, so footprint:0 prevents false disc collisions.
+      // screens have a chest-height body — keep solid:true so the player
+      // bumps into them; footprint:0 skips placement reservation since
+      // they sit against the desk row.
       { url: "/models/space-kit/desk_computer.glb", x: 0, z: -8.5, scale: 1.6, rotY: 0 },
       { url: "/models/factory-kit/screen-panel-wide.glb", x: -3, z: -8.6, scale: 1.5, rotY: 0.3, footprint: 0 },
       { url: "/models/factory-kit/screen-panel-wide.glb", x: 3, z: -8.6, scale: 1.5, rotY: -0.3, footprint: 0 },
@@ -107,18 +115,22 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-base-bits/containers_B.gltf", x: -3.5, z: 7.4, scale: 2.4, rotY: -0.2, footprint: 0 },
       { url: "/models/space-base-bits/containers_C.gltf", x: 4.6, z: 7.6, scale: 2.4, rotY: 0.4 },
       // Floor lamps + small detail props (KayKit lights mark walking lanes)
+      // Lab lane-marker lights have a visible post + base — keep solid
+      // so players bump into them rather than walking through.
       { url: "/models/space-base-bits/lights.gltf", x: -2.4, z: 4.5, scale: 1.0, rotY: 0 },
       { url: "/models/space-base-bits/lights.gltf", x: 2.4, z: 4.5, scale: 1.0, rotY: 0 },
-      // Hanging from the ceiling, no floor footprint.
+      // Hanging from the ceiling — keep solid:true and let the bottom Y
+      // (overhead) make the collider walk-under for the player.
       { url: "/models/factory-kit/screen-hanging-small.glb", x: 0, z: 6.0, scale: 0.9, rotY: 0, footprint: 0 },
-      // Wall-mounted, no floor footprint.
+      // Wall-mounted machine box — body at chest height, blocks normally.
       { url: "/models/factory-kit/machine-window.glb", x: 6.5, z: 4.5, scale: 1.1, rotY: -0.4, footprint: 0 },
       { url: "/models/space-kit/machine_wirelessCable.glb", x: -7, z: -1.5, scale: 1.0, rotY: 0.2 },
       // KayKit ResourceBits: industrial pallets / fuel barrels / parts piles
       // line the side aisles. Pallets sit flat (no height) so they don't
       // block the player line of sight; barrels add silhouette.
-      // Pallets opt out of disc reservation (footprint: 0) so the barrel
-      // pair stacked on top owns the spot uncontested.
+      // Pallets get solid:true (default) so the player bumps into the
+      // pallet edge instead of sliding through it. footprint:0 still
+      // applies — the barrel on top owns the placement disc.
       { url: "/models/resource-bits/Pallet_Wood_Covered_A.gltf", x: -5.5, z: -2.5, scale: 1.2, rotY: 0.3, footprint: 0 },
       { url: "/models/resource-bits/Fuel_A_Barrels.gltf", x: -5.5, z: -2.5, scale: 1.0, rotY: 0.3 },
       { url: "/models/resource-bits/Pallet_Wood.gltf", x: 5.5, z: -2.5, scale: 1.2, rotY: -0.4, footprint: 0 },
@@ -158,9 +170,9 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       // A few young trees breaking through the rubble (color = recovery)
       { url: "/models/forest-nature/Tree_3_A_Color1.gltf", x: -2, z: -13, scale: 0.45, rotY: 0.3 },
       { url: "/models/forest-nature/Tree_2_A_Color1.gltf", x: 14, z: -2, scale: 0.4, rotY: -0.7 },
-      // Bushes hugging cargo wreckage — intentionally clipped against
-      // craft / cargodepot / structure_low so they read as overgrowth.
-      // Opt out of disc reservation; the host wreckage owns the spot.
+      // Bushes hugging cargo wreckage. Solid (player blocked by foliage
+      // mass) but footprint:0 where they sit on top of another prop's
+      // disc — placement uses the host wreckage's reservation.
       { url: "/models/forest-nature/Bush_1_C_Color1.gltf", x: -6, z: 11, scale: 1.4, rotY: 0.2, footprint: 0 },
       { url: "/models/forest-nature/Bush_2_A_Color1.gltf", x: 5, z: 10, scale: 1.6, rotY: -0.3 },
       { url: "/models/forest-nature/Bush_3_A_Color1.gltf", x: 9.5, z: 13, scale: 1.4, rotY: 0.5, footprint: 0 },
@@ -247,11 +259,15 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-base-bits/windturbine_tall.gltf", x: -16, z: -8, scale: 2.2, rotY: 0.4 },
       { url: "/models/space-base-bits/windturbine_tall.gltf", x: 18, z: -7, scale: 2.0, rotY: -0.3 },
       { url: "/models/space-base-bits/windturbine_low.gltf", x: 18, z: 10, scale: 1.8, rotY: 0.8 },
-      // Landing pads are flat ground-level pieces — opt out of disc
-      // reservation so neighbour platforms / lights don't false-positive.
+      // Landing pads are flat raised platforms (~0.4m). Solid so the
+      // player can hop on with the new step-up logic and use them as
+      // elevated firing positions. footprint:0 keeps placement clean
+      // around their large XZ extent.
       { url: "/models/space-base-bits/landingpad_large.gltf", x: -10, z: 14, scale: 2.0, rotY: 0, footprint: 0 },
       { url: "/models/space-base-bits/landingpad_small.gltf", x: 6, z: 18, scale: 1.6, rotY: 0.5, footprint: 0 },
-      // Roof solar panels are mounted high; no real ground footprint.
+      // Roof solar panels — tall structure with supporting legs. Keep
+      // solid so the legs block movement (2D collision can't model
+      // walking-under-the-canopy anyway).
       { url: "/models/space-base-bits/roofmodule_solarpanels.gltf", x: -2, z: -8, scale: 2.0, rotY: 0, footprint: 0 },
       { url: "/models/space-base-bits/solarpanel.gltf", x: 3, z: -8, scale: 1.6, rotY: -0.2 },
       // Anchor base: drum-shaped basemodules behind the central hangar so the
@@ -261,8 +277,8 @@ export const STAGE_PLACEMENTS: Record<StageId, StagePlacement> = {
       { url: "/models/space-base-bits/basemodule_E.gltf", x: -8, z: -19, scale: 2.4, rotY: 0.2, footprint: 0 },
       { url: "/models/space-base-bits/basemodule_garage.gltf", x: 9, z: -19, scale: 2.4, rotY: -0.2, footprint: 0 },
       { url: "/models/space-base-bits/basemodule_C.gltf", x: -16, z: -16, scale: 2.0, rotY: 0.6, footprint: 0 },
-      // Marker lights flanking the landing pads (visual lane cues at altitude).
-      // Mounted on top of the pads, no floor footprint.
+      // Marker lights flanking the landing pads. Solid (visible posts
+      // you bump into), footprint:0 because they sit on the pad's disc.
       { url: "/models/space-base-bits/lights.gltf", x: -12.5, z: 14, scale: 1.4, rotY: 0, footprint: 0 },
       { url: "/models/space-base-bits/lights.gltf", x: -7.5, z: 14, scale: 1.4, rotY: 0, footprint: 0 },
       { url: "/models/space-base-bits/lights.gltf", x: 4, z: 18, scale: 1.2, rotY: 0, footprint: 0 },
@@ -498,8 +514,56 @@ function platformToDisc(p: RaisedPlatform): Disc {
 }
 
 /** Disc collider tagged with its source layer — drives debug visualization
- *  and lets push-out / occlusion code apply per-layer rules later. */
-export type StageCollider = Disc & { kind: "platform" | "fixed" | "scattered" };
+ *  and lets push-out / occlusion code apply per-layer rules later.
+ *
+ *  `top` and `bottom` are world-Y of the collider's upper / lower surfaces
+ *  (scaled by the placement's scale). The player can step on / over
+ *  colliders whose top is below their current feet height, and walk under
+ *  colliders whose bottom is above their head — both checked by the
+ *  collision helpers in stageColliders.ts. */
+export type StageCollider = Disc & {
+  kind: "platform" | "fixed" | "scattered";
+  top: number;
+  bottom: number;
+};
+
+// Defaults used when a GLTF hasn't been measured yet (cache cold). The top
+// is generous so the prop still blocks; bottom 0 assumes the prop sits on
+// the floor.
+const DEFAULT_COLLIDER_TOP = 3.0;
+const DEFAULT_COLLIDER_BOTTOM = 0;
+
+function fixedColliderTop(piece: GltfPlacement): number {
+  const measured = getMeasuredTop(piece.url);
+  if (measured !== undefined) {
+    return measured * piece.scale;
+  }
+  return DEFAULT_COLLIDER_TOP;
+}
+
+function fixedColliderBottom(piece: GltfPlacement): number {
+  const measured = getMeasuredBottom(piece.url);
+  if (measured !== undefined) {
+    return measured * piece.scale;
+  }
+  return DEFAULT_COLLIDER_BOTTOM;
+}
+
+function scatteredColliderTop(url: string, scale: number): number {
+  const measured = getMeasuredTop(url);
+  if (measured !== undefined) {
+    return measured * scale;
+  }
+  return DEFAULT_COLLIDER_TOP;
+}
+
+function scatteredColliderBottom(url: string, scale: number): number {
+  const measured = getMeasuredBottom(url);
+  if (measured !== undefined) {
+    return measured * scale;
+  }
+  return DEFAULT_COLLIDER_BOTTOM;
+}
 
 /** Build the final placement set for a stage: returns fixed + scattered
  *  prop arrays after running the cluster pieces through the overlap-aware
@@ -526,18 +590,36 @@ export function buildPlacements(stage: Stage, placement: StagePlacement): {
   for (const cluster of placement.scattered) {
     scattered.push(...expandCluster(cluster, { existing, arena: stage.arena }));
   }
-  // Build the public collider list from the resolved data. Drop r === 0
-  // (intentional layer markers) so they don't block movement.
+  // Build the public collider list from the resolved data. `solid: false`
+  // opts a prop out of runtime collision (independent of `footprint`,
+  // which only controls placement-time disc reservation). Collider radius
+  // always comes from inferFootprint so cluster items that opted out of
+  // placement reservation (footprint:0) still occupy real space at runtime.
   const colliders: StageCollider[] = [
-    ...platforms.map((p) => ({ ...platformToDisc(p), kind: "platform" as const })),
+    ...platforms.map((p) => ({
+      ...platformToDisc(p),
+      kind: "platform" as const,
+      top: p.height,
+      bottom: 0,
+    })),
     ...placement.fixed
-      .map((f) => ({ ...fixedToDisc(f), kind: "fixed" as const }))
+      .filter((f) => f.solid !== false)
+      .map((f) => ({
+        x: f.x,
+        z: f.z,
+        r: inferFootprint(f.url, f.scale),
+        kind: "fixed" as const,
+        top: fixedColliderTop(f),
+        bottom: fixedColliderBottom(f),
+      }))
       .filter((d) => d.r > 0),
     ...scattered.map((s) => ({
       x: s.x,
       z: s.z,
       r: inferFootprint(s.url, s.scale),
       kind: "scattered" as const,
+      top: scatteredColliderTop(s.url, s.scale),
+      bottom: scatteredColliderBottom(s.url, s.scale),
     })),
   ];
   return { fixed: placement.fixed, scattered, platforms, colliders };

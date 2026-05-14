@@ -15,6 +15,7 @@ import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
 export const CHARACTER_MODEL_URL: Record<CharacterId, string> = {
   noa: assetUrl("/models/custom-characters/noa.glb"),
   saka: assetUrl("/models/custom-characters/saka.glb"),
+  metappi: assetUrl("/models/custom-characters/metappi.glb"),
 };
 
 const TARGET_HEIGHT = 1.6;
@@ -117,3 +118,4 @@ export function CharacterModel({
 
 useGLTF.preload(CHARACTER_MODEL_URL.noa);
 useGLTF.preload(CHARACTER_MODEL_URL.saka);
+useGLTF.preload(CHARACTER_MODEL_URL.metappi);

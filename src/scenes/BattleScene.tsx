@@ -14,6 +14,7 @@ import { SkillBurstVFX } from "../entities/SkillBurstVFX";
 import { SlashProjectiles } from "../entities/SlashProjectiles";
 import { SlashTrails } from "../entities/SlashTrails";
 import { StageColliderDebug } from "../entities/StageColliderDebug";
+import { StaticImpactBursts } from "../entities/StaticImpactBursts";
 import type { StageCollider } from "../entities/stagePlacements";
 import { useStageColliders } from "../entities/useStageColliders";
 import { FovController, PlayerBackAvatar, PlayerShield, PlayerWeapon } from "../entities/PlayerView";
@@ -115,16 +116,6 @@ function ExperimentField({
         position={[4, 8, 3]}
         intensity={isClear ? 6.6 : 1.85}
         color={isClear ? "#fffae0" : stage.ringColor}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        shadow-camera-near={1}
-        shadow-camera-far={50}
-        shadow-camera-left={-22}
-        shadow-camera-right={22}
-        shadow-camera-top={22}
-        shadow-camera-bottom={-22}
-        shadow-bias={-0.0008}
       />
       <hemisphereLight args={[isClear ? "#fffbe8" : "#bdeeff", isClear ? "#dceffd" : "#1c2a36", isClear ? 1.35 : 0.55]} />
       <pointLight position={[0, 1.4, -3]} intensity={isClear ? 0.6 : 3.2} color={isClear ? "#fffbe8" : enemy.coreColor} />
@@ -181,6 +172,7 @@ function ExperimentField({
       <BulletTrails />
       <SlashTrails />
       <SlashProjectiles />
+      <StaticImpactBursts />
       <PlayerShield />
       <Suspense fallback={null}>
         <PlayerWeapon />
@@ -249,10 +241,12 @@ export function BattleScene({
   return (
     <main className="gameShell sceneEnter">
       <SceneLoader label="出撃データ転送中…" />
+      {/* 影は意図的に無効化（shadows なし / 各 mesh の castShadow なし）。
+          シャドウマップ生成は静的プロップ + PBR 床がある stage で重く、
+          フレーム落ちの主因だったため、絵作りより負荷を優先して切る判断。 */}
       <Canvas
         camera={{ position: [0, 2.15, 7.1], fov: initialFov }}
-        dpr={[1, 1.5]}
-        shadows="soft"
+        dpr={[1, 1.25]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
       >
         <FovController />

@@ -4,6 +4,7 @@ import { useMemo, useRef } from "react";
 import type { Group, Mesh } from "three";
 import type { WeatherEnemy } from "../game/types";
 import { assetUrl } from "../shared/assets";
+import { schedulePreload } from "../shared/preload";
 import { fitObjectToHeight } from "./fitObject";
 
 // Decorative lightning lines must not absorb the player's shoot raycast —
@@ -368,8 +369,11 @@ function CloudyModel({ enemy }: { enemy: WeatherEnemy; clear: boolean }) {
   return <RexBody url={REX_BODY_URL.cloudy!} accent={enemy.accentColor} />;
 }
 
-Object.values(REX_BODY_URL).forEach((url) => {
-  if (url) useGLTF.preload(url);
+// Battle / 図鑑でのみ使う敵モデル群。Home の初期描画と争わないよう idle 後に遅延 preload。
+schedulePreload(() => {
+  Object.values(REX_BODY_URL).forEach((url) => {
+    if (url) useGLTF.preload(url);
+  });
 });
 
 function Halo({ color }: { color: string }) {

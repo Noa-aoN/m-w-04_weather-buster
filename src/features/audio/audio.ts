@@ -324,6 +324,32 @@ export function playMiss() {
   tone({ freq: 220, duration: 0.05, type: "sawtooth", volume: 0.08, release: 0.08 });
 }
 
+/** Played when a shot is occluded by a static prop. Stacked on top of
+ *  playMiss so the player hears both "wiff in the air" and a clear
+ *  "thunk against solid" — the latter has to be loud and characterful
+ *  enough to be unmistakable. Layered:
+ *
+ *    1) Sharp transient (high-freq noise pop) — the instant of contact
+ *    2) Mid-low body burst — the thump weight
+ *    3) Sub-bass thud — physical impact mass
+ *    4) Bright metal ping — "you hit something solid"
+ *    5) Short metal ring — gives the brain time to register
+ *
+ *  Total length ≤180ms; loud enough to clearly read against playMiss
+ *  but not so heavy it competes with playHit. */
+export function playPropHit() {
+  // 1) Sharp transient — instant attack, like a clack on metal/concrete
+  noiseBurst({ duration: 0.04, volume: 0.45, filter: 4800 });
+  // 2) Mid-low body thump — gives the "thunk" its meat
+  noiseBurst({ duration: 0.13, volume: 0.34, filter: 900 });
+  // 3) Sub-bass impact — physical weight
+  tone({ freq: 90, duration: 0.07, type: "sine", volume: 0.32, attack: 0.001, release: 0.10 });
+  // 4) Metallic ping — the distinctive "solid thing" cue
+  tone({ freq: 1100, duration: 0.05, type: "triangle", volume: 0.24, attack: 0.001, release: 0.08, delay: 0.005 });
+  // 5) Brief metal harmonic — short sustain that helps the brain register
+  tone({ freq: 720, duration: 0.10, type: "sine", volume: 0.14, attack: 0.005, release: 0.14, delay: 0.020 });
+}
+
 export function playSkill() {
   if (sampleBuffers.size > 0) {
     playRandomSample("skill", 0.7);
