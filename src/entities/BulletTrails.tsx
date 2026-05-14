@@ -7,6 +7,7 @@ import { useBattleStore } from "../game/battleStore";
 import { assetUrl } from "../shared/assets";
 
 const TIP_TEX_URL = assetUrl("/textures/particles/muzzle.png");
+useTexture.preload(TIP_TEX_URL);
 
 type Bullet = {
   id: number;

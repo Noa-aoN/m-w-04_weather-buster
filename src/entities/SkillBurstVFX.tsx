@@ -9,6 +9,8 @@ import type { Vector3 } from "three";
 
 const STAR_TEX_URL = assetUrl("/textures/particles/star.png");
 const RING_TEX_URL = assetUrl("/textures/particles/flare.png");
+useTexture.preload(STAR_TEX_URL);
+useTexture.preload(RING_TEX_URL);
 
 // Visual layer for the per-step weapon-skill animation. Reads
 // `skillAnimation` + `lastShotAt` from the store and spawns short-lived

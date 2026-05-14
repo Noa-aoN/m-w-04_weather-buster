@@ -15,6 +15,9 @@ import { assetUrl } from "../shared/assets";
 const STAR_TEX_URL = assetUrl("/textures/particles/star.png");
 const RING_TEX_URL = assetUrl("/textures/particles/flare.png");
 const CORE_TEX_URL = assetUrl("/textures/particles/muzzle.png");
+useTexture.preload(STAR_TEX_URL);
+useTexture.preload(RING_TEX_URL);
+useTexture.preload(CORE_TEX_URL);
 
 const LIFETIME_MS = 1200;
 const SPARK_COUNT = 10;

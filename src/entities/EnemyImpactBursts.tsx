@@ -17,6 +17,9 @@ import { assetUrl } from "../shared/assets";
 const CORE_TEX_URL = assetUrl("/textures/particles/muzzle.png");
 const RING_TEX_URL = assetUrl("/textures/particles/flare.png");
 const STAR_TEX_URL = assetUrl("/textures/particles/star.png");
+useTexture.preload(CORE_TEX_URL);
+useTexture.preload(RING_TEX_URL);
+useTexture.preload(STAR_TEX_URL);
 
 type Status = "hit" | "blocked" | "dodged";
 

@@ -11,6 +11,8 @@ import { WeatherEnemyModel } from "./WeatherEnemyModel";
 
 const CHARGE_STAR_TEX_URL = assetUrl("/textures/particles/star.png");
 const CHARGE_RING_TEX_URL = assetUrl("/textures/particles/flare.png");
+useTexture.preload(CHARGE_STAR_TEX_URL);
+useTexture.preload(CHARGE_RING_TEX_URL);
 
 // 敵グループ内に置く装飾 sprite は raycast を no-op にする。
 // PlayerController が raycaster.intersectObject(enemyRef, true) で
