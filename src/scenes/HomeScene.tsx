@@ -1130,7 +1130,10 @@ export function HomeScene({
           ))}
         </div>
 
-        <button type="button" className="primaryMenuButton missionStartButton" onClick={onStart}>ゲーム開始</button>
+        <button type="button" className="primaryMenuButton missionStartButton" onClick={onStart}>
+          <span className="missionStartLabel">ゲーム開始</span>
+          <span className="missionStartHint">Enter</span>
+        </button>
         </div>
         </aside>
       </HomeMenuLayer>
