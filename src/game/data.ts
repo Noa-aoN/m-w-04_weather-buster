@@ -283,7 +283,7 @@ export const characters: Character[] = [
     gaugeGainMultiplier: 1.5,
     moveSpeedMultiplier: 1.0,
     accentColor: "#4ce0b3",
-    description: "気圧特性を強化した特殊型バスター。特殊素材スーツで圧縮した気圧を吸収することで、武器スキル発動までの待ち時間を誰よりも短く保つ。打撃の威力は控えめだが、決定打を撃ち込む隙を作るのが本領。故郷の豆スープが好き。",
+    description: "気圧特性を強化した特殊型バスター。特殊素材スーツで圧縮した気圧を吸収し、武器スキル発動までの待ち時間を誰よりも短く保つ。故郷の豆スープが好き。",
     flavor: "故郷のスープを守ります",
   },
 ];
