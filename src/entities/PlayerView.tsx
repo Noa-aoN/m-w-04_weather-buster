@@ -5,6 +5,7 @@ import type { AnimationClip, Group, Mesh, PerspectiveCamera, PointLight } from "
 import { AdditiveBlending, Vector3 } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
+import { findCharacter } from "../game/data";
 import { isDebugEnabled, writeDebug } from "../features/debug/debugBus";
 import { CHARACTER_MODEL_URL } from "./CharacterModel";
 import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
@@ -267,11 +268,7 @@ export function PlayerBackAvatar() {
   const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
   const charGltf = useGLTF(CHARACTER_MODEL_URL[selectedCharacterId] ?? CHARACTER_MODEL_URL.noa);
-  const characterAccent = useBattleStore((state) => {
-    const id = state.selectedCharacterId;
-    if (id === "noa") return "#28d9ff";
-    return "#ffd84d";
-  });
+  const characterAccent = useBattleStore((state) => findCharacter(state.selectedCharacterId).accentColor);
 
   const { charFitted, animations } = useMemo(() => {
     const cloned = SkeletonUtils.clone(charGltf.scene) as Group;
