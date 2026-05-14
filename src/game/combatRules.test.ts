@@ -53,6 +53,10 @@ describe("computeIncomingDamage", () => {
     const out = computeIncomingDamage(100, 0, /*charMul*/ 0.5, false, 100, 0);
     expect(out).toBe(50);
   });
+  it("applies extra incoming-damage modifiers after the character multiplier", () => {
+    const out = computeIncomingDamage(100, 0, 0.5, false, 100, 0, 0.94);
+    expect(out).toBe(47);
+  });
 });
 
 describe("shieldAfterBlock", () => {
@@ -222,5 +226,41 @@ describe("applyShot", () => {
     });
     expect(patch.pressureGauge).toBeLessThanOrEqual(100);
     expect(patch.pressureGauge).toBe(100);
+  });
+
+  it("applies extra damage multipliers for weather-assisted shots", () => {
+    const patch = applyShot({
+      didHit: true,
+      critical: false,
+      weapon: weatherGun,
+      character: noa,
+      enemyId: cloudy.id,
+      damageMultiplier: 1.08 * 1.06,
+      state: baseShotState,
+      now: 1000,
+    });
+    const expected = weatherGun.damage
+      * noa.damageMultiplier
+      * 1.08
+      * 1.06
+      * COMBAT_CONSTANTS.BODY_DAMAGE_MULTIPLIER;
+    expect(patch.damage).toBeCloseTo(expected, 5);
+  });
+
+  it("applies extra gauge gain multipliers for weather-assisted shots", () => {
+    const patch = applyShot({
+      didHit: true,
+      critical: false,
+      weapon: weatherGun,
+      character: noa,
+      enemyId: cloudy.id,
+      gaugeGainMultiplier: 1.08,
+      state: baseShotState,
+      now: 1000,
+    });
+    const expected = COMBAT_CONSTANTS.HIT_GAUGE_GAIN
+      * noa.gaugeGainMultiplier
+      * 1.08;
+    expect(patch.pressureGauge).toBeCloseTo(expected, 5);
   });
 });
