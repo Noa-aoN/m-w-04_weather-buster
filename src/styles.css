@@ -309,8 +309,8 @@ canvas {
 
 /* Image-based title logo. Sized to feel right across screen sizes:
  *   - 1040px cap on huge monitors (24"+ desktops)
- *   - 52vw + 70px primary responsive — MacBook クラスで控えめなサイズ
- *     (1440 → ~819, 1100 → ~642) になるよう係数を抑えめに
+ *   - 50vw + 65px primary responsive — MacBook クラスで控えめなサイズ
+ *     (1440 → ~785, 1100 → ~615) になるよう係数を抑えめに
  *   - 100vw - 40px hard gutter for very narrow windows
  *   - 38vh × 3.47 (image aspect) cap so short windows aren't dominated
  *     vertically
@@ -321,7 +321,7 @@ canvas {
   margin: 0 auto;
   width: min(
     1040px,
-    calc(52vw + 70px),
+    calc(50vw + 65px),
     calc(100vw - 40px),
     calc(38vh * 3.47)
   );
