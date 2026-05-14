@@ -10,6 +10,7 @@ import {
   enemyAttackPatterns,
   enemyContactReactions,
   findCharacter,
+  getCharacterWeatherBonus,
   findMinionType,
   findStage,
   findWeapon,
@@ -184,7 +185,13 @@ export function PlayerController({
     const slowed = performance.now() < state.slowUntil;
     const slowMul = slowed ? 0.55 : 1;
     const character = findCharacter(state.selectedCharacterId);
-    const speed = MOVE_SPEED * character.moveSpeedMultiplier * dash * slowMul * delta;
+    const characterWeather = getCharacterWeatherBonus(state.selectedCharacterId, state.activeWeatherCategory);
+    const speed = MOVE_SPEED
+      * character.moveSpeedMultiplier
+      * (characterWeather?.moveSpeedMultiplier ?? 1)
+      * dash
+      * slowMul
+      * delta;
 
     camera.getWorldDirection(forward.current);
     forward.current.y = 0;
@@ -440,11 +447,13 @@ export function PlayerController({
       nextSpecialAt.current = now + getSpecialDelay(enemy.id);
     }
 
-    for (const marker of state.lightningMarkers) {
+    const dueMarkers = state.consumeReadyLightning(now);
+    for (const marker of dueMarkers) {
       if (now >= marker.triggersAt) {
         const dx = camera.position.x - marker.x;
         const dz = camera.position.z - marker.z;
         const distance = Math.sqrt(dx * dx + dz * dz);
+        let impactStatus: "hit" | "blocked" | "dodged" = "dodged";
         if (distance <= marker.radius) {
           // Static prop occlusion: cast a 3D ray from the marker's
           // origin (boss / minion / sky) to the player. If a static
@@ -467,6 +476,7 @@ export function PlayerController({
             if (blockerT < rayDist) blocked = true;
           }
           if (!blocked) {
+            impactStatus = "hit";
             state.takeMarkerDamage(marker.damage);
             const markerEnemyId = (marker as { enemyId?: typeof marker.enemyId }).enemyId;
             const pat = markerEnemyId ? enemyAttackPatterns[markerEnemyId] : null;
@@ -483,9 +493,22 @@ export function PlayerController({
             if (markerEnemyId === "rainySeason") {
               useBattleStore.setState({ slowUntil: now + 2200 });
             }
+          } else {
+            impactStatus = "blocked";
           }
         }
-        state.removeLightning(marker.id);
+        // 着弾イベントを store に書き込み EnemyImpactBursts が拾う。
+        // performance.now() を共通の clock として使用 (subscribe 側と一致)。
+        useBattleStore.setState({
+          lastEnemyImpactAt: performance.now(),
+          lastEnemyImpactX: marker.x,
+          lastEnemyImpactY: 0.05,
+          lastEnemyImpactZ: marker.z,
+          lastEnemyImpactColor: marker.color,
+          lastEnemyImpactEnemyId: marker.enemyId,
+          lastEnemyImpactStatus: impactStatus,
+          lastEnemyImpactRadius: marker.radius,
+        });
       }
     }
 
@@ -647,6 +670,10 @@ export function PlayerController({
         return;
       }
       raycaster.current.set(camera.position, dir);
+      // Sprite.raycast は raycaster.camera を要求する。装飾 sprite が
+      // 敵/minion subtree に紛れ込んでも intersectObject(target, true) が
+      // クラッシュしないよう毎ショット setting しておく（防御的に）。
+      raycaster.current.camera = camera;
       const target = enemyRef.current;
       const enemyHits = target ? raycaster.current.intersectObject(target, true) : [];
       const minionRoot = getMinionRoot();
@@ -729,6 +756,16 @@ export function PlayerController({
           lastShotBlockedX: blockedContact.x,
           lastShotBlockedY: blockedContact.y,
           lastShotBlockedZ: blockedContact.z,
+        });
+      }
+      // 敵命中時は raycast の最初の交差点を hit spark の発生位置として記録。
+      if (didHit && closestEnemy) {
+        useBattleStore.setState({
+          lastShotHitAt: useBattleStore.getState().lastShotAt,
+          lastShotHitCritical: critical,
+          lastShotHitX: closestEnemy.point.x,
+          lastShotHitY: closestEnemy.point.y,
+          lastShotHitZ: closestEnemy.point.z,
         });
       }
     };

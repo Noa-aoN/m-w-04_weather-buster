@@ -33,6 +33,8 @@ export type StageId = "lab" | "ruins" | "highland";
 
 export type RankLetter = "S" | "A" | "B" | "C" | "D";
 
+export type WeatherInfluenceCategory = "clear" | "cloud" | "rain" | "snow" | "thunder" | "unknown";
+
 export type WeatherEnemy = {
   id: WeatherEnemyId;
   index: string;

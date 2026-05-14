@@ -8,6 +8,7 @@ import type {
   Weapon,
   WeatherEnemy,
   WeatherEnemyId,
+  WeatherInfluenceCategory,
 } from "./types";
 
 export const weatherEnemies: WeatherEnemy[] = [
@@ -494,7 +495,7 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
 //   `bossMinionConfig` — *which* boss summons *which* type, when, and how
 //                     many per difficulty. Reassign the type field to swap
 //                     a boss's summon without touching engine code.
-export const minionTypes: Record<MinionTypeId, MinionType> = {
+const minionTypes: Record<MinionTypeId, MinionType> = {
   stratus: {
     id: "stratus",
     baseEnemyId: "cloudy",
@@ -552,7 +553,7 @@ export const enemyContactReactions: Partial<Record<WeatherEnemyId, EnemyContactR
 
 export const CONTACT_RADIUS = 2.4;
 
-export const initialWeapon: Weapon = weapons[1];
+const initialWeapon: Weapon = weapons[1];
 
 export const findWeapon = (id: Weapon["id"]) =>
   weapons.find((weapon) => weapon.id === id) ?? initialWeapon;
@@ -566,4 +567,71 @@ export const findCharacter = (id: Character["id"]) =>
 export const findStage = (id: Stage["id"]) =>
   stages.find((stage) => stage.id === id) ?? stages[0];
 
-export const mvpEnemies = weatherEnemies.filter((enemy) => enemy.playableInMvp);
+type WeaponWeatherBonus = {
+  category: WeatherInfluenceCategory;
+  damageMultiplier: number;
+  label: string;
+};
+
+type CharacterWeatherBonus = {
+  category: WeatherInfluenceCategory;
+  damageMultiplier?: number;
+  damageTakenMultiplier?: number;
+  gaugeGainMultiplier?: number;
+  moveSpeedMultiplier?: number;
+  label: string;
+};
+
+const weaponWeatherBonuses: Partial<Record<Weapon["id"], WeaponWeatherBonus>> = {
+  weatherGun: { category: "cloud", damageMultiplier: 1.08, label: "曇天観測で弾道安定" },
+  clearSkyGun: { category: "clear", damageMultiplier: 1.08, label: "快晴で晴天バースト最適化" },
+  rainySeasonKiller: { category: "rain", damageMultiplier: 1.08, label: "雨天で湿度排除効率上昇" },
+  stormwallRifle: { category: "thunder", damageMultiplier: 1.08, label: "雷天で電界反射の共鳴増幅" },
+  frostlance: { category: "snow", damageMultiplier: 1.08, label: "雪天で凍結弾の収束強化" },
+};
+
+const characterWeatherBonuses: Partial<Record<Character["id"], CharacterWeatherBonus>> = {
+  noa: {
+    category: "rain",
+    damageMultiplier: 1.06,
+    moveSpeedMultiplier: 1.06,
+    label: "ノア: 雨天で機動と制圧が上向く",
+  },
+  saka: {
+    category: "thunder",
+    damageMultiplier: 1.04,
+    damageTakenMultiplier: 0.94,
+    label: "サカ: 雷天で装甲と踏み込みが安定",
+  },
+  metappi: {
+    category: "cloud",
+    gaugeGainMultiplier: 1.08,
+    label: "メタピー: 曇天で気圧回収効率が上がる",
+  },
+};
+
+export function weatherCodeToInfluenceCategory(code: number | null): WeatherInfluenceCategory {
+  if (code === null) return "unknown";
+  if (code === 0) return "clear";
+  if ((code >= 1 && code <= 3) || code === 45 || code === 48) return "cloud";
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "rain";
+  if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) return "snow";
+  if (code >= 95) return "thunder";
+  return "unknown";
+}
+
+export function getWeaponWeatherBonus(
+  weaponId: Weapon["id"],
+  category: WeatherInfluenceCategory,
+): WeaponWeatherBonus | null {
+  const bonus = weaponWeatherBonuses[weaponId];
+  return bonus && bonus.category === category ? bonus : null;
+}
+
+export function getCharacterWeatherBonus(
+  characterId: Character["id"],
+  category: WeatherInfluenceCategory,
+): CharacterWeatherBonus | null {
+  const bonus = characterWeatherBonuses[characterId];
+  return bonus && bonus.category === category ? bonus : null;
+}

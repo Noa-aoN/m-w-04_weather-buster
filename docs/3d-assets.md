@@ -34,6 +34,18 @@ GLB 中心のローポリパック。
 | `prototype-kit/` | Prototype Kit | 動物 / ギミック |
 | `modular-men/` | Modular Men | 旧バスター素体(現在は custom-characters に置換済み) |
 
+## パーティクルテクスチャ(Kenney Particle Pack、CC0)
+
+`public/textures/particles/` に同梱。マズルフラッシュ等の 2D 装飾に使用。
+ライセンスは同フォルダの `License.txt`。
+
+| ファイル | 元素材 | 用途 |
+| --- | --- | --- |
+| `muzzle.png` | Kenney Particle Pack `circle_01.png` | マズルフラッシュ熱核（soft glow） |
+| `flare.png` | Kenney Particle Pack `circle_03.png` | マズルフラッシュ内リング（sharp ring） |
+| `smoke.png` | Kenney Particle Pack `circle_05.png` | マズルフラッシュ外リング（soft ring） |
+| `star.png` | Kenney Particle Pack `star_06.png` | スキル発動バーストの中心輝き |
+
 ## ステージ床テクスチャ(AmbientCG、CC0)
 
 `public/textures/field/<stage>/` に Color / Normal / Roughness / AO の 4 マップを同梱。1024px JPG にリサイズ済み。

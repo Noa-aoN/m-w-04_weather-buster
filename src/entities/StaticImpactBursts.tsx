@@ -1,12 +1,19 @@
 import { useFrame } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
 import { useEffect, useRef, useState } from "react";
-import { AdditiveBlending, Mesh } from "three";
+import type { Sprite } from "three";
+import { AdditiveBlending } from "three";
 import { useBattleStore } from "../game/battleStore";
+import { assetUrl } from "../shared/assets";
 
-// Tiny, brief spark rendered at the contact point when a shot or crescent
-// is occluded by a static prop. Subscribes to lastShotBlockedAt so it
-// triggers exactly once per blocked attempt — gives the player visual
-// feedback that the hit was eaten by terrain rather than missed.
+// 静的プロップに弾道が遮られたときの ricochet spark。Kenney circle 系
+// sprite を 2 枚使い、命中地点で hot core + 拡張リングを瞬間表示する。
+// 「敵に当たらなかったが地形に弾かれた」ことを視覚的に伝える。
+
+const CORE_TEX_URL = assetUrl("/textures/particles/muzzle.png");
+const RING_TEX_URL = assetUrl("/textures/particles/flare.png");
+useTexture.preload(CORE_TEX_URL);
+useTexture.preload(RING_TEX_URL);
 
 type Burst = {
   id: number;
@@ -19,8 +26,10 @@ type Burst = {
 const BURST_LIFETIME_MS = 260;
 
 function ImpactBurst({ burst, onExpire }: { burst: Burst; onExpire: (id: number) => void }) {
-  const coreRef = useRef<Mesh>(null);
-  const haloRef = useRef<Mesh>(null);
+  const coreTex = useTexture(CORE_TEX_URL);
+  const ringTex = useTexture(RING_TEX_URL);
+  const coreRef = useRef<Sprite>(null);
+  const ringRef = useRef<Sprite>(null);
   useFrame(() => {
     const elapsed = performance.now() - burst.spawnedAt;
     if (elapsed >= BURST_LIFETIME_MS) {
@@ -30,42 +39,26 @@ function ImpactBurst({ burst, onExpire }: { burst: Burst; onExpire: (id: number)
     const k = elapsed / BURST_LIFETIME_MS;
     const fade = 1 - k;
     if (coreRef.current) {
-      const m = coreRef.current.material as { opacity?: number };
-      if (m.opacity !== undefined) m.opacity = fade;
-      coreRef.current.scale.setScalar(0.6 + k * 0.6);
+      const s = 0.45 + k * 0.18;
+      coreRef.current.scale.set(s, s, 1);
+      const m = coreRef.current.material as { opacity: number };
+      m.opacity = fade;
     }
-    if (haloRef.current) {
-      const m = haloRef.current.material as { opacity?: number };
-      if (m.opacity !== undefined) m.opacity = fade * 0.5;
-      haloRef.current.scale.setScalar(1 + k * 1.4);
+    if (ringRef.current) {
+      const s = 0.55 + k * 1.3;
+      ringRef.current.scale.set(s, s, 1);
+      const m = ringRef.current.material as { opacity: number };
+      m.opacity = fade * 0.65;
     }
   });
   return (
     <group position={[burst.x, burst.y, burst.z]}>
-      {/* Bright white-hot core — pin-prick that fades out fast */}
-      <mesh ref={coreRef}>
-        <sphereGeometry args={[0.08, 10, 10]} />
-        <meshBasicMaterial
-          color="#ffffff"
-          transparent
-          opacity={1}
-          toneMapped={false}
-          blending={AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-      {/* Coloured halo expanding outward — gives the burst a quick "puff" */}
-      <mesh ref={haloRef}>
-        <sphereGeometry args={[0.18, 10, 10]} />
-        <meshBasicMaterial
-          color="#ffd24a"
-          transparent
-          opacity={0.5}
-          toneMapped={false}
-          blending={AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
+      <sprite ref={coreRef}>
+        <spriteMaterial map={coreTex} color="#ffffff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </sprite>
+      <sprite ref={ringRef}>
+        <spriteMaterial map={ringTex} color="#ffd24a" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </sprite>
     </group>
   );
 }
@@ -80,16 +73,10 @@ export function StaticImpactBursts() {
         return;
       }
       counter.current += 1;
-      setBursts((current) => [
-        ...current,
-        {
-          id: counter.current,
-          spawnedAt: performance.now(),
-          x: state.lastShotBlockedX,
-          y: state.lastShotBlockedY,
-          z: state.lastShotBlockedZ,
-        },
-      ]);
+      const id = counter.current;
+      const spawnedAt = performance.now();
+      const { lastShotBlockedX: x, lastShotBlockedY: y, lastShotBlockedZ: z } = state;
+      setBursts((current) => [...current, { id, spawnedAt, x, y, z }]);
     });
   }, []);
 

@@ -179,4 +179,3 @@ export function blockingColliders(
 }
 
 export type { StageCollider };
-export { STEP_TOLERANCE };

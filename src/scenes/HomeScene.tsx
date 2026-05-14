@@ -1,12 +1,23 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Instance, Instances, Sky, Stars, useAnimations, useGLTF, useTexture } from "@react-three/drei";
 import { SceneLoader } from "../features/loader/SceneLoader";
-import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh, Object3D } from "three";
 import { DoubleSide, LoopOnce, RepeatWrapping, SRGBColorSpace } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
-import { characters, findCharacter, findStage, findWeapon, stages, weapons, weatherEnemies } from "../game/data";
+import {
+  characters,
+  findCharacter,
+  findStage,
+  findWeapon,
+  getCharacterWeatherBonus,
+  getWeaponWeatherBonus,
+  stages,
+  weapons,
+  weatherCodeToInfluenceCategory,
+  weatherEnemies,
+} from "../game/data";
 import { useGeolocationWeather } from "../features/weather/useGeolocationWeather";
 import type { CharacterId, DifficultyLevel, LoadoutTab, Stage } from "../game/types";
 import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
@@ -197,22 +208,80 @@ function LeaderLine({
 }
 
 function GpsToggle() {
-  // GPS-driven weather pull is paused for now — the chip stays visible as a
-  // disabled placeholder so the planned feature has a home in the layout
-  // when it comes back.
+  const locationEnabled = useBattleStore((state) => state.locationEnabled);
+  const gpsStatus = useBattleStore((state) => state.gpsStatus);
+  const currentWeatherCode = useBattleStore((state) => state.currentWeatherCode);
+  const currentWeatherEnemyId = useBattleStore((state) => state.currentWeatherEnemyId);
+  const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
+  const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
+  const setLocationEnabled = useBattleStore((state) => state.setLocationEnabled);
+  const activeWeatherCategory = locationEnabled ? weatherCodeToInfluenceCategory(currentWeatherCode) : "unknown";
+  const weapon = findWeapon(selectedWeaponId);
+  const character = findCharacter(selectedCharacterId);
+  const weaponWeatherBonus = getWeaponWeatherBonus(selectedWeaponId, activeWeatherCategory);
+  const characterWeatherBonus = getCharacterWeatherBonus(selectedCharacterId, activeWeatherCategory);
+  const enemyName = currentWeatherEnemyId
+    ? weatherEnemies.find((enemy) => enemy.id === currentWeatherEnemyId)?.name ?? currentWeatherEnemyId
+    : null;
+  const weatherLabel = currentWeatherCode === null
+    ? null
+    : currentWeatherCode === 0
+      ? "快晴"
+      : currentWeatherCode <= 3 || currentWeatherCode === 45 || currentWeatherCode === 48
+        ? "曇天"
+        : (currentWeatherCode >= 51 && currentWeatherCode <= 67) || (currentWeatherCode >= 80 && currentWeatherCode <= 82)
+          ? "雨"
+          : (currentWeatherCode >= 71 && currentWeatherCode <= 77) || (currentWeatherCode >= 85 && currentWeatherCode <= 86)
+            ? "雪"
+            : currentWeatherCode >= 95
+              ? "雷"
+              : "観測";
+  const statusLabel = gpsStatus === "loading"
+    ? "同期中"
+    : gpsStatus === "ready"
+      ? weatherLabel ?? "取得済"
+      : gpsStatus === "denied"
+        ? "拒否"
+        : gpsStatus === "timeout"
+          ? "遅延"
+          : gpsStatus === "error"
+            ? "エラー"
+            : "OFF";
+  const bonusLabels = [
+    weaponWeatherBonus ? `${weapon.name} 与ダメ+${Math.round((weaponWeatherBonus.damageMultiplier - 1) * 100)}%` : null,
+    characterWeatherBonus?.damageMultiplier
+      ? `${character.codename} 与ダメ+${Math.round((characterWeatherBonus.damageMultiplier - 1) * 100)}%`
+      : null,
+    characterWeatherBonus?.moveSpeedMultiplier
+      ? `${character.codename} 移動+${Math.round((characterWeatherBonus.moveSpeedMultiplier - 1) * 100)}%`
+      : null,
+    characterWeatherBonus?.gaugeGainMultiplier
+      ? `${character.codename} ゲージ+${Math.round((characterWeatherBonus.gaugeGainMultiplier - 1) * 100)}%`
+      : null,
+    characterWeatherBonus?.damageTakenMultiplier
+      ? `${character.codename} 被ダメ-${Math.round((1 - characterWeatherBonus.damageTakenMultiplier) * 100)}%`
+      : null,
+  ].filter((label): label is string => label !== null);
+  const title = locationEnabled
+    ? "現在地の概略座標を Open-Meteo に送信し、天候に応じた軽い補正を出撃前に表示します"
+    : "現在地シンクを有効化します。敵選択は自動変更しません";
   return (
     <button
       type="button"
-      className="gpsToggle is-disabled"
-      aria-disabled="true"
-      aria-pressed="false"
-      title="現在は無効化されています"
-      tabIndex={-1}
-      onClick={(event) => event.preventDefault()}
+      className={`gpsToggle ${locationEnabled ? "on" : ""}`}
+      aria-pressed={locationEnabled}
+      title={title}
+      onClick={() => setLocationEnabled(!locationEnabled)}
     >
-      <span className="gpsDot" />
-      <small>GPS</small>
-      <em>準備中</em>
+      <span className="gpsToggleTitle">
+        <span className="gpsDot" />
+        <small>GPS</small>
+      </span>
+      <em>{statusLabel}</em>
+      {gpsStatus === "ready" && enemyName ? <i className="gpsEnemyHint">{enemyName}</i> : null}
+      {bonusLabels.length > 0 ? (
+        <span className="gpsBonusLine">{bonusLabels.join(" / ")}</span>
+      ) : null}
     </button>
   );
 }
@@ -423,7 +492,11 @@ function FloorGrid({ stage, ringColor }: { stage: Stage; ringColor: string }) {
   const placement = STAGE_PLACEMENTS[stage.id];
   const floor = placement.floor;
   const textureKey = floor.texture ?? "lab";
-  const repeat = floor.textureRepeat ?? 6;
+  // 円形フロアで「四角い端」を見せず自然な地平線に。半径 25m なら直径
+  // 50m。テクスチャの 1 タイル ~6m を保ちたいので repeat は半径相当
+  // (radius/3) に揃える。circleGeometry の segments は 64 程度で十分。
+  const FLOOR_RADIUS = 25;
+  const repeat = (floor.textureRepeat ?? 6) * (FLOOR_RADIUS / 18);
   const [colorMap, normalMap, roughMap, aoMap] = useTexture([
     assetUrl(`/textures/field/${textureKey}/color.jpg`),
     assetUrl(`/textures/field/${textureKey}/normal.jpg`),
@@ -442,7 +515,7 @@ function FloorGrid({ stage, ringColor }: { stage: Stage; ringColor: string }) {
   return (
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
-        <planeGeometry args={[36, 36]} />
+        <circleGeometry args={[FLOOR_RADIUS, 64]} />
         <meshStandardMaterial
           color="#ffffff"
           map={colorMap}
@@ -753,8 +826,10 @@ function HomeStage({
   const isClear = weatherCode === 0;
 
   const fogColor = isThunder ? "#0a0c14" : isSnow ? "#a7c8d8" : isFog ? "#525c66" : "#06121d";
-  const fogNear = isFog ? 4 : 8;
-  const fogFar = isFog ? 18 : 30;
+  const fogNear = isFog ? 4 : 10;
+  // 円形フロアの直径 50m に合わせ、霧は遠端より少し手前で完全に閉じる
+  // 程度に調整（地平線を残しつつ床の端が霧で自然に消えるように）。
+  const fogFar = isFog ? 14 : 24;
 
   return (
     <>
@@ -852,6 +927,17 @@ export function HomeScene({
   const bubbleRef = useRef<HTMLQuoteElement>(null);
   const telemetryRef = useRef<HTMLDivElement>(null);
   const [menuTopPx, setMenuTopPx] = useState<number | null>(null);
+  // タイトルロゴが霧散するアニメーション用 state。triggerStart で立てて
+  // 380ms 後に親の onStart() を呼び戦闘画面へ遷移する。dismissingRef は
+  // 同期的な二重発火防止に使う (連打 / Enter 連打対策)。
+  const [dismissing, setDismissing] = useState(false);
+  const dismissingRef = useRef(false);
+  const triggerStart = useCallback(() => {
+    if (dismissingRef.current) return;
+    dismissingRef.current = true;
+    setDismissing(true);
+    window.setTimeout(() => onStart(), 380);
+  }, [onStart]);
 
   const selectedEnemy = weatherEnemies.find((enemy) => enemy.id === selectedEnemyId) ?? weatherEnemies[0];
   const weapon = findWeapon(selectedWeaponId);
@@ -923,7 +1009,7 @@ export function HomeScene({
       const key = event.key.toLowerCase();
       if (key === "enter" || event.key === "Enter") {
         event.preventDefault();
-        onStart();
+        triggerStart();
       } else if (key === "t") {
         event.preventDefault();
         onOpenStory();
@@ -955,7 +1041,7 @@ export function HomeScene({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onStart, onOpenEnemyGrid, onOpenLoadout, onOpenSettings, onOpenCharacterGrid, onOpenStory]);
+  }, [triggerStart, onOpenEnemyGrid, onOpenLoadout, onOpenSettings, onOpenCharacterGrid, onOpenStory]);
 
   return (
     <main className="homeShell sceneEnter">
@@ -992,12 +1078,22 @@ export function HomeScene({
         <section className="titleBlock">
           {/* Combined title art (main + subtitle + tagline). The PNG already
               contains all three strings so we don't need separate text
-              layers — the alt attr keeps it readable for screen readers. */}
-          <img
-            className="titleLogoImg"
-            src={assetUrl("/images/title-logo.png")}
-            alt="ウェザー・バスターズ — CLEAR THE SKY — 荒れた天候を撃ち抜き、空を晴らせ"
-          />
+              layers — the alt attr keeps it readable for screen readers.
+              titleLogoBackdrop は同じ画像を白シルエット化して下に敷くことで、
+              黄色文字部分の透過で背景の構造物が透けて見える問題を防ぐ。 */}
+          <div className={`titleLogoStack${dismissing ? " is-dismissing" : ""}`}>
+            <img
+              className="titleLogoBackdrop"
+              src={assetUrl("/images/title-logo.png")}
+              aria-hidden="true"
+              alt=""
+            />
+            <img
+              className="titleLogoImg"
+              src={assetUrl("/images/title-logo.png")}
+              alt="ウェザー・バスターズ — CLEAR THE SKY — 荒れた天候を撃ち抜き、空を晴らせ"
+            />
+          </div>
         </section>
 
         <HeroTelemetry ref={telemetryRef} accent={character.accentColor} />
@@ -1051,6 +1147,7 @@ export function HomeScene({
             </span>
             <em>「{character.flavor}」</em>
           </blockquote>
+
         </nav>
 
         <LeaderLine sourceRef={bubbleRef} anchor="top-right" accent={character.accentColor} extendFraction={2 / 3} />
@@ -1138,7 +1235,7 @@ export function HomeScene({
           ))}
         </div>
 
-        <button type="button" className="primaryMenuButton missionStartButton" onClick={onStart}>
+        <button type="button" className="primaryMenuButton missionStartButton" onClick={triggerStart}>
           <span className="missionStartLabel">ゲーム開始</span>
           <span className="missionStartHint">Enter</span>
         </button>

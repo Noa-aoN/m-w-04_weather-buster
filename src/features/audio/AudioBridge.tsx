@@ -191,23 +191,11 @@ export function AudioBridge() {
       if (state.lastItemAt !== prev.lastItemAt && state.lastItemAt !== 0) {
         playItem();
       }
-      const prevIds = new Set(prev.lightningMarkers.map((marker) => marker.id));
-      const currIds = new Set(state.lightningMarkers.map((marker) => marker.id));
-      let added = 0;
-      let removed = 0;
-      for (const id of currIds) {
-        if (!prevIds.has(id)) added += 1;
+      if (state.status === "battle" && state.lastMarkerSpawnAt !== prev.lastMarkerSpawnAt && state.lastMarkerSpawnAt !== 0) {
+        playMarkerSpawn();
       }
-      for (const id of prevIds) {
-        if (!currIds.has(id)) removed += 1;
-      }
-      // Marker SFX only while a battle is actually running. Without this guard
-      // the bulk-clear of markers triggered by reset() (clear / defeat /
-      // home-return) would fire playMarkerImpact and play a loud explosion
-      // sound on the way back to the title.
-      if (state.status === "battle") {
-        if (added > 0) playMarkerSpawn();
-        if (removed > 0) playMarkerImpact();
+      if (state.lastEnemyImpactAt !== prev.lastEnemyImpactAt && state.lastEnemyImpactAt !== 0) {
+        playMarkerImpact();
       }
       if (state.status !== prev.status) {
         if (state.status === "battle") {

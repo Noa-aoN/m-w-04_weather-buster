@@ -3,11 +3,13 @@ import {
   bossMinionConfig,
   difficultyModifiers,
   findCharacter,
-  findStage,
+  getCharacterWeatherBonus,
+  getWeaponWeatherBonus,
   findWeapon,
   findMinionType,
   items,
   stages,
+  weatherCodeToInfluenceCategory,
   weapons,
   weatherEnemies,
 } from "./data";
@@ -30,6 +32,7 @@ import type {
   Weapon,
   WeaponId,
   WeatherEnemyId,
+  WeatherInfluenceCategory,
 } from "./types";
 
 const {
@@ -85,8 +88,8 @@ type LightningMarker = {
  * `id` distinguishes one cast from the next so React keys stay stable
  * even if two casts fire back-to-back.
  */
-export type SkillAnimationKind = "ranged" | "slash";
-export type SkillAnimation = {
+type SkillAnimationKind = "ranged" | "slash";
+type SkillAnimation = {
   id: number;
   kind: SkillAnimationKind;
   weaponId: WeaponId;
@@ -100,6 +103,8 @@ export type SkillAnimation = {
   /** Latched targets on cast: animation only updates the boss's HP. */
   enemyMaxHpAtCast: number;
 };
+
+type GpsStatus = "off" | "loading" | "ready" | "denied" | "timeout" | "error";
 
 type BattleState = {
   status: BattleStatus;
@@ -123,14 +128,17 @@ type BattleState = {
   isPointerLocked: boolean;
   itemStocks: Record<ItemId, number>;
   lightningMarkers: LightningMarker[];
+  lastMarkerSpawnAt: number;
   decoyUntil: number;
   mouseSensitivity: number;
   fov: number;
   cameraMode: BattleCameraMode;
   crosshairColor: string;
   locationEnabled: boolean;
+  gpsStatus: GpsStatus;
   currentWeatherEnemyId: WeatherEnemyId | null;
   currentWeatherCode: number | null;
+  activeWeatherCategory: WeatherInfluenceCategory;
   lastShotAt: number;
   lastShotHit: boolean;
   /** Bumped when a shot was occluded by a static prop (vs missing the
@@ -140,6 +148,25 @@ type BattleState = {
   lastShotBlockedX: number;
   lastShotBlockedY: number;
   lastShotBlockedZ: number;
+  /** 敵に命中したショットの座標。EnemyHitSparks が subscribe して
+   *  そのフレームに hit spark を立てるためのチャネル。critical 時は
+   *  サイズと色が変わる。 */
+  lastShotHitAt: number;
+  lastShotHitCritical: boolean;
+  lastShotHitX: number;
+  lastShotHitY: number;
+  lastShotHitZ: number;
+  /** 敵攻撃の着弾イベント。EnemyImpactBursts が subscribe して
+   *  marker 位置に sprite burst を立てる。status は "hit"=直撃、
+   *  "blocked"=遮蔽で防がれた、"dodged"=範囲外で空振り。 */
+  lastEnemyImpactAt: number;
+  lastEnemyImpactX: number;
+  lastEnemyImpactY: number;
+  lastEnemyImpactZ: number;
+  lastEnemyImpactColor: string;
+  lastEnemyImpactEnemyId: WeatherEnemyId | null;
+  lastEnemyImpactStatus: "hit" | "blocked" | "dodged" | "none";
+  lastEnemyImpactRadius: number;
   /** Timestamp of the last windBlade ranged-slash projectile (right click).
    *  Kept separate from lastShotAt so close-range slash visuals (PlayerView
    *  blade swing, SlashTrails carve line) don't fire on a ranged cast. */
@@ -164,6 +191,9 @@ type BattleState = {
   lastKnockbackAt: number;
   reloadingUntil: number;
   reloadingStartedAt: number;
+  /** リロード完了を一回だけ HUD に伝える signal。HUD 側 ReloadFlash が
+   *  subscribe して短い ring 演出を出す。 */
+  lastReloadCompleteAt: number;
   lastEmptyClickAt: number;
   enemyChargeStartedAt: number;
   enemyChargeFiresAt: number;
@@ -209,6 +239,7 @@ type BattleState = {
   setBgmEnabled: (value: boolean) => void;
   setMasterVolume: (value: number) => void;
   setLocationEnabled: (value: boolean) => void;
+  setGpsStatus: (value: GpsStatus) => void;
   setCurrentWeather: (enemyId: WeatherEnemyId | null, code: number | null) => void;
   start: () => void;
   reset: () => void;
@@ -232,6 +263,7 @@ type BattleState = {
   useItem: (id: ItemId) => void;
   spawnLightning: (marker: LightningMarker) => void;
   removeLightning: (id: number) => void;
+  consumeReadyLightning: (now: number) => LightningMarker[];
   shiftMarkerTimes: (deltaMs: number) => void;
   setPointerLocked: (locked: boolean) => void;
   setShieldActive: (active: boolean) => void;
@@ -257,6 +289,7 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   elapsedSeconds: 0,
   itemStocks: initialStocks(difficultyModifiers[difficulty].itemMultiplier),
   lightningMarkers: [] as LightningMarker[],
+  lastMarkerSpawnAt: 0,
   decoyUntil: 0,
   lastShotAt: 0,
   lastShotHit: false,
@@ -264,6 +297,19 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   lastShotBlockedX: 0,
   lastShotBlockedY: 0,
   lastShotBlockedZ: 0,
+  lastShotHitAt: 0,
+  lastShotHitCritical: false,
+  lastShotHitX: 0,
+  lastShotHitY: 0,
+  lastShotHitZ: 0,
+  lastEnemyImpactAt: 0,
+  lastEnemyImpactX: 0,
+  lastEnemyImpactY: 0,
+  lastEnemyImpactZ: 0,
+  lastEnemyImpactColor: "#ffffff",
+  lastEnemyImpactEnemyId: null,
+  lastEnemyImpactStatus: "none" as const,
+  lastEnemyImpactRadius: 0,
   lastShotCritical: false,
   lastShotDamage: 0,
   lastSlashProjectileAt: 0,
@@ -285,6 +331,7 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   lastKnockbackAt: 0,
   reloadingUntil: 0,
   reloadingStartedAt: 0,
+  lastReloadCompleteAt: 0,
   lastEmptyClickAt: 0,
   enemyChargeStartedAt: 0,
   enemyChargeFiresAt: 0,
@@ -425,108 +472,139 @@ function persistSeedSnapshot(snapshot: SeedSnapshot) {
 
 function buildBattleStore() {
   return create<BattleState>((set, get) => {
-  const defaultEnemy = weatherEnemies[DEFAULT_ENEMY_INDEX];
-  const defaultWeapon = weapons[DEFAULT_WEAPON_INDEX];
-  const seedSnapshot = loadSeedSnapshot();
+    const defaultEnemy = weatherEnemies[DEFAULT_ENEMY_INDEX];
+    const defaultWeapon = weapons[DEFAULT_WEAPON_INDEX];
+    const seedSnapshot = loadSeedSnapshot();
 
-  return {
-    status: "ready",
-    selectedEnemyId: defaultEnemy.id,
-    selectedWeaponId: defaultWeapon.id,
-    selectedCharacterId: DEFAULT_CHARACTER_ID,
-    selectedStageId: stages[0].id,
-    selectedDifficulty: DEFAULT_DIFFICULTY,
-    playerMaxHp: PLAYER_MAX_HP,
-    isPointerLocked: false,
-    mouseSensitivity: 1,
-    fov: 58,
-    cameraMode: "fps",
-    crosshairColor: "#ffffff",
-    locationEnabled: false,
-    currentWeatherEnemyId: null,
-    currentWeatherCode: null,
-    enemyHp: enemyMaxHpFor(defaultEnemy, defaultEnemy.difficulty),
-    enemyMaxHp: enemyMaxHpFor(defaultEnemy, defaultEnemy.difficulty),
-    ...baseLoadout(defaultWeapon, defaultEnemy.difficulty),
-    ...seedFields(seedSnapshot),
-    selectEnemy: (id) => {
-      const target = findEnemy(id);
+    return {
+      status: "ready",
+      selectedEnemyId: defaultEnemy.id,
+      selectedWeaponId: defaultWeapon.id,
+      selectedCharacterId: DEFAULT_CHARACTER_ID,
+      selectedStageId: stages[0].id,
+      selectedDifficulty: DEFAULT_DIFFICULTY,
+      playerMaxHp: PLAYER_MAX_HP,
+      isPointerLocked: false,
+      mouseSensitivity: 1,
+      fov: 58,
+      cameraMode: "fps",
+      crosshairColor: "#ffffff",
+      locationEnabled: false,
+      gpsStatus: "off",
+      currentWeatherEnemyId: null,
+      currentWeatherCode: null,
+      activeWeatherCategory: "unknown",
+      enemyHp: enemyMaxHpFor(defaultEnemy, defaultEnemy.difficulty),
+      enemyMaxHp: enemyMaxHpFor(defaultEnemy, defaultEnemy.difficulty),
+      ...baseLoadout(defaultWeapon, defaultEnemy.difficulty),
+      ...seedFields(seedSnapshot),
+      selectEnemy: (id) => {
+        const target = findEnemy(id);
+        const weapon = findWeapon(get().selectedWeaponId);
+        const difficulty = get().selectedDifficulty;
+        const maxHp = enemyMaxHpFor(target, difficulty);
+        set({
+          selectedEnemyId: id,
+          status: "ready",
+          ...baseLoadout(weapon, difficulty),
+          enemyHp: maxHp,
+          enemyMaxHp: maxHp,
+        });
+      },
+      selectWeapon: (id) => {
+        const weapon = findWeapon(id);
+        const target = findEnemy(get().selectedEnemyId);
+        const difficulty = get().selectedDifficulty;
+        const maxHp = enemyMaxHpFor(target, difficulty);
+        set({
+          selectedWeaponId: id,
+          status: "ready",
+          ...baseLoadout(weapon, difficulty),
+          enemyHp: maxHp,
+          enemyMaxHp: maxHp,
+        });
+      },
+      selectCharacter: (id) => {
+        set({ selectedCharacterId: id });
+      },
+      selectStage: (id) => {
+        set({ selectedStageId: id });
+      },
+      setDifficulty: (value) => {
+        const weapon = findWeapon(get().selectedWeaponId);
+        const target = findEnemy(get().selectedEnemyId);
+        const maxHp = enemyMaxHpFor(target, value);
+        set({
+          selectedDifficulty: value,
+          status: "ready",
+          ...baseLoadout(weapon, value),
+          enemyHp: maxHp,
+          enemyMaxHp: maxHp,
+        });
+      },
+      sfxEnabled: true,
+      bgmEnabled: false,
+      masterVolume: 0.55,
+      setMouseSensitivity: (value) => set({ mouseSensitivity: value }),
+      setFov: (value) => set({ fov: value }),
+      setCameraMode: (value) => set({ cameraMode: value }),
+      setCrosshairColor: (value) => set({ crosshairColor: value }),
+      setSfxEnabled: (value) => set({ sfxEnabled: value }),
+      setBgmEnabled: (value) => set({ bgmEnabled: value }),
+      setMasterVolume: (value) => set({ masterVolume: Math.max(0, Math.min(1, value)) }),
+      setLocationEnabled: (value) => set({
+        locationEnabled: value,
+        ...(value
+          ? { gpsStatus: "loading" as const }
+          : { gpsStatus: "off" as const, currentWeatherEnemyId: null, currentWeatherCode: null }),
+      }),
+      setGpsStatus: (value) => set({ gpsStatus: value }),
+      setCurrentWeather: (enemyId, code) => set({ currentWeatherEnemyId: enemyId, currentWeatherCode: code }),
+      start: () => {
+        const weapon = findWeapon(get().selectedWeaponId);
+        const target = findEnemy(get().selectedEnemyId);
+        const difficulty = get().selectedDifficulty;
+        const maxHp = enemyMaxHpFor(target, difficulty);
+        const weatherCategory = get().locationEnabled
+          ? weatherCodeToInfluenceCategory(get().currentWeatherCode)
+          : "unknown";
+        set({
+          status: "battle",
+          ...baseLoadout(weapon, difficulty),
+          enemyHp: maxHp,
+          enemyMaxHp: maxHp,
+          activeWeatherCategory: weatherCategory,
+        });
+      },
+      reset: () => {
       const weapon = findWeapon(get().selectedWeaponId);
-      const difficulty = get().selectedDifficulty;
-      const maxHp = enemyMaxHpFor(target, difficulty);
-      set({
-        selectedEnemyId: id,
-        status: "ready",
-        ...baseLoadout(weapon, difficulty),
-        enemyHp: maxHp,
-        enemyMaxHp: maxHp,
-      });
-    },
-    selectWeapon: (id) => {
-      const weapon = findWeapon(id);
       const target = findEnemy(get().selectedEnemyId);
       const difficulty = get().selectedDifficulty;
       const maxHp = enemyMaxHpFor(target, difficulty);
       set({
-        selectedWeaponId: id,
         status: "ready",
         ...baseLoadout(weapon, difficulty),
         enemyHp: maxHp,
         enemyMaxHp: maxHp,
-      });
-    },
-    selectCharacter: (id) => {
-      set({ selectedCharacterId: id });
-    },
-    selectStage: (id) => {
-      set({ selectedStageId: id });
-    },
-    setDifficulty: (value) => {
-      const weapon = findWeapon(get().selectedWeaponId);
-      const target = findEnemy(get().selectedEnemyId);
-      const maxHp = enemyMaxHpFor(target, value);
-      set({
-        selectedDifficulty: value,
-        status: "ready",
-        ...baseLoadout(weapon, value),
-        enemyHp: maxHp,
-        enemyMaxHp: maxHp,
-      });
-    },
-    sfxEnabled: true,
-    bgmEnabled: false,
-    masterVolume: 0.55,
-    setMouseSensitivity: (value) => set({ mouseSensitivity: value }),
-    setFov: (value) => set({ fov: value }),
-    setCameraMode: (value) => set({ cameraMode: value }),
-    setCrosshairColor: (value) => set({ crosshairColor: value }),
-    setSfxEnabled: (value) => set({ sfxEnabled: value }),
-    setBgmEnabled: (value) => set({ bgmEnabled: value }),
-    setMasterVolume: (value) => set({ masterVolume: Math.max(0, Math.min(1, value)) }),
-    setLocationEnabled: (value) => set({ locationEnabled: value }),
-    setCurrentWeather: (enemyId, code) => set({ currentWeatherEnemyId: enemyId, currentWeatherCode: code }),
-    start: () => {
-      const weapon = findWeapon(get().selectedWeaponId);
-      const target = findEnemy(get().selectedEnemyId);
-      const difficulty = get().selectedDifficulty;
-      const maxHp = enemyMaxHpFor(target, difficulty);
-      set({
-        status: "battle",
-        ...baseLoadout(weapon, difficulty),
-        enemyHp: maxHp,
-        enemyMaxHp: maxHp,
-      });
-    },
-    reset: () => {
-      const weapon = findWeapon(get().selectedWeaponId);
-      const target = findEnemy(get().selectedEnemyId);
-      const difficulty = get().selectedDifficulty;
-      const maxHp = enemyMaxHpFor(target, difficulty);
-      set({
-        status: "ready",
-        ...baseLoadout(weapon, difficulty),
-        enemyHp: maxHp,
-        enemyMaxHp: maxHp,
+        // 戦闘間で持ち越すと VFX や警告リングが新バトル冒頭に残ってしまう。
+        // 視覚 state はすべて 0 に戻す。
+        lightningMarkers: [],
+        lastMarkerSpawnAt: 0,
+        enemyChargeStartedAt: 0,
+        enemyChargeFiresAt: 0,
+        lastShotAt: 0,
+        lastShotHit: false,
+        lastShotHitAt: 0,
+        lastShotBlockedAt: 0,
+        lastEnemyImpactAt: 0,
+        lastEnemyImpactStatus: "none" as const,
+        lastSkillAt: 0,
+        lastDefeatAt: 0,
+        lastReloadCompleteAt: 0,
+        lastStaggerAt: 0,
+        staggerUntil: 0,
+        staggerThresholdsHit: [] as number[],
+        activeWeatherCategory: "unknown" as const,
       });
     },
     shoot: (didHit, critical = false) => {
@@ -534,6 +612,8 @@ function buildBattleStore() {
       const now = performance.now();
       const weapon = findWeapon(state.selectedWeaponId);
       const isMelee = weapon.id === "windBlade";
+      const weaponWeather = getWeaponWeatherBonus(weapon.id, state.activeWeatherCategory);
+      const characterWeather = getCharacterWeatherBonus(state.selectedCharacterId, state.activeWeatherCategory);
       if (state.status !== "battle" || (!isMelee && state.ammo <= 0) || now < state.reloadingUntil) {
         return;
       }
@@ -544,6 +624,8 @@ function buildBattleStore() {
         weapon,
         character,
         enemyId: state.selectedEnemyId,
+        damageMultiplier: (weaponWeather?.damageMultiplier ?? 1) * (characterWeather?.damageMultiplier ?? 1),
+        gaugeGainMultiplier: characterWeather?.gaugeGainMultiplier ?? 1,
         state: {
           enemyHp: state.enemyHp,
           pressureGauge: state.pressureGauge,
@@ -596,6 +678,11 @@ function buildBattleStore() {
         combo: patch.combo,
         comboBest: patch.comboBest,
         lastComboAt: patch.lastComboAt,
+        // 撃破時、PlayerController の useFrame は早期 return するので
+        // marker / チャージは消化されない。撃破タイミングで明示的に空に。
+        ...(becomesClear
+          ? { lightningMarkers: [], enemyChargeStartedAt: 0, enemyChargeFiresAt: 0 }
+          : {}),
         ...(staggerPatch ?? {}),
         ...(minionPatch
           ? {
@@ -619,6 +706,8 @@ function buildBattleStore() {
       const state = get();
       const now = performance.now();
       const weapon = findWeapon(state.selectedWeaponId);
+      const weaponWeather = getWeaponWeatherBonus(weapon.id, state.activeWeatherCategory);
+      const characterWeather = getCharacterWeatherBonus(state.selectedCharacterId, state.activeWeatherCategory);
       if (state.status !== "battle" || weapon.id !== "windBlade") {
         return;
       }
@@ -629,6 +718,8 @@ function buildBattleStore() {
         weapon,
         character,
         enemyId: state.selectedEnemyId,
+        damageMultiplier: (weaponWeather?.damageMultiplier ?? 1) * (characterWeather?.damageMultiplier ?? 1),
+        gaugeGainMultiplier: characterWeather?.gaugeGainMultiplier ?? 1,
         state: {
           enemyHp: state.enemyHp,
           pressureGauge: state.pressureGauge,
@@ -680,6 +771,10 @@ function buildBattleStore() {
         combo: patch.combo,
         comboBest: patch.comboBest,
         lastComboAt: patch.lastComboAt,
+        // 撃破時に marker / チャージを明示クリア（コメントは shoot path 同じ理由）。
+        ...(becomesClear
+          ? { lightningMarkers: [], enemyChargeStartedAt: 0, enemyChargeFiresAt: 0 }
+          : {}),
         ...(staggerPatch ?? {}),
         ...(minionPatch
           ? {
@@ -711,7 +806,12 @@ function buildBattleStore() {
           return;
         }
         const w = findWeapon(s.selectedWeaponId);
-        useBattleStore.setState({ ammo: w.maxAmmo, reloadingUntil: 0, reloadingStartedAt: 0 });
+        useBattleStore.setState({
+          ammo: w.maxAmmo,
+          reloadingUntil: 0,
+          reloadingStartedAt: 0,
+          lastReloadCompleteAt: performance.now(),
+        });
       }, reloadMs);
     },
     takeDamageTick: () => {
@@ -721,6 +821,7 @@ function buildBattleStore() {
       }
       const enemy = findEnemy(state.selectedEnemyId);
       const character = findCharacter(state.selectedCharacterId);
+      const characterWeather = getCharacterWeatherBonus(state.selectedCharacterId, state.activeWeatherCategory);
       const diffMod = difficultyModifiers[state.selectedDifficulty];
       const damage = computeIncomingDamage(
         enemy.threat * ENEMY_TICK_DAMAGE_BASE * diffMod.attackDamage,
@@ -728,6 +829,8 @@ function buildBattleStore() {
         character.damageTakenMultiplier,
         state.shieldActive,
         state.shieldEnergy,
+        Date.now(),
+        characterWeather?.damageTakenMultiplier ?? 1,
       );
       const nextShieldEnergy = shieldAfterBlock(state.shieldActive, state.shieldEnergy);
       const nextHp = Math.max(state.playerHp - damage, 0);
@@ -746,7 +849,16 @@ function buildBattleStore() {
         return;
       }
       const character = findCharacter(state.selectedCharacterId);
-      const damage = computeIncomingDamage(amount, state.decoyUntil, character.damageTakenMultiplier, state.shieldActive, state.shieldEnergy);
+      const characterWeather = getCharacterWeatherBonus(state.selectedCharacterId, state.activeWeatherCategory);
+      const damage = computeIncomingDamage(
+        amount,
+        state.decoyUntil,
+        character.damageTakenMultiplier,
+        state.shieldActive,
+        state.shieldEnergy,
+        Date.now(),
+        characterWeather?.damageTakenMultiplier ?? 1,
+      );
       const nextShieldEnergy = shieldAfterBlock(state.shieldActive, state.shieldEnergy);
       const nextHp = Math.max(state.playerHp - damage, 0);
       set({
@@ -791,6 +903,8 @@ function buildBattleStore() {
       }
       const weapon = findWeapon(state.selectedWeaponId);
       const character = findCharacter(state.selectedCharacterId);
+      const weaponWeather = getWeaponWeatherBonus(weapon.id, state.activeWeatherCategory);
+      const characterWeather = getCharacterWeatherBonus(state.selectedCharacterId, state.activeWeatherCategory);
       const specialty = weapon.specialtyAgainst.includes(state.selectedEnemyId)
         ? weapon.specialtyMultiplier
         : 1;
@@ -798,7 +912,13 @@ function buildBattleStore() {
         ? Math.pow(findMinionType(state.minions[0].typeId).bossDamageReceivedMul, state.minions.length)
         : 1;
       const burst = Math.floor(
-        state.enemyMaxHp * weapon.skillBurstRatio * specialty * character.damageMultiplier * minionDmgMul,
+        state.enemyMaxHp
+          * weapon.skillBurstRatio
+          * specialty
+          * character.damageMultiplier
+          * (weaponWeather?.damageMultiplier ?? 1)
+          * (characterWeather?.damageMultiplier ?? 1)
+          * minionDmgMul,
       );
       const totalSteps = Math.max(1, weapon.skillBurstShots);
       const damagePerStep = Math.floor(burst / totalSteps);
@@ -891,6 +1011,10 @@ function buildBattleStore() {
         skillAnimation: finished
           ? null
           : { ...anim, completedSteps },
+        // 撃破時に marker / チャージを明示クリア（同上）。
+        ...(becomesClear
+          ? { lightningMarkers: [], enemyChargeStartedAt: 0, enemyChargeFiresAt: 0 }
+          : {}),
         ...(staggerPatch ?? {}),
         ...(minionPatch
           ? {
@@ -937,11 +1061,27 @@ function buildBattleStore() {
       if (state.status !== "battle") {
         return;
       }
-      set({ lightningMarkers: [...state.lightningMarkers, marker] });
+      set({
+        lightningMarkers: [...state.lightningMarkers, marker].sort((a, b) => a.triggersAt - b.triggersAt),
+        lastMarkerSpawnAt: performance.now(),
+      });
     },
     removeLightning: (id) => {
       const state = get();
       set({ lightningMarkers: state.lightningMarkers.filter((m) => m.id !== id) });
+    },
+    consumeReadyLightning: (now) => {
+      const state = get();
+      let split = 0;
+      while (split < state.lightningMarkers.length && state.lightningMarkers[split].triggersAt <= now) {
+        split += 1;
+      }
+      if (split === 0) {
+        return [];
+      }
+      const ready = state.lightningMarkers.slice(0, split);
+      set({ lightningMarkers: state.lightningMarkers.slice(split) });
+      return ready;
     },
     shiftMarkerTimes: (deltaMs) => {
       const state = get();
@@ -1073,5 +1213,3 @@ if (import.meta.hot) {
   store = buildBattleStore();
 }
 export const useBattleStore = store;
-
-export { findStage };

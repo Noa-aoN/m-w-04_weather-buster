@@ -128,3 +128,98 @@ describe("battleStore.knockback", () => {
     expect(Math.abs(s.knockbackVz)).toBeLessThan(4);
   });
 });
+
+describe("battleStore.location", () => {
+  it("clears synced weather when location is disabled", () => {
+    useBattleStore.setState({
+      ...INITIAL_SNAPSHOT,
+      locationEnabled: true,
+      gpsStatus: "ready",
+      currentWeatherEnemyId: "heavyRain",
+      currentWeatherCode: 63,
+    }, true);
+    useBattleStore.getState().setLocationEnabled(false);
+    const s = useBattleStore.getState();
+    expect(s.locationEnabled).toBe(false);
+    expect(s.gpsStatus).toBe("off");
+    expect(s.currentWeatherEnemyId).toBeNull();
+    expect(s.currentWeatherCode).toBeNull();
+  });
+
+  it("enters loading state when location is enabled", () => {
+    useBattleStore.setState({ ...INITIAL_SNAPSHOT, locationEnabled: false, gpsStatus: "off" }, true);
+    useBattleStore.getState().setLocationEnabled(true);
+    const s = useBattleStore.getState();
+    expect(s.locationEnabled).toBe(true);
+    expect(s.gpsStatus).toBe("loading");
+  });
+
+  it("snapshots the active weather category when battle starts", () => {
+    useBattleStore.setState({
+      ...INITIAL_SNAPSHOT,
+      locationEnabled: true,
+      gpsStatus: "ready",
+      currentWeatherCode: 63,
+    }, true);
+    useBattleStore.getState().start();
+    const s = useBattleStore.getState();
+    expect(s.status).toBe("battle");
+    expect(s.activeWeatherCategory).toBe("rain");
+  });
+
+  it("keeps the battle snapshot even if GPS is turned off after sortie", () => {
+    useBattleStore.setState({
+      ...INITIAL_SNAPSHOT,
+      status: "battle",
+      locationEnabled: true,
+      gpsStatus: "ready",
+      currentWeatherCode: 95,
+      activeWeatherCategory: "thunder",
+    }, true);
+    useBattleStore.getState().setLocationEnabled(false);
+    const s = useBattleStore.getState();
+    expect(s.locationEnabled).toBe(false);
+    expect(s.activeWeatherCategory).toBe("thunder");
+  });
+});
+
+describe("battleStore.lightning queue", () => {
+  it("keeps markers sorted by trigger time and consumes only ready entries", () => {
+    enterBattle();
+    useBattleStore.getState().spawnLightning({
+      id: 2,
+      x: 0,
+      z: 0,
+      triggersAt: 300,
+      spawnAt: 0,
+      fromX: 0,
+      fromY: 1,
+      fromZ: 0,
+      radius: 1,
+      damage: 1,
+      color: "#fff",
+      trailGlow: 1,
+      kind: "arc",
+      enemyId: "cloudy",
+    });
+    useBattleStore.getState().spawnLightning({
+      id: 1,
+      x: 0,
+      z: 0,
+      triggersAt: 100,
+      spawnAt: 0,
+      fromX: 0,
+      fromY: 1,
+      fromZ: 0,
+      radius: 1,
+      damage: 1,
+      color: "#fff",
+      trailGlow: 1,
+      kind: "arc",
+      enemyId: "cloudy",
+    });
+    const ready = useBattleStore.getState().consumeReadyLightning(150);
+    expect(ready.map((marker) => marker.id)).toEqual([1]);
+    expect(useBattleStore.getState().lightningMarkers.map((marker) => marker.id)).toEqual([2]);
+  });
+});

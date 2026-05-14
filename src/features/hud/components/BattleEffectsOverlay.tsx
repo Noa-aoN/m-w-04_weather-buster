@@ -25,13 +25,13 @@ function SkillFlash() {
   }
   return (
     <>
-      <div className="skillFlash" key={`flash-${lastSkillAt}`} aria-hidden="true" />
+      <div className="fullscreenFlash skillFlash" key={`flash-${lastSkillAt}`} aria-hidden="true" />
       <div className="skillBurst" key={`burst-${lastSkillAt}`} aria-hidden="true">
         <span className="skillBurstRing" />
         <span className="skillBurstRing skillBurstRing--two" />
         <span className="skillBurstRing skillBurstRing--three" />
       </div>
-      <div className="skillNameBanner" key={`name-${lastSkillAt}`} aria-hidden="true">
+      <div className="centerBanner skillNameBanner" key={`name-${lastSkillAt}`} aria-hidden="true">
         <span className="skillNameLabel">スキル</span>
         <strong>{weapon.skillName}</strong>
         <span className="skillNameWeapon">{weapon.name}</span>
@@ -195,7 +195,7 @@ function BattleStartFlash() {
   if (flash === 0) {
     return null;
   }
-  return <div className="battleStartFlash" key={flash} aria-hidden="true" />;
+  return <div className="fullscreenFlash battleStartFlash" key={flash} aria-hidden="true" />;
 }
 
 function ClearSkyBurst() {
@@ -231,7 +231,7 @@ function MinionSummonOverlay() {
   return (
     <>
       <div className="minionSummonVignette" key={`v-${show}`} aria-hidden="true" />
-      <div className="minionSummonBanner" key={`b-${show}`} aria-hidden="true">
+      <div className="centerBanner minionSummonBanner" key={`b-${show}`} aria-hidden="true">
         <span>暗雲が眷属を呼ぶ</span>
         <small>子分が召喚された</small>
       </div>
@@ -263,8 +263,8 @@ function StaggerBurst() {
   }
   return (
     <>
-      <div className="staggerFlash" key={`flash-${activeKey}`} aria-hidden="true" />
-      <div className={`staggerBanner ${tick % 2 === 0 ? "on" : ""}`} aria-hidden="true">
+      <div className="fullscreenFlash staggerFlash" key={`flash-${activeKey}`} aria-hidden="true" />
+      <div className={`centerBanner staggerBanner ${tick % 2 === 0 ? "on" : ""}`} aria-hidden="true">
         <span>天侵体 硬直反応</span>
         <small>核を狙え</small>
       </div>
@@ -292,7 +292,7 @@ function DamageFlash() {
   }
   return (
     <div
-      className="damageFlash"
+      className="fullscreenFlash damageFlash"
       key={flash.key}
       style={{ ["--flash-strength" as string]: flash.intensity.toString() }}
       aria-hidden="true"
@@ -306,7 +306,7 @@ function BossIntro({ enemyName, enemyTrait, threat }: { enemyName: string; enemy
   useEffect(() => {
     if (status === "battle") {
       setIntroAt(Date.now());
-      const t = window.setTimeout(() => setIntroAt(0), 2000);
+      const t = window.setTimeout(() => setIntroAt(0), 2200);
       return () => window.clearTimeout(t);
     }
   }, [status]);
@@ -493,7 +493,24 @@ function CriticalFlash() {
   if (flashAt === 0) {
     return null;
   }
-  return <div className="criticalFlash" key={flashAt} aria-hidden="true" />;
+  return <div className="fullscreenFlash criticalFlash" key={flashAt} aria-hidden="true" />;
+}
+
+function ReloadFlash() {
+  const lastReloadCompleteAt = useBattleStore((state) => state.lastReloadCompleteAt);
+  const [flashAt, setFlashAt] = useState(0);
+  useEffect(() => {
+    if (lastReloadCompleteAt === 0) {
+      return;
+    }
+    setFlashAt(lastReloadCompleteAt);
+    const t = window.setTimeout(() => setFlashAt(0), 520);
+    return () => window.clearTimeout(t);
+  }, [lastReloadCompleteAt]);
+  if (flashAt === 0) {
+    return null;
+  }
+  return <div className="reloadFlash" key={flashAt} aria-hidden="true" />;
 }
 
 function HealFlash() {
@@ -511,7 +528,7 @@ function HealFlash() {
   if (flashAt === 0) {
     return null;
   }
-  return <div className="healFlash" key={flashAt} aria-hidden="true" />;
+  return <div className="fullscreenFlash healFlash" key={flashAt} aria-hidden="true" />;
 }
 
 export function BattleEffectsOverlay({
@@ -555,6 +572,7 @@ export function BattleEffectsOverlay({
       <BossIntro enemyName={enemyName} enemyTrait={enemyTrait} threat={enemyThreat} />
       <DamageFlash />
       <HealFlash />
+      <ReloadFlash />
       <CriticalFlash />
       <BlockedIndicator />
       <BarrierWarning />

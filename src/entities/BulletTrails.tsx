@@ -1,7 +1,13 @@
 import { useFrame, useThree } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Mesh, Quaternion, Vector3 } from "three";
+import type { Sprite } from "three";
+import { AdditiveBlending, Mesh, Quaternion, Vector3 } from "three";
 import { useBattleStore } from "../game/battleStore";
+import { assetUrl } from "../shared/assets";
+
+const TIP_TEX_URL = assetUrl("/textures/particles/muzzle.png");
+useTexture.preload(TIP_TEX_URL);
 
 type Bullet = {
   id: number;
@@ -15,9 +21,10 @@ const TRAIL_LIFETIME_MS = 280;
 const TRAIL_MAX_LENGTH = 42;
 
 function BulletTrail({ bullet, onExpire }: { bullet: Bullet; onExpire: (id: number) => void }) {
+  const tipTex = useTexture(TIP_TEX_URL);
   const coreRef = useRef<Mesh>(null);
   const haloRef = useRef<Mesh>(null);
-  const tipRef = useRef<Mesh>(null);
+  const tipRef = useRef<Sprite>(null);
 
   const initialQuaternion = useMemo(() => {
     const q = new Quaternion();
@@ -58,12 +65,13 @@ function BulletTrail({ bullet, onExpire }: { bullet: Bullet; onExpire: (id: numb
       if (m.opacity !== undefined) m.opacity = fade * 0.55;
     }
     if (tipRef.current) {
-      // Bright tip rides the leading edge.
+      // 光が滴るような sprite tip。先端を走り、fade と若干の収縮で消える。
       tipRef.current.position.set(0, 0, travel);
       const tipFade = Math.max(0, 1 - ratio * 1.4);
-      const m = tipRef.current.material as { opacity?: number };
-      if (m.opacity !== undefined) m.opacity = tipFade;
-      tipRef.current.scale.setScalar(1 - ratio * 0.5);
+      const mat = tipRef.current.material as { opacity: number };
+      mat.opacity = tipFade;
+      const s = 0.32 - ratio * 0.16;
+      tipRef.current.scale.set(s, s, 1);
     }
   });
 
@@ -82,11 +90,11 @@ function BulletTrail({ bullet, onExpire }: { bullet: Bullet; onExpire: (id: numb
         <boxGeometry args={[0.075, 0.075, 1]} />
         <meshBasicMaterial color={bullet.color} transparent opacity={0.55} toneMapped={false} depthWrite={false} />
       </mesh>
-      {/* Glowing pinpoint at the leading edge */}
-      <mesh ref={tipRef}>
-        <sphereGeometry args={[0.07, 10, 10]} />
-        <meshBasicMaterial color="#fff7d0" transparent opacity={1} toneMapped={false} depthWrite={false} />
-      </mesh>
+      {/* Glowing pinpoint at the leading edge — sprite で常にカメラを向く
+          ソフトグロー、additive で発光感。 */}
+      <sprite ref={tipRef}>
+        <spriteMaterial map={tipTex} color="#fff7d0" transparent opacity={1} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </sprite>
     </group>
   );
 }

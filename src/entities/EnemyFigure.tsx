@@ -1,11 +1,25 @@
 import { useFrame } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import type { RefObject } from "react";
-import type { Group, Mesh } from "three";
-import { Vector3 } from "three";
+import type { Group, Mesh, Sprite } from "three";
+import { AdditiveBlending, Vector3 } from "three";
 import { useBattleStore } from "../game/battleStore";
 import type { WeatherEnemy } from "../game/types";
+import { assetUrl } from "../shared/assets";
 import { WeatherEnemyModel } from "./WeatherEnemyModel";
+
+const CHARGE_STAR_TEX_URL = assetUrl("/textures/particles/star.png");
+const CHARGE_RING_TEX_URL = assetUrl("/textures/particles/flare.png");
+useTexture.preload(CHARGE_STAR_TEX_URL);
+useTexture.preload(CHARGE_RING_TEX_URL);
+
+// 敵グループ内に置く装飾 sprite は raycast を no-op にする。
+// PlayerController が raycaster.intersectObject(enemyRef, true) で
+// recursive に敵ツリーを当てるが、Sprite.raycast は raycaster.camera
+// を要求するため、デフォルト raycast のままだとクラッシュする。
+// 装飾用 sprite はそもそも当たり判定対象外なので no-op で問題なし。
+const NOOP_RAYCAST: import("three").Object3D["raycast"] = () => {};
 
 const DEFEAT_GROW_MS = 360;
 const DEFEAT_FADE_MS = 900;
@@ -247,6 +261,10 @@ function HitCracks({ color }: { color: string }) {
 
 function EnemyChargeFx({ color }: { color: string }) {
   const groupRef = useRef<Group>(null);
+  const starRef = useRef<Sprite>(null);
+  const ringRef = useRef<Sprite>(null);
+  const starTex = useTexture(CHARGE_STAR_TEX_URL);
+  const ringTex = useTexture(CHARGE_RING_TEX_URL);
   const enemyChargeStartedAt = useBattleStore((state) => state.enemyChargeStartedAt);
   const enemyChargeFiresAt = useBattleStore((state) => state.enemyChargeFiresAt);
   useFrame(({ clock }) => {
@@ -266,6 +284,7 @@ function EnemyChargeFx({ color }: { color: string }) {
     const expand = 1 + k * 0.6;
     node.scale.setScalar(expand);
     node.rotation.y = clock.getElapsedTime() * 2.2;
+    // mesh layer (sphere + 2 torus): 既存ロジック
     node.children.forEach((child, idx) => {
       const mat = (child as { material?: { opacity?: number; emissiveIntensity?: number } }).material;
       if (mat) {
@@ -273,6 +292,22 @@ function EnemyChargeFx({ color }: { color: string }) {
         if (mat.emissiveIntensity !== undefined) mat.emissiveIntensity = 1.5 + k * 1.6 + flicker * 1.4;
       }
     });
+    // 中心の輝き sprite (star) — 回転しながら拡大、k で強度上げ
+    if (starRef.current) {
+      const s = 1.6 + k * 1.6 + flicker * 0.3;
+      starRef.current.scale.set(s, s, 1);
+      const m = starRef.current.material as { opacity: number; rotation: number };
+      m.opacity = 0.65 + k * 0.3 + flicker * 0.05;
+      m.rotation = clock.getElapsedTime() * 1.4;
+    }
+    // 拡張リング sprite — k と共にゆっくり脈動するリング
+    if (ringRef.current) {
+      const pulse = (Math.sin(clock.getElapsedTime() * 6) + 1) * 0.5;
+      const s = 2.4 + k * 1.0 + pulse * 0.4;
+      ringRef.current.scale.set(s, s, 1);
+      const m = ringRef.current.material as { opacity: number };
+      m.opacity = 0.35 + k * 0.4;
+    }
   });
   return (
     <group ref={groupRef} visible={false}>
@@ -288,6 +323,14 @@ function EnemyChargeFx({ color }: { color: string }) {
         <torusGeometry args={[1.65, 0.035, 12, 64]} />
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2.0} transparent opacity={0.4} toneMapped={false} />
       </mesh>
+      {/* sprite 拡張: 中央の輝き星 + 拡張リング。チャージが進むほど明るく
+          脈動して「来るぞ」を伝える。raycast=noop で敵 ray から除外。 */}
+      <sprite ref={ringRef} raycast={NOOP_RAYCAST}>
+        <spriteMaterial map={ringTex} color={color} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </sprite>
+      <sprite ref={starRef} raycast={NOOP_RAYCAST}>
+        <spriteMaterial map={starTex} color="#ffffff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </sprite>
     </group>
   );
 }

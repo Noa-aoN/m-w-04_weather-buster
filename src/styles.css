@@ -122,6 +122,19 @@ canvas {
   z-index: var(--z-home-backdrop, 1);
 }
 
+/* 画面端に向けて暗雲っぽく落とす vignette。3D シーンは触らず CSS だけで
+   遠景の重さを足し、地平線方向の没入感を補強する。 */
+.homeBackdropLayer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 42%, rgba(6, 12, 22, 0.5) 80%, rgba(2, 6, 12, 0.78) 100%),
+    linear-gradient(to bottom, rgba(8, 14, 24, 0.35) 0%, transparent 18%, transparent 92%, rgba(2, 6, 12, 0.06) 100%);
+  z-index: 2;
+}
+
 .homeHudLayer {
   position: absolute;
   inset: 0;
@@ -209,13 +222,24 @@ canvas {
 .gpsToggle {
   display: inline-flex;
   align-items: center;
-  gap: clamp(5px, 0.45vw, 8px);
-  padding: clamp(7px, 0.8vh, 10px) clamp(9px, 0.8vw, 12px);
-  border: 1px solid rgba(40, 217, 255, 0.45);
+  gap: 8px;
+  min-width: clamp(170px, 17vw, 250px);
+  min-height: clamp(40px, 4.2vh, 46px);
+  padding: clamp(6px, 0.7vh, 8px) clamp(8px, 0.75vw, 11px);
+  border: 1px solid rgba(40, 217, 255, 0.65);
   color: #b8d8e6;
-  background: rgba(4, 18, 28, 0.7);
+  background: rgba(4, 18, 28, 0.78);
   font-size: clamp(10px, 0.58vw + 0.28vh, 12px);
   letter-spacing: 0.12em;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.32), 0 0 14px rgba(40, 217, 255, 0.18);
+}
+
+.gpsToggleTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(5px, 0.45vw, 8px);
 }
 
 .gpsToggle small {
@@ -228,6 +252,7 @@ canvas {
   color: #b8d8e6;
   font-style: normal;
   font-size: clamp(10px, 0.58vw + 0.24vh, 12px);
+  white-space: nowrap;
 }
 
 .gpsToggle .gpsDot {
@@ -267,7 +292,6 @@ canvas {
 }
 
 .gpsEnemyHint {
-  margin-left: 4px;
   padding: 1px 5px;
   border: 1px solid rgba(255, 100, 110, 0.55);
   color: #ff9aa6;
@@ -275,6 +299,18 @@ canvas {
   font-size: 9px;
   letter-spacing: 0.12em;
   background: rgba(40, 8, 14, 0.6);
+}
+
+.gpsBonusLine {
+  flex: 1;
+  min-width: 0;
+  color: #eefbff;
+  font-size: clamp(9px, 0.52vw + 0.18vh, 11px);
+  line-height: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @keyframes gpsPulse {
@@ -295,28 +331,104 @@ canvas {
 }
 
 /* Image-based title logo. Sized to feel right across screen sizes:
- *   - 980px cap on huge monitors (24"+ desktops)
- *   - 50vw + 60px primary responsive — MacBook クラスで控えめなサイズ
- *     (1440 → ~780, 1100 → ~610) になるよう係数を抑えめに
+ *   - 1040px cap on huge monitors (24"+ desktops)
+ *   - 50vw + 65px primary responsive — MacBook クラスで控えめなサイズ
+ *     (1440 → ~785, 1100 → ~615) になるよう係数を抑えめに
  *   - 100vw - 40px hard gutter for very narrow windows
- *   - 36vh × 3.47 (image aspect) cap so short windows aren't dominated
+ *   - 38vh × 3.47 (image aspect) cap so short windows aren't dominated
  *     vertically
  * The smallest of the four wins. */
-.titleLogoImg {
+.titleLogoStack {
+  position: relative;
   display: block;
   margin: 0 auto;
   width: min(
-    980px,
-    calc(50vw + 60px),
+    1040px,
+    calc(50vw + 65px),
     calc(100vw - 40px),
-    calc(36vh * 3.47)
+    calc(38vh * 3.47)
   );
+  /* ホームに戻ったとき (HomeScene 再マウント時) に発火する入りアニメ。
+     霧散の逆を辿る: 高 blur + 明度盛り + 軽く拡大 → くっきり収束。 */
+  animation: titleLogoEnter 0.75s cubic-bezier(0.18, 0.9, 0.3, 1) both;
+}
+
+@keyframes titleLogoEnter {
+  0% {
+    opacity: 0;
+    filter: blur(18px) brightness(1.7);
+    transform: scale(1.08);
+  }
+  60% {
+    opacity: 0.85;
+    filter: blur(5px) brightness(1.25);
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0) brightness(1);
+    transform: scale(1);
+  }
+}
+
+/* ゲーム開始押下時の霧散演出。blur で輪郭を散らし、明度を上げて
+   「光って消える」感を出す。380ms で透明、その直後に Battle へ遷移。
+   入りアニメと keyframe を別にして上書きできるようにしている。 */
+.titleLogoStack.is-dismissing {
+  animation: titleLogoDismiss 0.38s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes titleLogoDismiss {
+  0% {
+    opacity: 1;
+    filter: blur(0) brightness(1);
+    transform: scale(1);
+  }
+  55% {
+    opacity: 0.78;
+    filter: blur(7px) brightness(1.5);
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(20px) brightness(2);
+    transform: scale(1.12);
+  }
+}
+
+.titleLogoBackdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: auto;
+  /* 元画像の文字部分を真っ白シルエットに変換し、上層と同じ位置に敷く。
+     brightness(0) invert(1) だけでは antialias 縁の alpha が薄いまま
+     残ってしまうので、drop-shadow を 0 offset で多重に重ねて alpha を
+     膨張させ、文字の縁も含めて完全に不透明な白で抜く。
+     上層と同じ mask を当てて左右端の fade を揃える。 */
+  filter:
+    brightness(0)
+    invert(1)
+    drop-shadow(0 0 0 #ffffff)
+    drop-shadow(0 0 0 #ffffff)
+    drop-shadow(0 0 0 #ffffff)
+    drop-shadow(0 0 0 #ffffff);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 6%, black 94%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, black 6%, black 94%, transparent 100%);
+  pointer-events: none;
+  user-select: none;
+}
+
+.titleLogoImg {
+  position: relative;
+  display: block;
+  width: 100%;
   height: auto;
   /* 浮かないように:
-     - 全体をわずかに透過してコントラストを下げる
-     - drop-shadow を黄色基調に変えてロゴと色味を揃える
-     - 左右の端を soft fade させて背景に溶かす */
-  opacity: 0.92;
+     - drop-shadow を黄色基調にしてロゴと色味を揃える
+     - 左右の端を soft fade させて背景に溶かす
+     opacity は外す（下に白を敷いていても上層が半透明だと結局透けるため）。 */
   filter:
     drop-shadow(0 0 22px rgba(255, 220, 110, 0.32))
     drop-shadow(0 10px 22px rgba(0, 0, 0, 0.4));
@@ -454,13 +566,13 @@ canvas {
 .mainMenu {
   position: absolute;
   z-index: 5;
-  left: clamp(20px, 4vw, 56px);
-  top: clamp(200px, 32vh, 360px);
+  left: 34px;
+  top: clamp(212px, 33vh, 372px);
   display: grid;
   gap: clamp(4px, 0.7vh, 9px);
   /* Matches .missionPreview exactly — both panels share the same width
      formula so the home screen reads as a balanced left-right composition. */
-  width: clamp(260px, 20vw + 8vh, 420px);
+  width: clamp(280px, 22.8vw + 9.4vh, 480px);
 }
 
 .mainMenu button {
@@ -553,9 +665,9 @@ canvas {
 .missionPreview {
   position: absolute;
   z-index: 5;
-  right: clamp(20px, 4vw, 56px);
-  bottom: clamp(32px, 6vh, 80px);
-  width: clamp(260px, 20vw + 8vh, 420px);
+  right: 34px;
+  bottom: clamp(24px, 5vh, 72px);
+  width: clamp(280px, 22.8vw + 9.4vh, 480px);
   padding: clamp(10px, 1.1vh, 18px);
   font-size: clamp(11px, 0.55vw + 0.4vh, 15px);
   max-height: calc(100vh - clamp(160px, 26vh, 240px));
@@ -1768,7 +1880,8 @@ canvas {
   display: inline-flex;
   align-items: center;
   gap: clamp(5px, 0.45vw, 8px);
-  padding: clamp(7px, 0.8vh, 10px) clamp(9px, 0.8vw, 12px);
+  min-height: clamp(40px, 4.2vh, 46px);
+  padding: clamp(6px, 0.7vh, 8px) clamp(8px, 0.75vw, 11px);
   border: 1px solid rgba(40, 217, 255, 0.65);
   color: #b8d8e6;
   background: rgba(4, 18, 28, 0.78);
@@ -3608,11 +3721,18 @@ canvas {
   to { opacity: 0; transform: translate(-50%, -10px); }
 }
 
-.skillFlash {
+/* 全画面 flash の共通 base。位置とポインタ扱いだけまとめ、色 / z-index /
+   アニメ / blend-mode は各派生クラスが持つ。
+   .skillFlash / .battleStartFlash / .staggerFlash / .damageFlash /
+   .healFlash / .criticalFlash の 6 種が利用。 */
+.fullscreenFlash {
   position: absolute;
   inset: 0;
-  z-index: 6;
   pointer-events: none;
+}
+
+.skillFlash {
+  z-index: 6;
   background:
     radial-gradient(circle at 50% 50%, rgba(255, 240, 110, 0.7) 0%, rgba(255, 200, 70, 0.3) 30%, transparent 65%),
     linear-gradient(180deg, rgba(255, 200, 70, 0.18), transparent 35%, transparent 65%, rgba(255, 200, 70, 0.18));
@@ -3661,11 +3781,22 @@ canvas {
   100% { transform: scale(7); opacity: 0; border-width: 1px; }
 }
 
-.skillNameBanner {
+/* 中央寄せの通知バナー共通 base。
+   .skillNameBanner / .minionSummonBanner / .staggerBanner の 3 種が利用。
+   座標 + transform-X 中央寄せ + ポインタ無効 + フォントを集約し、
+   各派生は top / display / 色 / アニメだけ持つ。 */
+.centerBanner {
   position: absolute;
-  top: 38%;
   left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  font-family: "Kenney Future", "Bebas Neue", "Oswald", sans-serif;
+}
+
+.skillNameBanner {
+  top: 38%;
   z-index: 8;
+  /* skillName のみ Y も中央寄せのため transform を上書き */
   transform: translate(-50%, -50%);
   display: grid;
   justify-items: center;
@@ -3676,8 +3807,6 @@ canvas {
   border-radius: 20px;
   box-shadow: 0 0 60px rgba(255, 200, 90, 0.7), inset 0 0 30px rgba(255, 230, 130, 0.3);
   backdrop-filter: blur(6px);
-  pointer-events: none;
-  font-family: "Kenney Future", "Bebas Neue", "Oswald", sans-serif;
   letter-spacing: 0.18em;
   animation: skillNameAnim 1.2s cubic-bezier(0.18, 0.9, 0.3, 1) forwards;
 }
@@ -4027,10 +4156,7 @@ canvas {
    pulse expands from the centre outward like a concentric ring before
    fading off the edges. */
 .battleStartFlash {
-  position: absolute;
-  inset: 0;
   z-index: 8;
-  pointer-events: none;
   transform-origin: 50% 50%;
   background:
     radial-gradient(circle at 50% 50%, rgba(255, 247, 216, 0.6) 0%, rgba(255, 217, 87, 0.32) 28%, transparent 62%),
@@ -4068,21 +4194,17 @@ canvas {
 }
 
 .minionSummonBanner {
-  position: absolute;
   top: 26%;
-  left: 50%;
   z-index: 9;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
   padding: 10px 26px;
-  transform: translateX(-50%) translateY(0);
   border: 1px solid rgba(180, 120, 220, 0.7);
   color: #f3d7ff;
   background: linear-gradient(180deg, rgba(40, 14, 60, 0.92), rgba(14, 6, 22, 0.94));
   text-shadow: 0 0 14px rgba(170, 110, 220, 0.7);
-  pointer-events: none;
   letter-spacing: 0.22em;
   box-shadow: 0 0 26px rgba(120, 60, 200, 0.55), inset 0 0 18px rgba(140, 90, 220, 0.25);
   animation: minionSummonBanner 1.6s cubic-bezier(0.18, 0.9, 0.3, 1) forwards;
@@ -4110,10 +4232,7 @@ canvas {
 /* Stagger break — quick warm yellow flash + center banner so the player
    immediately reads the boss as frozen and switches to "go for the core". */
 .staggerFlash {
-  position: absolute;
-  inset: 0;
   z-index: 7;
-  pointer-events: none;
   background: radial-gradient(circle at 50% 38%,
     rgba(255, 240, 160, 0.45) 0%,
     rgba(255, 200, 90, 0.28) 30%,
@@ -4130,21 +4249,17 @@ canvas {
 }
 
 .staggerBanner {
-  position: absolute;
   top: 30%;
-  left: 50%;
   z-index: 9;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
   padding: 10px 28px;
-  transform: translateX(-50%);
   border: 1px solid rgba(255, 224, 96, 0.85);
   color: #fff5cf;
   background: linear-gradient(180deg, rgba(78, 36, 6, 0.9), rgba(40, 18, 4, 0.92));
   text-shadow: 0 0 18px rgba(255, 200, 90, 0.85);
-  pointer-events: none;
   letter-spacing: 0.22em;
   box-shadow: 0 0 28px rgba(255, 200, 80, 0.45), inset 0 0 18px rgba(255, 224, 96, 0.18);
 }
@@ -4371,10 +4486,7 @@ canvas {
 
 .damageFlash {
   --flash-strength: 0.6;
-  position: absolute;
-  inset: 0;
   z-index: 6;
-  pointer-events: none;
   background:
     radial-gradient(ellipse at center, transparent 30%, rgba(220, 30, 50, calc(var(--flash-strength) * 0.55)) 95%),
     linear-gradient(180deg, rgba(255, 60, 80, calc(var(--flash-strength) * 0.4)), transparent 30%, transparent 70%, rgba(255, 60, 80, calc(var(--flash-strength) * 0.4)));
@@ -4388,14 +4500,36 @@ canvas {
 }
 
 .healFlash {
-  position: absolute;
-  inset: 0;
   z-index: 6;
-  pointer-events: none;
   background:
     radial-gradient(ellipse at center, transparent 30%, rgba(120, 255, 180, 0.35) 95%),
     linear-gradient(180deg, rgba(255, 232, 130, 0.32), transparent 28%, transparent 72%, rgba(120, 255, 180, 0.28));
   animation: healFlashAnim 0.7s ease-out forwards;
+}
+
+/* リロード完了の控えめなリング演出。中央のクロスヘア周りで小さい黄色リングが
+   一瞬広がって fade。視界を塞がず、装填完了を端的に伝える。 */
+.reloadFlash {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 64px;
+  height: 64px;
+  margin-left: -32px;
+  margin-top: -32px;
+  z-index: 6;
+  pointer-events: none;
+  border: 2px solid #ffe15a;
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgba(255, 225, 90, 0.55), inset 0 0 14px rgba(255, 225, 90, 0.35);
+  opacity: 0;
+  animation: reloadFlashAnim 0.5s ease-out forwards;
+}
+
+@keyframes reloadFlashAnim {
+  0%   { opacity: 0; transform: scale(0.45); }
+  20%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.4); }
 }
 
 @keyframes healFlashAnim {
@@ -4405,10 +4539,7 @@ canvas {
 }
 
 .criticalFlash {
-  position: absolute;
-  inset: 0;
   z-index: 6;
-  pointer-events: none;
   background:
     radial-gradient(circle at center, transparent 35%, rgba(255, 220, 80, 0.34) 80%),
     linear-gradient(180deg, transparent 38%, rgba(255, 200, 70, 0.22) 50%, transparent 62%);
@@ -4710,10 +4841,12 @@ canvas {
 
 .skillReadyToast {
   position: absolute;
-  /* Tucked directly under the radar panel so it sits in the upper-left HUD
-     column and doesn't overlap the bottom-right weapon / skill / player
-     status panels. Width matches the radar so they read as one column. */
-  top: clamp(150px, 18vh, 200px);
+  /* Tucked directly under the radar panel (radar の実高 ~ 220-260px、
+     top 24 + 高さ で底辺は ~250px 付近)。以前は 150-200 で radar と
+     被っていたので 260 以上に下げて確実にクリア。bossIntro は battle
+     開始 2 秒のみ + ゲージ初期 0 なので時間的に競合しない。
+     Width matches the radar so they read as one column. */
+  top: clamp(260px, 32vh, 320px);
   left: 26px;
   width: clamp(230px, 26vw, 330px);
   z-index: 6;
@@ -4776,13 +4909,14 @@ canvas {
   100% { transform: scale(1.08); box-shadow: 0 0 18px rgba(255, 220, 110, 0.95); }
 }
 
-/* Boss intro panel: tucked under the radar so the center view (where the boss
-   actually is) stays clear during the first 2 seconds of battle. Background
-   is intentionally faint — the colored borders + glowing name carry the
-   reveal, the body color is just there to keep the text readable. */
+/* Boss intro panel: skillReadyToast と同じ縦位置 (radar 直下) + 同じ
+   ビジュアル言語 (暗い茶系グラデ + 黄色枠 + 黄色グロー、左から滑り込み
+   2.2 秒で消える)。両者は時間的に排他 (bossIntro = battle 開始 2 秒、
+   skillReadyToast = gauge MAX タイミング) なので同居 OK。
+   playerStatus との上下マージンに余裕を確保。 */
 .bossIntro {
   position: absolute;
-  top: clamp(280px, 32vh, 360px);
+  top: clamp(260px, 32vh, 320px);
   left: 26px;
   z-index: 7;
   display: grid;
@@ -4790,15 +4924,15 @@ canvas {
   gap: 4px;
   width: clamp(230px, 26vw, 330px);
   padding: 10px 16px 12px;
-  background: linear-gradient(180deg, rgba(120, 22, 40, 0.32), rgba(40, 6, 14, 0.48));
-  border-top: 2px solid rgba(255, 210, 90, 0.85);
-  border-bottom: 2px solid rgba(255, 210, 90, 0.85);
-  box-shadow: 0 0 28px rgba(255, 90, 90, 0.32), inset 0 0 22px rgba(255, 90, 110, 0.08);
+  border: 1px solid rgba(255, 220, 110, 0.85);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(60, 28, 8, 0.92), rgba(40, 20, 6, 0.95));
+  box-shadow: 0 0 28px rgba(255, 200, 70, 0.55), inset 0 0 18px rgba(255, 220, 110, 0.22);
   backdrop-filter: blur(2px);
   pointer-events: none;
   font-family: "Kenney Future", "Bebas Neue", "Oswald", sans-serif;
-  letter-spacing: 0.14em;
-  animation: bossIntroAnim 2s cubic-bezier(0.18, 0.9, 0.3, 1) forwards;
+  letter-spacing: 0.16em;
+  animation: skillReadyToastAnim 2.2s cubic-bezier(0.18, 0.9, 0.3, 1) forwards;
 }
 
 .bossIntroLabel {

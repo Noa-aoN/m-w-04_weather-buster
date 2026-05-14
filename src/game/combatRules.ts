@@ -41,15 +41,16 @@ export function enemyMaxHpFor(enemy: WeatherEnemy, difficulty: DifficultyLevel) 
   return Math.round(enemy.maxHp * difficultyModifiers[difficulty].hp);
 }
 
-export function computeOutgoingDamage(
+function computeOutgoingDamage(
   weapon: Weapon,
   enemyId: WeatherEnemyId,
   characterMul: number,
+  extraMul: number = 1,
 ) {
   const specialty = weapon.specialtyAgainst.includes(enemyId)
     ? weapon.specialtyMultiplier
     : 1;
-  return weapon.damage * specialty * characterMul;
+  return weapon.damage * specialty * characterMul * extraMul;
 }
 
 export function computeIncomingDamage(
@@ -59,12 +60,13 @@ export function computeIncomingDamage(
   shieldActive: boolean,
   shieldEnergy: number,
   now: number = Date.now(),
+  extraMul: number = 1,
 ) {
   const reduced = now < decoyUntil ? amount * COMBAT_CONSTANTS.DECOY_DAMAGE_RATIO : amount;
   const guarded = shieldActive && shieldEnergy > 0
     ? reduced * COMBAT_CONSTANTS.SHIELD_DAMAGE_RATIO
     : reduced;
-  return guarded * characterMul;
+  return guarded * characterMul * extraMul;
 }
 
 export function shieldAfterBlock(shieldActive: boolean, shieldEnergy: number) {
@@ -94,6 +96,8 @@ export type ApplyShotInput = {
   weapon: Weapon;
   character: Character;
   enemyId: WeatherEnemyId;
+  damageMultiplier?: number;
+  gaugeGainMultiplier?: number;
   state: {
     enemyHp: number;
     pressureGauge: number;
@@ -124,12 +128,14 @@ export function applyShot({
   weapon,
   character,
   enemyId,
+  damageMultiplier = 1,
+  gaugeGainMultiplier = 1,
   state,
   now,
 }: ApplyShotInput): ApplyShotPatch {
   const blocked = didHit && now < state.enemyBarrierUntil;
   const baseDamage = didHit
-    ? computeOutgoingDamage(weapon, enemyId, character.damageMultiplier)
+    ? computeOutgoingDamage(weapon, enemyId, character.damageMultiplier, damageMultiplier)
     : 0;
   const blockMul = blocked ? COMBAT_CONSTANTS.BARRIER_DAMAGE_MUL : 1;
   const zoneMul = critical
@@ -143,7 +149,7 @@ export function applyShot({
   const gaugeMul = blocked ? COMBAT_CONSTANTS.BARRIER_GAUGE_MUL : 1;
   const meleeMul = weapon.id === "windBlade" ? COMBAT_CONSTANTS.MELEE_GAUGE_MULTIPLIER : 1;
   const pressureGauge = Math.min(
-    state.pressureGauge + baseGauge * character.gaugeGainMultiplier * gaugeMul * meleeMul,
+    state.pressureGauge + baseGauge * character.gaugeGainMultiplier * gaugeMul * meleeMul * gaugeGainMultiplier,
     100,
   );
   const becomesClear = enemyHp === 0 && state.enemyHp > 0;
