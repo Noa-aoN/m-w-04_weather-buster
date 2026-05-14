@@ -17,6 +17,7 @@ import { SlashTrails } from "../entities/SlashTrails";
 import { StageColliderDebug } from "../entities/StageColliderDebug";
 import { EnemyHitSparks } from "../entities/EnemyHitSparks";
 import { EnemyImpactBursts } from "../entities/EnemyImpactBursts";
+import { ThunderstrikeImpacts } from "../entities/ThunderstrikeImpacts";
 import { StaticImpactBursts } from "../entities/StaticImpactBursts";
 import type { StageCollider } from "../entities/stagePlacements";
 import { useStageColliders } from "../entities/useStageColliders";
@@ -179,6 +180,7 @@ function ExperimentField({
       <StaticImpactBursts />
       <EnemyHitSparks />
       <EnemyImpactBursts />
+      <ThunderstrikeImpacts />
       <PlayerShield />
       <Suspense fallback={null}>
         <PlayerWeapon />
