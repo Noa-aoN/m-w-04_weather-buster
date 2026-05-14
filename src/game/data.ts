@@ -565,5 +565,3 @@ export const findCharacter = (id: Character["id"]) =>
 
 export const findStage = (id: Stage["id"]) =>
   stages.find((stage) => stage.id === id) ?? stages[0];
-
-export const mvpEnemies = weatherEnemies.filter((enemy) => enemy.playableInMvp);

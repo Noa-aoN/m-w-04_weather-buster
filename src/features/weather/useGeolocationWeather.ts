@@ -15,19 +15,6 @@ const codeToEnemy = (code: number | null | undefined): WeatherEnemyId | null => 
   return null;
 };
 
-export const weatherCodeLabel = (code: number | null): string => {
-  if (code === null) return "計測中";
-  if (code === 0) return "快晴";
-  if (code <= 3) return "曇り";
-  if (code === 45 || code === 48) return "霧";
-  if (code >= 51 && code <= 67) return "雨";
-  if (code >= 71 && code <= 77) return "雪";
-  if (code >= 80 && code <= 82) return "強雨";
-  if (code >= 85 && code <= 86) return "降雪";
-  if (code >= 95) return "雷雨";
-  return "未確認";
-};
-
 export function useGeolocationWeather() {
   const enabled = useBattleStore((state) => state.locationEnabled);
   const setCurrentWeather = useBattleStore((state) => state.setCurrentWeather);

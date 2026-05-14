@@ -1108,7 +1108,3 @@ export function stopBgm() {
     bgmTimer = null;
   }
 }
-
-export function getAudioState() {
-  return { ...audioState };
-}
