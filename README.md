@@ -80,6 +80,7 @@ WebGL2 が動く最近のブラウザ(Chrome / Edge / Safari / Firefox)で動き
 
 - **ノア(NOA)** ― 機動バランス型。与ダメ +10% / 移動 +10%
 - **サカ(SAKA)** ― 重装アタッカー型。与ダメ +30% / 被ダメ -15% / 気圧 +30% / 移動 -20%
+- **メタピー(METP)** ― 気圧特化型。気圧 +50% / 与ダメ -10% / 被ダメ +10%
 
 ---
 
@@ -111,7 +112,7 @@ WebGL2 が動く最近のブラウザ(Chrome / Edge / Safari / Firefox)で動き
 - **Quaternius**(`quaternius.com`、CC0)
   - Sci-Fi Gun Pack(`scifi-guns-q/`):各ウェポンの本体モデル
 - **オリジナル(custom-)**
-  - `custom-characters/`:ノア / サカ(`Meshy AI` で生成 → 手動微調整した GLB)
+  - `custom-characters/`:ノア / サカ / メタピー(`Meshy AI` で生成 → 手動微調整した GLB)
   - `custom-enemies/`:豪雨・落雷・竜巻・梅雨・吹雪などの天侵体本体メッシュ
   - `custom-weapons/`:風切ブレードなど一部固有武器
 

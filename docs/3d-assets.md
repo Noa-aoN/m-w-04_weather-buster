@@ -8,7 +8,7 @@
 
 | ディレクトリ | 内容 |
 | --- | --- |
-| `custom-characters/` | バスター本体(`noa.glb` / `saka.glb`)。Meshy AI で生成した GLB を手動で微調整 |
+| `custom-characters/` | バスター本体(`noa.glb` / `saka.glb` / `metappi.glb`)。Meshy AI で生成した GLB を手動で微調整 |
 | `custom-enemies/` | 天侵体本体(豪雨・落雷・竜巻・梅雨・吹雪)。同上 |
 | `custom-weapons/` | 一部固有武器(風切ブレードなど) |
 

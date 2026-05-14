@@ -271,6 +271,21 @@ export const characters: Character[] = [
     description: "装甲スーツを纏った重装アタッカー。機動性は捨て、圧倒的な火力と粘り強さで短期決戦を仕掛ける。にんじん片手に踏み込む独自スタイル。",
     flavor: "俺が土手っ腹に風穴空けてやるよ",
   },
+  {
+    id: "metappi",
+    codename: "メタピー",
+    callSign: "METP",
+    role: "気圧特化型",
+    passiveName: "圧縮豆装填",
+    passiveDescription: "気圧 +50% / 与ダメ -10% / 被ダメ +10%",
+    damageMultiplier: 0.9,
+    damageTakenMultiplier: 1.1,
+    gaugeGainMultiplier: 1.5,
+    moveSpeedMultiplier: 1.0,
+    accentColor: "#3edc8a",
+    description: "気圧豆を扱うサポート型バスター。豆殻に圧縮した気圧を小刻みに解放することで、武器スキル発動までの待ち時間を誰よりも短く保つ。打撃の威力は控えめだが、決定打を撃ち込む隙を作るのが本領。",
+    flavor: "豆ひとさじで、気圧こさえます",
+  },
 ];
 
 export const stages: Stage[] = [

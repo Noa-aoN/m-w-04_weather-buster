@@ -409,6 +409,7 @@ export function PlayerBackAvatar() {
 
 useGLTF.preload(CHARACTER_MODEL_URL.noa);
 useGLTF.preload(CHARACTER_MODEL_URL.saka);
+useGLTF.preload(CHARACTER_MODEL_URL.metappi);
 
 // Sets camera FOV from the store and adds a brief "punch" on each shot / skill.
 export function FovController() {
