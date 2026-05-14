@@ -148,6 +148,17 @@ type BattleState = {
   lastShotHitX: number;
   lastShotHitY: number;
   lastShotHitZ: number;
+  /** 敵攻撃の着弾イベント。EnemyImpactBursts が subscribe して
+   *  marker 位置に sprite burst を立てる。status は "hit"=直撃、
+   *  "blocked"=遮蔽で防がれた、"dodged"=範囲外で空振り。 */
+  lastEnemyImpactAt: number;
+  lastEnemyImpactX: number;
+  lastEnemyImpactY: number;
+  lastEnemyImpactZ: number;
+  lastEnemyImpactColor: string;
+  lastEnemyImpactEnemyId: WeatherEnemyId | null;
+  lastEnemyImpactStatus: "hit" | "blocked" | "dodged" | "none";
+  lastEnemyImpactRadius: number;
   /** Timestamp of the last windBlade ranged-slash projectile (right click).
    *  Kept separate from lastShotAt so close-range slash visuals (PlayerView
    *  blade swing, SlashTrails carve line) don't fire on a ranged cast. */
@@ -280,6 +291,14 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   lastShotHitX: 0,
   lastShotHitY: 0,
   lastShotHitZ: 0,
+  lastEnemyImpactAt: 0,
+  lastEnemyImpactX: 0,
+  lastEnemyImpactY: 0,
+  lastEnemyImpactZ: 0,
+  lastEnemyImpactColor: "#ffffff",
+  lastEnemyImpactEnemyId: null,
+  lastEnemyImpactStatus: "none" as const,
+  lastEnemyImpactRadius: 0,
   lastShotCritical: false,
   lastShotDamage: 0,
   lastSlashProjectileAt: 0,

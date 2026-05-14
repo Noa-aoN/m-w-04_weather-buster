@@ -445,6 +445,7 @@ export function PlayerController({
         const dx = camera.position.x - marker.x;
         const dz = camera.position.z - marker.z;
         const distance = Math.sqrt(dx * dx + dz * dz);
+        let impactStatus: "hit" | "blocked" | "dodged" = "dodged";
         if (distance <= marker.radius) {
           // Static prop occlusion: cast a 3D ray from the marker's
           // origin (boss / minion / sky) to the player. If a static
@@ -467,6 +468,7 @@ export function PlayerController({
             if (blockerT < rayDist) blocked = true;
           }
           if (!blocked) {
+            impactStatus = "hit";
             state.takeMarkerDamage(marker.damage);
             const markerEnemyId = (marker as { enemyId?: typeof marker.enemyId }).enemyId;
             const pat = markerEnemyId ? enemyAttackPatterns[markerEnemyId] : null;
@@ -483,8 +485,22 @@ export function PlayerController({
             if (markerEnemyId === "rainySeason") {
               useBattleStore.setState({ slowUntil: now + 2200 });
             }
+          } else {
+            impactStatus = "blocked";
           }
         }
+        // 着弾イベントを store に書き込み EnemyImpactBursts が拾う。
+        // performance.now() を共通の clock として使用 (subscribe 側と一致)。
+        useBattleStore.setState({
+          lastEnemyImpactAt: performance.now(),
+          lastEnemyImpactX: marker.x,
+          lastEnemyImpactY: 0.05,
+          lastEnemyImpactZ: marker.z,
+          lastEnemyImpactColor: marker.color,
+          lastEnemyImpactEnemyId: marker.enemyId,
+          lastEnemyImpactStatus: impactStatus,
+          lastEnemyImpactRadius: marker.radius,
+        });
         state.removeLightning(marker.id);
       }
     }
