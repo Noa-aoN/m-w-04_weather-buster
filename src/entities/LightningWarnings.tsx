@@ -1,8 +1,13 @@
 import { useFrame } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import type { Group, Mesh, PointLight } from "three";
+import { AdditiveBlending } from "three";
 import { useBattleStore } from "../game/battleStore";
+import { assetUrl } from "../shared/assets";
 import type { WeatherEnemyId } from "../game/types";
+
+const TRAIL_TEX_URL = assetUrl("/textures/particles/muzzle.png");
 
 type AttackMarker = {
   id: number;
@@ -251,15 +256,18 @@ function StyledProjectileShape({ enemyId, color, kind }: { enemyId: WeatherEnemy
 }
 
 function MarkerProjectile({ marker }: { marker: AttackMarker }) {
+  const trailTex = useTexture(TRAIL_TEX_URL);
   const groupRef = useRef<Group>(null);
   const trailRef = useRef<Mesh>(null);
   const lightRef = useRef<PointLight>(null);
+  // 飛翔体の後ろに尾を引く 4 連 sprite。Sprite はカメラを向くので、回転する
+  // projectile に対しても光の尾として綺麗に見える。
   const trailParticles = useMemo(
     () =>
       Array.from({ length: 4 }, (_, i) => ({
         offset: -0.12 - i * 0.08,
         scale: 0.55 - i * 0.08,
-        opacity: 0.45 - i * 0.08,
+        opacity: 0.5 - i * 0.1,
       })),
     [],
   );
@@ -318,10 +326,9 @@ function MarkerProjectile({ marker }: { marker: AttackMarker }) {
       <group ref={groupRef}>
         <StyledProjectileShape enemyId={marker.enemyId} color={marker.color} kind={marker.kind} />
         {trailParticles.map((p, i) => (
-          <mesh key={i} position={[0, 0, p.offset]}>
-            <sphereGeometry args={[0.18 * p.scale, 10, 10]} />
-            <meshBasicMaterial color={marker.color} transparent opacity={p.opacity} toneMapped={false} />
-          </mesh>
+          <sprite key={i} position={[0, 0, p.offset]} scale={[0.42 * p.scale * 2, 0.42 * p.scale * 2, 1]}>
+            <spriteMaterial map={trailTex} color={marker.color} transparent opacity={p.opacity} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+          </sprite>
         ))}
       </group>
       <mesh ref={trailRef}>
