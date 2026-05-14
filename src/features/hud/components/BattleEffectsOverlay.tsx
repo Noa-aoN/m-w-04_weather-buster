@@ -31,7 +31,7 @@ function SkillFlash() {
         <span className="skillBurstRing skillBurstRing--two" />
         <span className="skillBurstRing skillBurstRing--three" />
       </div>
-      <div className="skillNameBanner" key={`name-${lastSkillAt}`} aria-hidden="true">
+      <div className="centerBanner skillNameBanner" key={`name-${lastSkillAt}`} aria-hidden="true">
         <span className="skillNameLabel">スキル</span>
         <strong>{weapon.skillName}</strong>
         <span className="skillNameWeapon">{weapon.name}</span>
@@ -231,7 +231,7 @@ function MinionSummonOverlay() {
   return (
     <>
       <div className="minionSummonVignette" key={`v-${show}`} aria-hidden="true" />
-      <div className="minionSummonBanner" key={`b-${show}`} aria-hidden="true">
+      <div className="centerBanner minionSummonBanner" key={`b-${show}`} aria-hidden="true">
         <span>暗雲が眷属を呼ぶ</span>
         <small>子分が召喚された</small>
       </div>
@@ -264,7 +264,7 @@ function StaggerBurst() {
   return (
     <>
       <div className="fullscreenFlash staggerFlash" key={`flash-${activeKey}`} aria-hidden="true" />
-      <div className={`staggerBanner ${tick % 2 === 0 ? "on" : ""}`} aria-hidden="true">
+      <div className={`centerBanner staggerBanner ${tick % 2 === 0 ? "on" : ""}`} aria-hidden="true">
         <span>天侵体 硬直反応</span>
         <small>核を狙え</small>
       </div>
