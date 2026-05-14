@@ -3444,7 +3444,8 @@ canvas {
 
 .cyclerDetailButton:hover small,
 .cyclerDetailButton:hover strong,
-.cyclerDetailButton:hover em {
+.cyclerDetailButton:hover em,
+.cyclerDetailButton:hover em > span {
   color: #ffe15a;
 }
 
