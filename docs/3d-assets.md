@@ -44,6 +44,7 @@ GLB 中心のローポリパック。
 | `muzzle.png` | Kenney Particle Pack `circle_01.png` | マズルフラッシュ熱核（soft glow） |
 | `flare.png` | Kenney Particle Pack `circle_03.png` | マズルフラッシュ内リング（sharp ring） |
 | `smoke.png` | Kenney Particle Pack `circle_05.png` | マズルフラッシュ外リング（soft ring） |
+| `star.png` | Kenney Particle Pack `star_06.png` | スキル発動バーストの中心輝き |
 
 ## ステージ床テクスチャ(AmbientCG、CC0)
 

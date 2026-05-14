@@ -1,8 +1,14 @@
 import { useFrame, useThree } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
 import { useEffect, useRef, useState } from "react";
-import { AdditiveBlending, BackSide, type Camera, DoubleSide, Mesh } from "three";
+import { AdditiveBlending, BackSide, type Camera, DoubleSide, Mesh, Vector3 as Vec3 } from "three";
+import type { Sprite } from "three";
 import { useBattleStore } from "../game/battleStore";
+import { assetUrl } from "../shared/assets";
 import type { Vector3 } from "three";
+
+const STAR_TEX_URL = assetUrl("/textures/particles/star.png");
+const RING_TEX_URL = assetUrl("/textures/particles/flare.png");
 
 // Visual layer for the per-step weapon-skill animation. Reads
 // `skillAnimation` + `lastShotAt` from the store and spawns short-lived
@@ -25,6 +31,15 @@ type SlashWave = {
   spawnedAt: number;
   color: string;
 };
+
+type ActivationBurst = {
+  id: number;
+  spawnedAt: number;
+  origin: { x: number; y: number; z: number };
+  color: string;
+};
+
+const ACTIVATION_LIFETIME_MS = 480;
 
 const SPARK_LIFETIME_MS = 380;
 // Slightly longer than the per-step interval (130ms for windBlade) so two
@@ -157,6 +172,49 @@ function SlashWaveMesh({
   );
 }
 
+function ActivationBurstMesh({ burst, onExpire }: { burst: ActivationBurst; onExpire: (id: number) => void }) {
+  const starTex = useTexture(STAR_TEX_URL);
+  const ringTex = useTexture(RING_TEX_URL);
+  const starRef = useRef<Sprite>(null);
+  const ringRef = useRef<Sprite>(null);
+  const rotRef = useRef(Math.random() * Math.PI * 2);
+  useFrame(() => {
+    const elapsed = performance.now() - burst.spawnedAt;
+    if (elapsed >= ACTIVATION_LIFETIME_MS) {
+      onExpire(burst.id);
+      return;
+    }
+    const t = elapsed / ACTIVATION_LIFETIME_MS;
+    // 星: ピーク→fade、ゆっくり回転して輝き感を出す
+    const starK = (1 - t) ** 1.4;
+    if (starRef.current) {
+      const s = 1.2 + t * 1.8;
+      starRef.current.scale.set(s, s, 1);
+      const mat = starRef.current.material as { opacity: number; rotation: number };
+      mat.opacity = starK;
+      mat.rotation = rotRef.current + t * 0.6;
+    }
+    // リング: 大きく拡張、二段目のショックウェーブ
+    const ringK = (1 - t) ** 1.2;
+    if (ringRef.current) {
+      const s = 0.8 + t * 4.5;
+      ringRef.current.scale.set(s, s, 1);
+      const mat = ringRef.current.material as { opacity: number };
+      mat.opacity = ringK * 0.7;
+    }
+  });
+  return (
+    <group position={[burst.origin.x, burst.origin.y, burst.origin.z]}>
+      <sprite ref={ringRef}>
+        <spriteMaterial map={ringTex} color={burst.color} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </sprite>
+      <sprite ref={starRef}>
+        <spriteMaterial map={starTex} color="#ffffff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </sprite>
+    </group>
+  );
+}
+
 export function SkillBurstVFX({
   enemyPositionRef,
 }: {
@@ -165,10 +223,29 @@ export function SkillBurstVFX({
   const { camera } = useThree();
   const [sparks, setSparks] = useState<Spark[]>([]);
   const [waves, setWaves] = useState<SlashWave[]>([]);
+  const [activations, setActivations] = useState<ActivationBurst[]>([]);
   const counter = useRef(0);
 
   useEffect(() => {
     return useBattleStore.subscribe((state, prev) => {
+      // スキル発動の単発バースト（lastSkillAt が変わった瞬間）
+      if (state.lastSkillAt !== prev.lastSkillAt && state.lastSkillAt !== 0) {
+        counter.current += 1;
+        // カメラの少し前に置く: 視界中央で派手に光らせる。Vector3 を新規
+        // 生成して取得（camera を直接 reference せず、現在位置の snapshot）。
+        const fwd = camera.getWorldDirection(new Vec3());
+        const origin = camera.position.clone().add(fwd.multiplyScalar(2.4));
+        setActivations((current) => [
+          ...current,
+          {
+            id: counter.current,
+            spawnedAt: performance.now(),
+            origin: { x: origin.x, y: origin.y, z: origin.z },
+            color: "#ffd24a",
+          },
+        ]);
+      }
+
       if (state.lastShotAt === prev.lastShotAt || state.lastShotAt === 0) {
         return;
       }
@@ -202,13 +279,16 @@ export function SkillBurstVFX({
         ]);
       }
     });
-  }, [enemyPositionRef]);
+  }, [enemyPositionRef, camera]);
 
   function expireSpark(id: number) {
     setSparks((current) => current.filter((entry) => entry.id !== id));
   }
   function expireWave(id: number) {
     setWaves((current) => current.filter((entry) => entry.id !== id));
+  }
+  function expireActivation(id: number) {
+    setActivations((current) => current.filter((entry) => entry.id !== id));
   }
 
   return (
@@ -218,6 +298,9 @@ export function SkillBurstVFX({
       ))}
       {waves.map((wave) => (
         <SlashWaveMesh key={wave.id} wave={wave} camera={camera} onExpire={expireWave} />
+      ))}
+      {activations.map((burst) => (
+        <ActivationBurstMesh key={burst.id} burst={burst} onExpire={expireActivation} />
       ))}
     </>
   );
