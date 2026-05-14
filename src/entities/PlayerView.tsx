@@ -1,15 +1,23 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useAnimations, useGLTF } from "@react-three/drei";
+import { useAnimations, useGLTF, useTexture } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { AnimationClip, Group, Mesh, PerspectiveCamera, PointLight } from "three";
-import { AdditiveBlending, Vector3 } from "three";
+import type { AnimationClip, Group, Mesh, PerspectiveCamera, PointLight, Sprite } from "three";
+import { AdditiveBlending, NormalBlending, Vector3 } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
 import { findCharacter } from "../game/data";
 import { isDebugEnabled, writeDebug } from "../features/debug/debugBus";
+import { assetUrl } from "../shared/assets";
 import { CHARACTER_MODEL_URL } from "./CharacterModel";
 import { fitObjectToHeight, tintCharacterMaterials } from "./fitObject";
 import { WeaponObject, weaponModelRotation, weaponModelScale } from "./WeaponModel";
+
+const MUZZLE_TEX_URL = assetUrl("/textures/particles/muzzle.png");
+const FLARE_TEX_URL = assetUrl("/textures/particles/flare.png");
+const SMOKE_TEX_URL = assetUrl("/textures/particles/smoke.png");
+useTexture.preload(MUZZLE_TEX_URL);
+useTexture.preload(FLARE_TEX_URL);
+useTexture.preload(SMOKE_TEX_URL);
 
 // First-person weapon: tracks camera quaternion every frame, with a kicked
 // recoil that decays over 130ms.
@@ -21,71 +29,105 @@ const SLASH_DURATION_MS = 180;
 const SLASH_VARIANTS = 4;
 
 /**
- * Muzzle flash. Layered additive bloom in warm orange/yellow tones —
- * matches the prior look the player preferred. Layers:
- *  - hot white pin-prick core
- *  - inner yellow energy bloom
- *  - outer orange corona
- *  - anamorphic horizontal + vertical lens streaks (4-point star)
- *  - 45° diagonal streaks softening the star
- *  - short forward plume cone
- *  - warm point light
- *
- * Decoupled into its own component so a sprite-based flash (Kenney's
- * particle pack etc.) can drop in here without touching the gun's
- * transform / recoil math.
+ * マズルフラッシュ。Kenney Particle Pack の sprite を 3 枚使い、useFrame で
+ * 減衰アニメーションを駆動する。lastShotAt が更新されると新しいショット
+ * として認識し、各 sprite を独立した曲線で fade in/out する。
+ *  - muzzle : 主火炎（70ms で peak→消失、ショット毎に scale jitter）
+ *  - flare  : 十字レンズフレア（100ms、ショット毎にランダム回転）
+ *  - smoke  : 短い灰煙（350ms、薄く膨らみつつ前方に流れて消える）
+ *  - 暖色 pointLight（90ms で消える）
  */
-function MuzzleFlash({
-  flashRef,
-  flashLightRef,
-}: {
-  flashRef: React.RefObject<Mesh | null>;
-  flashLightRef: React.RefObject<PointLight | null>;
-}) {
-  const FLASH_Z = -0.62;
+function MuzzleFlash({ lastShotAt, zOffset = -0.62 }: { lastShotAt: number; zOffset?: number }) {
+  const muzzleTex = useTexture(MUZZLE_TEX_URL);
+  const flareTex = useTexture(FLARE_TEX_URL);
+  const smokeTex = useTexture(SMOKE_TEX_URL);
+  const muzzleRef = useRef<Sprite>(null);
+  const flareRef = useRef<Sprite>(null);
+  const smokeRef = useRef<Sprite>(null);
+  const lightRef = useRef<PointLight>(null);
+
+  // ショット毎にランダム化する値。lastShotAt が変わったタイミングで更新。
+  const seenShotRef = useRef(0);
+  const flareRotRef = useRef(0);
+  const muzzleScaleRef = useRef(1);
+  const smokeDriftRef = useRef<[number, number]>([0, 0]);
+
+  useFrame(() => {
+    if (lastShotAt !== seenShotRef.current) {
+      seenShotRef.current = lastShotAt;
+      flareRotRef.current = Math.random() * Math.PI * 2;
+      muzzleScaleRef.current = 0.95 + Math.random() * 0.2;
+      smokeDriftRef.current = [(Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05];
+    }
+
+    const elapsed = lastShotAt > 0 ? performance.now() - lastShotAt : Infinity;
+
+    // muzzle: 0ms ピーク → 70ms で 0
+    const muzzleK = Math.max(0, 1 - elapsed / 70);
+    if (muzzleRef.current) {
+      const s = muzzleScaleRef.current * (0.6 + muzzleK * 0.6);
+      muzzleRef.current.scale.set(s, s * 1.25, 1);
+      const mat = muzzleRef.current.material as { opacity: number };
+      mat.opacity = muzzleK;
+      muzzleRef.current.visible = muzzleK > 0.01;
+    }
+
+    // flare: 0ms ピーク → 110ms で 0
+    const flareK = Math.max(0, 1 - elapsed / 110);
+    if (flareRef.current) {
+      const s = 1.3 + (1 - flareK) * 0.45;
+      flareRef.current.scale.set(s, s, 1);
+      const mat = flareRef.current.material as { opacity: number; rotation: number };
+      mat.opacity = flareK * 0.9;
+      mat.rotation = flareRotRef.current;
+      flareRef.current.visible = flareK > 0.01;
+    }
+
+    // smoke: sin カーブで fade in/out、350ms 全体
+    const smokeT = elapsed / 350;
+    const smokeK = smokeT < 1 ? Math.sin(smokeT * Math.PI) * 0.45 : 0;
+    if (smokeRef.current) {
+      const s = 0.35 + smokeT * 0.65;
+      smokeRef.current.scale.set(s, s, 1);
+      const [dx, dy] = smokeDriftRef.current;
+      smokeRef.current.position.set(
+        dx + dx * smokeT * 4,
+        dy + dy * smokeT * 4 + smokeT * 0.08,
+        zOffset - 0.05 - smokeT * 0.15,
+      );
+      const mat = smokeRef.current.material as { opacity: number };
+      mat.opacity = smokeK;
+      smokeRef.current.visible = smokeK > 0.01;
+    }
+
+    // light: 90ms で 0
+    if (lightRef.current) {
+      const lightK = Math.max(0, 1 - elapsed / 90);
+      lightRef.current.intensity = lightK * 14;
+      lightRef.current.visible = lightK > 0.01;
+    }
+  });
+
   return (
     <>
-      {/* Hot pin-prick core — pure white, additive so it punches through. */}
-      <mesh position={[0, 0, FLASH_Z]}>
-        <sphereGeometry args={[0.05, 14, 14]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={1} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
-      </mesh>
-      {/* Inner yellow energy bloom. */}
-      <mesh ref={flashRef} position={[0, 0, FLASH_Z]}>
-        <sphereGeometry args={[0.16, 16, 16]} />
-        <meshBasicMaterial color="#ffe28a" transparent opacity={0.95} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
-      </mesh>
-      {/* Outer orange corona. */}
-      <mesh position={[0, 0, FLASH_Z]}>
-        <sphereGeometry args={[0.34, 14, 14]} />
-        <meshBasicMaterial color="#ff8a3a" transparent opacity={0.42} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
-      </mesh>
-      {/* Anamorphic horizontal streak — signature lens flare. */}
-      <mesh position={[0, 0, FLASH_Z + 0.005]}>
-        <planeGeometry args={[1.6, 0.05]} />
-        <meshBasicMaterial color="#fff0b8" transparent opacity={0.75} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
-      </mesh>
-      {/* Vertical streak — completes the cross. */}
-      <mesh position={[0, 0, FLASH_Z + 0.005]} rotation={[0, 0, Math.PI / 2]}>
-        <planeGeometry args={[0.7, 0.04]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.6} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
-      </mesh>
-      {/* Diagonal streaks — soften the cross into a 4-point star. */}
-      {[Math.PI / 4, -Math.PI / 4].map((rot) => (
-        <mesh key={rot} position={[0, 0, FLASH_Z + 0.004]} rotation={[0, 0, rot]}>
-          <planeGeometry args={[0.95, 0.025]} />
-          <meshBasicMaterial color="#ffd9a0" transparent opacity={0.55} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
-        </mesh>
-      ))}
-      {/* Forward plume — short cone receding from the muzzle. */}
-      <mesh position={[0, 0, FLASH_Z - 0.32]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.14, 0.4, 16, 1, true]} />
-        <meshBasicMaterial color="#ffb060" transparent opacity={0.32} toneMapped={false} blending={AdditiveBlending} depthWrite={false} />
-      </mesh>
+      {/* 主火炎: muzzle sprite を縦長気味に。texture は本来上向きの teardrop
+          だが Sprite は常にカメラを向くので、scale.y を強めに張って前方への
+          噴出感を作る。color で暖色化、additive で発光させる。 */}
+      <sprite ref={muzzleRef} position={[0, 0, zOffset]}>
+        <spriteMaterial map={muzzleTex} color="#ffe28a" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </sprite>
+      {/* 十字レンズフレア: 同位置でランダム回転、ショット毎に違う輝きに。 */}
+      <sprite ref={flareRef} position={[0, 0, zOffset + 0.01]}>
+        <spriteMaterial map={flareTex} color="#fff5c0" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </sprite>
+      {/* 灰煙: normal blending で実体感のある煙、薄く前方に流れる。 */}
+      <sprite ref={smokeRef} position={[0, 0, zOffset - 0.05]}>
+        <spriteMaterial map={smokeTex} color="#9c9892" transparent opacity={0} blending={NormalBlending} depthWrite={false} toneMapped={false} />
+      </sprite>
       <pointLight
-        ref={flashLightRef}
-        position={[0, 0, FLASH_Z + 0.05]}
-        intensity={12}
+        ref={lightRef}
+        position={[0, 0, zOffset + 0.05]}
+        intensity={0}
         color="#ffd56a"
         distance={7}
       />
@@ -96,9 +138,6 @@ function MuzzleFlash({
 export function PlayerWeapon() {
   const { camera } = useThree();
   const groupRef = useRef<Group>(null);
-  const flashRef = useRef<Mesh>(null);
-  const flashLightRef = useRef<PointLight>(null);
-  const [flashVisible, setFlashVisible] = useState(false);
   const lastShotAt = useBattleStore((state) => state.lastShotAt);
   const cameraMode = useBattleStore((state) => state.cameraMode);
   const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
@@ -112,11 +151,7 @@ export function PlayerWeapon() {
     if (selectedWeaponId === "windBlade") {
       slashVariantRef.current = (slashVariantRef.current + 1) % SLASH_VARIANTS;
       slashStartedAt.current = lastShotAt;
-      return;
     }
-    setFlashVisible(true);
-    const id = window.setTimeout(() => setFlashVisible(false), 80);
-    return () => window.clearTimeout(id);
   }, [lastShotAt, selectedWeaponId]);
 
   useFrame(() => {
@@ -201,8 +236,8 @@ export function PlayerWeapon() {
       <group rotation={weaponModelRotation(selectedWeaponId)} scale={weaponModelScale(selectedWeaponId)}>
         <WeaponObject id={selectedWeaponId} targetSize={selectedWeaponId === "windBlade" ? 1.05 : 0.6} />
       </group>
-      {flashVisible && selectedWeaponId !== "windBlade" ? (
-        <MuzzleFlash flashRef={flashRef} flashLightRef={flashLightRef} />
+      {selectedWeaponId !== "windBlade" ? (
+        <MuzzleFlash lastShotAt={lastShotAt} />
       ) : null}
     </group>
   );
