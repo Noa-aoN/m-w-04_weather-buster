@@ -4824,10 +4824,12 @@ canvas {
 
 .skillReadyToast {
   position: absolute;
-  /* Tucked directly under the radar panel so it sits in the upper-left HUD
-     column and doesn't overlap the bottom-right weapon / skill / player
-     status panels. Width matches the radar so they read as one column. */
-  top: clamp(150px, 18vh, 200px);
+  /* Tucked directly under the radar panel (radar の実高 ~ 220-260px、
+     top 24 + 高さ で底辺は ~250px 付近)。以前は 150-200 で radar と
+     被っていたので 260 以上に下げて確実にクリア。bossIntro は battle
+     開始 2 秒のみ + ゲージ初期 0 なので時間的に競合しない。
+     Width matches the radar so they read as one column. */
+  top: clamp(260px, 32vh, 320px);
   left: 26px;
   width: clamp(230px, 26vw, 330px);
   z-index: 6;
