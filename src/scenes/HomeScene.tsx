@@ -16,15 +16,6 @@ import { AudioToggle } from "../features/audio/AudioToggle";
 import { assetUrl } from "../shared/assets";
 import { HomeBackdropLayer, HomeHudLayer, HomeMenuLayer } from "./home/HomeLayers";
 
-function StartIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <polygon points="6,4 28,16 6,28" fill="currentColor" opacity="0.92" />
-      <polygon points="6,4 28,16 6,28" fill="none" stroke="currentColor" strokeWidth="1.4" opacity="0.6" />
-    </svg>
-  );
-}
-
 function StoryIcon() {
   return (
     <svg viewBox="0 0 32 32" aria-hidden="true">
@@ -1008,11 +999,6 @@ export function HomeScene({
           aria-label="メインメニュー"
           style={menuTopPx !== null ? { top: `${menuTopPx}px` } : undefined}
         >
-          <button className="primaryMenuButton menuItem" type="button" onClick={onStart}>
-            <span className="menuIcon"><StartIcon /></span>
-            <span className="menuLabel">ゲーム開始</span>
-            <span className="menuKey">Enter</span>
-          </button>
           <button className="menuItem" type="button" onClick={onOpenStory}>
             <span className="menuIcon"><StoryIcon /></span>
             <span className="menuLabel">世界レポート</span>
