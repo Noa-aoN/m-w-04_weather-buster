@@ -30,13 +30,10 @@ export function fitObjectToSize(object: Object3D, targetSize: number) {
   object.position.z = -center.z * factor;
 }
 
-// All three pilots share Quaternius' Spacesuit mesh. The mesh has a
-// dedicated `SciFi_Light_Accent` material that the original artist isolated
-// for team-color use — recolour it to the pilot's accent and the suit reads
-// as a clean colour variant. Other materials (`SciFi_Main`, `MainDark`,
-// `Grey`, `SciFi_Light`) keep their dark teal base so the silhouette stays
-// stable across pilots. A very subtle emissive rim is layered on every
-// material so the accent reads even in shadowed scenes.
+// 旧 Quaternius スペーススーツの「accent」名マテリアルだけを accent 色に
+// 差し替えるためのフック。現状の Meshy 製モデルにはそのスロットが無いので、
+// 該当しないマテリアルには触らない（以前は全 mesh に accent emissive を
+// 乗せていたが、加算光が base を白っぽく持ち上げてキャラの色味が壊れていた）。
 export function tintCharacterMaterials(object: Object3D, accent: string, intensity = 0.05) {
   object.traverse((child) => {
     const mesh = child as Mesh;
@@ -44,17 +41,13 @@ export function tintCharacterMaterials(object: Object3D, accent: string, intensi
     const apply = (mat: MeshStandardMaterial) => {
       const tintable = mat as { clone?: () => MeshStandardMaterial; emissive?: Color; name?: string };
       if (!mat || !mat.color || typeof tintable.clone !== "function") return undefined;
-      const tinted = tintable.clone!();
       const isAccentSlot = (tintable.name ?? "").toLowerCase().includes("accent");
-      if (isAccentSlot && tinted.color) {
-        tinted.color.set(accent);
-        if (tinted.emissive) {
-          tinted.emissive.set(accent);
-          tinted.emissiveIntensity = Math.max(intensity, 0.18);
-        }
-      } else if (tinted.emissive) {
+      if (!isAccentSlot) return undefined;
+      const tinted = tintable.clone!();
+      if (tinted.color) tinted.color.set(accent);
+      if (tinted.emissive) {
         tinted.emissive.set(accent);
-        tinted.emissiveIntensity = intensity;
+        tinted.emissiveIntensity = Math.max(intensity, 0.18);
       }
       return tinted;
     };
