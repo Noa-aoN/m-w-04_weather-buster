@@ -496,6 +496,23 @@ function CriticalFlash() {
   return <div className="criticalFlash" key={flashAt} aria-hidden="true" />;
 }
 
+function ReloadFlash() {
+  const lastReloadCompleteAt = useBattleStore((state) => state.lastReloadCompleteAt);
+  const [flashAt, setFlashAt] = useState(0);
+  useEffect(() => {
+    if (lastReloadCompleteAt === 0) {
+      return;
+    }
+    setFlashAt(lastReloadCompleteAt);
+    const t = window.setTimeout(() => setFlashAt(0), 520);
+    return () => window.clearTimeout(t);
+  }, [lastReloadCompleteAt]);
+  if (flashAt === 0) {
+    return null;
+  }
+  return <div className="reloadFlash" key={flashAt} aria-hidden="true" />;
+}
+
 function HealFlash() {
   const lastItemAt = useBattleStore((state) => state.lastItemAt);
   const lastItemId = useBattleStore((state) => state.lastItemId);
@@ -555,6 +572,7 @@ export function BattleEffectsOverlay({
       <BossIntro enemyName={enemyName} enemyTrait={enemyTrait} threat={enemyThreat} />
       <DamageFlash />
       <HealFlash />
+      <ReloadFlash />
       <CriticalFlash />
       <BlockedIndicator />
       <BarrierWarning />

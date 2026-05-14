@@ -172,6 +172,9 @@ type BattleState = {
   lastKnockbackAt: number;
   reloadingUntil: number;
   reloadingStartedAt: number;
+  /** リロード完了を一回だけ HUD に伝える signal。HUD 側 ReloadFlash が
+   *  subscribe して短い ring 演出を出す。 */
+  lastReloadCompleteAt: number;
   lastEmptyClickAt: number;
   enemyChargeStartedAt: number;
   enemyChargeFiresAt: number;
@@ -298,6 +301,7 @@ const baseLoadout = (weapon: Weapon, difficulty: DifficultyLevel) => ({
   lastKnockbackAt: 0,
   reloadingUntil: 0,
   reloadingStartedAt: 0,
+  lastReloadCompleteAt: 0,
   lastEmptyClickAt: 0,
   enemyChargeStartedAt: 0,
   enemyChargeFiresAt: 0,
@@ -724,7 +728,12 @@ function buildBattleStore() {
           return;
         }
         const w = findWeapon(s.selectedWeaponId);
-        useBattleStore.setState({ ammo: w.maxAmmo, reloadingUntil: 0, reloadingStartedAt: 0 });
+        useBattleStore.setState({
+          ammo: w.maxAmmo,
+          reloadingUntil: 0,
+          reloadingStartedAt: 0,
+          lastReloadCompleteAt: performance.now(),
+        });
       }, reloadMs);
     },
     takeDamageTick: () => {
