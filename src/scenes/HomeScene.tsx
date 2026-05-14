@@ -992,12 +992,22 @@ export function HomeScene({
         <section className="titleBlock">
           {/* Combined title art (main + subtitle + tagline). The PNG already
               contains all three strings so we don't need separate text
-              layers — the alt attr keeps it readable for screen readers. */}
-          <img
-            className="titleLogoImg"
-            src={assetUrl("/images/title-logo.png")}
-            alt="ウェザー・バスターズ — CLEAR THE SKY — 荒れた天候を撃ち抜き、空を晴らせ"
-          />
+              layers — the alt attr keeps it readable for screen readers.
+              titleLogoBackdrop は同じ画像を白シルエット化して下に敷くことで、
+              黄色文字部分の透過で背景の構造物が透けて見える問題を防ぐ。 */}
+          <div className="titleLogoStack">
+            <img
+              className="titleLogoBackdrop"
+              src={assetUrl("/images/title-logo.png")}
+              aria-hidden="true"
+              alt=""
+            />
+            <img
+              className="titleLogoImg"
+              src={assetUrl("/images/title-logo.png")}
+              alt="ウェザー・バスターズ — CLEAR THE SKY — 荒れた天候を撃ち抜き、空を晴らせ"
+            />
+          </div>
         </section>
 
         <HeroTelemetry ref={telemetryRef} accent={character.accentColor} />

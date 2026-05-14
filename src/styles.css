@@ -302,7 +302,8 @@ canvas {
  *   - 36vh × 3.47 (image aspect) cap so short windows aren't dominated
  *     vertically
  * The smallest of the four wins. */
-.titleLogoImg {
+.titleLogoStack {
+  position: relative;
   display: block;
   margin: 0 auto;
   width: min(
@@ -311,6 +312,27 @@ canvas {
     calc(100vw - 40px),
     calc(36vh * 3.47)
   );
+}
+
+.titleLogoBackdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: auto;
+  /* 元画像の文字部分のシルエットだけ白で抜く。透明背景はそのまま透明。
+     これで上層の黄色文字が背景に透けるのを防ぐ。
+     上層と同じ mask を当てて左右端の fade を揃える。 */
+  filter: brightness(0) invert(1);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 6%, black 94%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, black 6%, black 94%, transparent 100%);
+  pointer-events: none;
+  user-select: none;
+}
+
+.titleLogoImg {
+  position: relative;
+  display: block;
+  width: 100%;
   height: auto;
   /* 浮かないように:
      - 全体をわずかに透過してコントラストを下げる
