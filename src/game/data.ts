@@ -277,14 +277,14 @@ export const characters: Character[] = [
     callSign: "METP",
     role: "気圧特化型",
     passiveName: "圧縮豆装填",
-    passiveDescription: "気圧 +50% / 与ダメ -10% / 被ダメ +10%",
+    passiveDescription: "気圧 +45% / 与ダメ -10% / 被ダメ +10%",
     damageMultiplier: 0.9,
     damageTakenMultiplier: 1.1,
-    gaugeGainMultiplier: 1.5,
+    gaugeGainMultiplier: 1.45,
     moveSpeedMultiplier: 1.0,
     accentColor: "#7be8c4",
-    description: "気圧特性を強化した特殊型バスター。特殊素材スーツで圧縮した気圧を吸収し、武器スキル発動までの待ち時間を誰よりも短く保つ。故郷の豆スープが好き。",
-    flavor: "故郷のスープを守ります",
+    description: "気圧特性を強化した特殊型バスター。特殊素材スーツで圧縮した気圧を吸収し、武器スキル発動までの待ち時間を誰よりも短く保つ。気候変動で栽培がむずかしくなった、かつての故郷の豆スープが好き。",
+    flavor: "故郷のスープを守りたい",
   },
 ];
 
