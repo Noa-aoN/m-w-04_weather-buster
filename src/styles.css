@@ -3477,6 +3477,7 @@ canvas {
 }
 
 .missionStartLabel {
+  color: #ffe15a;
   font-size: clamp(16px, 1.55vw, 21px);
   font-weight: 900;
   letter-spacing: 0.18em;
@@ -3484,8 +3485,9 @@ canvas {
 
 .missionStartHint {
   padding: 2px 8px;
-  border: 1px solid currentColor;
+  border: 1px solid #ffe15a;
   border-radius: 3px;
+  color: #ffe15a;
   font-size: clamp(9px, 0.78vw, 11px);
   font-weight: 700;
   letter-spacing: 0.16em;
