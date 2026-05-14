@@ -252,7 +252,7 @@ export const characters: Character[] = [
     damageTakenMultiplier: 1.0,
     gaugeGainMultiplier: 1.0,
     moveSpeedMultiplier: 1.1,
-    accentColor: "#28d9ff",
+    accentColor: "#ff5e6e",
     description: "気象観測局所属のバスター。長く続いた雨の記憶を胸に、湿度系天侵体の観測と制圧に強いこだわりを持つ。軽装の機動力で間合いを支配する。",
     flavor: "梅雨を、ゆるさない",
   },
