@@ -3,7 +3,6 @@ import {
   bossMinionConfig,
   difficultyModifiers,
   findCharacter,
-  findStage,
   findWeapon,
   findMinionType,
   items,
@@ -85,8 +84,8 @@ type LightningMarker = {
  * `id` distinguishes one cast from the next so React keys stay stable
  * even if two casts fire back-to-back.
  */
-export type SkillAnimationKind = "ranged" | "slash";
-export type SkillAnimation = {
+type SkillAnimationKind = "ranged" | "slash";
+type SkillAnimation = {
   id: number;
   kind: SkillAnimationKind;
   weaponId: WeaponId;
@@ -1144,5 +1143,3 @@ if (import.meta.hot) {
   store = buildBattleStore();
 }
 export const useBattleStore = store;
-
-export { findStage };

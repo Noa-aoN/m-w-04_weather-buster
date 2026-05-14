@@ -41,7 +41,7 @@ export function enemyMaxHpFor(enemy: WeatherEnemy, difficulty: DifficultyLevel) 
   return Math.round(enemy.maxHp * difficultyModifiers[difficulty].hp);
 }
 
-export function computeOutgoingDamage(
+function computeOutgoingDamage(
   weapon: Weapon,
   enemyId: WeatherEnemyId,
   characterMul: number,

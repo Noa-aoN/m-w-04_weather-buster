@@ -22,8 +22,8 @@ export type AiPhase =
   | "zigzag"
   | "evade";
 
-export const STANDOFF_DISTANCE = 7.5;
-export const MIN_DISTANCE = 5.5;
+const STANDOFF_DISTANCE = 7.5;
+const MIN_DISTANCE = 5.5;
 export const ENEMY_SCALE = 1.55;
 
 // Per-enemy vertical tier. Four bands (地面 / 少し浮く / まぁまぁ浮く /

@@ -494,7 +494,7 @@ export const enemyAttackPatterns: Record<string, EnemyAttackPattern> = {
 //   `bossMinionConfig` — *which* boss summons *which* type, when, and how
 //                     many per difficulty. Reassign the type field to swap
 //                     a boss's summon without touching engine code.
-export const minionTypes: Record<MinionTypeId, MinionType> = {
+const minionTypes: Record<MinionTypeId, MinionType> = {
   stratus: {
     id: "stratus",
     baseEnemyId: "cloudy",
@@ -552,7 +552,7 @@ export const enemyContactReactions: Partial<Record<WeatherEnemyId, EnemyContactR
 
 export const CONTACT_RADIUS = 2.4;
 
-export const initialWeapon: Weapon = weapons[1];
+const initialWeapon: Weapon = weapons[1];
 
 export const findWeapon = (id: Weapon["id"]) =>
   weapons.find((weapon) => weapon.id === id) ?? initialWeapon;
