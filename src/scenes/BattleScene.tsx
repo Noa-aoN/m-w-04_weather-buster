@@ -241,6 +241,9 @@ export function BattleScene({
   return (
     <main className="gameShell sceneEnter">
       <SceneLoader label="出撃データ転送中…" />
+      {/* 影は意図的に無効化（shadows なし / 各 mesh の castShadow なし）。
+          シャドウマップ生成は静的プロップ + PBR 床がある stage で重く、
+          フレーム落ちの主因だったため、絵作りより負荷を優先して切る判断。 */}
       <Canvas
         camera={{ position: [0, 2.15, 7.1], fov: initialFov }}
         dpr={[1, 1.25]}
