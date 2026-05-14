@@ -563,6 +563,23 @@ function buildBattleStore() {
         ...baseLoadout(weapon, difficulty),
         enemyHp: maxHp,
         enemyMaxHp: maxHp,
+        // 戦闘間で持ち越すと VFX や警告リングが新バトル冒頭に残ってしまう。
+        // 視覚 state はすべて 0 に戻す。
+        lightningMarkers: [],
+        enemyChargeStartedAt: 0,
+        enemyChargeFiresAt: 0,
+        lastShotAt: 0,
+        lastShotHit: false,
+        lastShotHitAt: 0,
+        lastShotBlockedAt: 0,
+        lastEnemyImpactAt: 0,
+        lastEnemyImpactStatus: "none" as const,
+        lastSkillAt: 0,
+        lastDefeatAt: 0,
+        lastReloadCompleteAt: 0,
+        lastStaggerAt: 0,
+        staggerUntil: 0,
+        staggerThresholdsHit: [] as number[],
       });
     },
     shoot: (didHit, critical = false) => {
@@ -632,6 +649,11 @@ function buildBattleStore() {
         combo: patch.combo,
         comboBest: patch.comboBest,
         lastComboAt: patch.lastComboAt,
+        // 撃破時、PlayerController の useFrame は早期 return するので
+        // marker / チャージは消化されない。撃破タイミングで明示的に空に。
+        ...(becomesClear
+          ? { lightningMarkers: [], enemyChargeStartedAt: 0, enemyChargeFiresAt: 0 }
+          : {}),
         ...(staggerPatch ?? {}),
         ...(minionPatch
           ? {
@@ -716,6 +738,10 @@ function buildBattleStore() {
         combo: patch.combo,
         comboBest: patch.comboBest,
         lastComboAt: patch.lastComboAt,
+        // 撃破時に marker / チャージを明示クリア（コメントは shoot path 同じ理由）。
+        ...(becomesClear
+          ? { lightningMarkers: [], enemyChargeStartedAt: 0, enemyChargeFiresAt: 0 }
+          : {}),
         ...(staggerPatch ?? {}),
         ...(minionPatch
           ? {
@@ -932,6 +958,10 @@ function buildBattleStore() {
         skillAnimation: finished
           ? null
           : { ...anim, completedSteps },
+        // 撃破時に marker / チャージを明示クリア（同上）。
+        ...(becomesClear
+          ? { lightningMarkers: [], enemyChargeStartedAt: 0, enemyChargeFiresAt: 0 }
+          : {}),
         ...(staggerPatch ?? {}),
         ...(minionPatch
           ? {
