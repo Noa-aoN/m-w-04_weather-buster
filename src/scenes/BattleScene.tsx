@@ -243,7 +243,7 @@ export function BattleScene({
       <SceneLoader label="出撃データ転送中…" />
       <Canvas
         camera={{ position: [0, 2.15, 7.1], fov: initialFov }}
-        dpr={[1, 1.5]}
+        dpr={[1, 1.25]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
       >
         <FovController />

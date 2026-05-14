@@ -962,7 +962,7 @@ export function HomeScene({
         <Canvas
           camera={{ position: [-1.8, 4.6, 7.0], fov: 50 }}
           onCreated={({ camera }) => camera.lookAt(0, 1.0, 0)}
-          dpr={[1, 1.5]}
+          dpr={[1, 1.25]}
           gl={{ antialias: true, powerPreference: "high-performance" }}
         >
           <HomeStage
