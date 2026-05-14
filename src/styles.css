@@ -332,10 +332,18 @@ canvas {
   inset: 0;
   width: 100%;
   height: auto;
-  /* 元画像の文字部分のシルエットだけ白で抜く。透明背景はそのまま透明。
-     これで上層の黄色文字が背景に透けるのを防ぐ。
+  /* 元画像の文字部分を真っ白シルエットに変換し、上層と同じ位置に敷く。
+     brightness(0) invert(1) だけでは antialias 縁の alpha が薄いまま
+     残ってしまうので、drop-shadow を 0 offset で多重に重ねて alpha を
+     膨張させ、文字の縁も含めて完全に不透明な白で抜く。
      上層と同じ mask を当てて左右端の fade を揃える。 */
-  filter: brightness(0) invert(1);
+  filter:
+    brightness(0)
+    invert(1)
+    drop-shadow(0 0 0 #ffffff)
+    drop-shadow(0 0 0 #ffffff)
+    drop-shadow(0 0 0 #ffffff)
+    drop-shadow(0 0 0 #ffffff);
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 6%, black 94%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0%, black 6%, black 94%, transparent 100%);
   pointer-events: none;
@@ -348,10 +356,9 @@ canvas {
   width: 100%;
   height: auto;
   /* 浮かないように:
-     - 全体をわずかに透過してコントラストを下げる
-     - drop-shadow を黄色基調に変えてロゴと色味を揃える
-     - 左右の端を soft fade させて背景に溶かす */
-  opacity: 0.92;
+     - drop-shadow を黄色基調にしてロゴと色味を揃える
+     - 左右の端を soft fade させて背景に溶かす
+     opacity は外す（下に白を敷いていても上層が半透明だと結局透けるため）。 */
   filter:
     drop-shadow(0 0 22px rgba(255, 220, 110, 0.32))
     drop-shadow(0 10px 22px rgba(0, 0, 0, 0.4));
