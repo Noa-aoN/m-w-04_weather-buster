@@ -17,8 +17,8 @@ const codeToEnemy = (code: number | null | undefined): WeatherEnemyId | null => 
 
 export function useGeolocationWeather() {
   const enabled = useBattleStore((state) => state.locationEnabled);
+  const setGpsStatus = useBattleStore((state) => state.setGpsStatus);
   const setCurrentWeather = useBattleStore((state) => state.setCurrentWeather);
-  const selectEnemy = useBattleStore((state) => state.selectEnemy);
 
   useEffect(() => {
     if (!enabled) {
@@ -26,10 +26,17 @@ export function useGeolocationWeather() {
       return;
     }
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      useBattleStore.getState().setLocationEnabled(false);
+      useBattleStore.setState({
+        locationEnabled: false,
+        gpsStatus: "error",
+        currentWeatherEnemyId: null,
+        currentWeatherCode: null,
+      });
       return;
     }
+    setGpsStatus("loading");
     let cancelled = false;
+    const controller = new AbortController();
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -39,8 +46,14 @@ export function useGeolocationWeather() {
         try {
           const { latitude, longitude } = position.coords;
           const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude.toFixed(3)}&longitude=${longitude.toFixed(3)}&current=weather_code,temperature_2m`;
-          const response = await fetch(url);
+          const response = await fetch(url, { signal: controller.signal });
           if (!response.ok) {
+            useBattleStore.setState({
+              locationEnabled: false,
+              gpsStatus: "error",
+              currentWeatherEnemyId: null,
+              currentWeatherCode: null,
+            });
             return;
           }
           const json: { current?: { weather_code?: number } } = await response.json();
@@ -50,16 +63,27 @@ export function useGeolocationWeather() {
             return;
           }
           setCurrentWeather(enemyId, weatherCode);
-          if (enemyId) {
-            selectEnemy(enemyId);
+          setGpsStatus("ready");
+        } catch (error) {
+          if (cancelled || (error instanceof DOMException && error.name === "AbortError")) {
+            return;
           }
-        } catch {
-          // network error: leave state as-is
+          setGpsStatus("error");
         }
       },
-      () => {
+      (error) => {
         if (!cancelled) {
-          useBattleStore.getState().setLocationEnabled(false);
+          const status = error.code === error.PERMISSION_DENIED
+            ? "denied"
+            : error.code === error.TIMEOUT
+              ? "timeout"
+              : "error";
+          useBattleStore.setState({
+            locationEnabled: false,
+            gpsStatus: status,
+            currentWeatherEnemyId: null,
+            currentWeatherCode: null,
+          });
         }
       },
       { timeout: 10000, maximumAge: 600000 },
@@ -67,6 +91,7 @@ export function useGeolocationWeather() {
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [enabled, setCurrentWeather, selectEnemy]);
+  }, [enabled, setCurrentWeather, setGpsStatus]);
 }

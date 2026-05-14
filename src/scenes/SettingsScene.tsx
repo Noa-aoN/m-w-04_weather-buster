@@ -24,6 +24,20 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
   const setBgmEnabled = useBattleStore((state) => state.setBgmEnabled);
   const masterVolume = useBattleStore((state) => state.masterVolume);
   const setMasterVolume = useBattleStore((state) => state.setMasterVolume);
+  const locationEnabled = useBattleStore((state) => state.locationEnabled);
+  const gpsStatus = useBattleStore((state) => state.gpsStatus);
+  const setLocationEnabled = useBattleStore((state) => state.setLocationEnabled);
+  const gpsStatusLabel = gpsStatus === "loading"
+    ? "取得中"
+    : gpsStatus === "ready"
+      ? "取得済み"
+      : gpsStatus === "denied"
+        ? "権限拒否"
+        : gpsStatus === "timeout"
+          ? "タイムアウト"
+          : gpsStatus === "error"
+            ? "取得失敗"
+            : "OFF";
 
   return (
     <ModalShell
@@ -137,6 +151,28 @@ export function SettingsScene({ onBack }: { onBack: () => void }) {
               <span>PREVIEW</span>
             </div>
           </div>
+        </article>
+
+        <article className="settingRow tacticalPanel">
+          <header>
+            <div className="settingHeaderMain">
+              <span>天候</span>
+              <strong>現在地シンク</strong>
+            </div>
+            <p className="settingHeaderDesc">ON にすると概略座標を Open-Meteo へ送信して現在天候を取得する。敵は自動変更せず、対応するウェポンとバスターに軽い補正を出撃時に固定する。</p>
+          </header>
+          <div className="cameraModeSwitch" role="group" aria-label="現在地シンク">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={locationEnabled}
+              className={locationEnabled ? "selected" : ""}
+              onClick={() => setLocationEnabled(!locationEnabled)}
+            >
+              GPS {locationEnabled ? "ON" : "OFF"}
+            </button>
+          </div>
+          <p className="settingHeaderDesc">現在の状態: {gpsStatusLabel}</p>
         </article>
 
         <article className="settingRow tacticalPanel">

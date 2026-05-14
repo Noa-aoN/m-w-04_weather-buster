@@ -6,7 +6,18 @@ import type { AnimationClip, Group, Mesh, Object3D } from "three";
 import { DoubleSide, LoopOnce, RepeatWrapping, SRGBColorSpace } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
-import { characters, findCharacter, findStage, findWeapon, stages, weapons, weatherEnemies } from "../game/data";
+import {
+  characters,
+  findCharacter,
+  findStage,
+  findWeapon,
+  getCharacterWeatherBonus,
+  getWeaponWeatherBonus,
+  stages,
+  weapons,
+  weatherCodeToInfluenceCategory,
+  weatherEnemies,
+} from "../game/data";
 import { useGeolocationWeather } from "../features/weather/useGeolocationWeather";
 import type { CharacterId, DifficultyLevel, LoadoutTab, Stage } from "../game/types";
 import { CHARACTER_MODEL_URL } from "../entities/CharacterModel";
@@ -197,22 +208,80 @@ function LeaderLine({
 }
 
 function GpsToggle() {
-  // GPS-driven weather pull is paused for now — the chip stays visible as a
-  // disabled placeholder so the planned feature has a home in the layout
-  // when it comes back.
+  const locationEnabled = useBattleStore((state) => state.locationEnabled);
+  const gpsStatus = useBattleStore((state) => state.gpsStatus);
+  const currentWeatherCode = useBattleStore((state) => state.currentWeatherCode);
+  const currentWeatherEnemyId = useBattleStore((state) => state.currentWeatherEnemyId);
+  const selectedWeaponId = useBattleStore((state) => state.selectedWeaponId);
+  const selectedCharacterId = useBattleStore((state) => state.selectedCharacterId);
+  const setLocationEnabled = useBattleStore((state) => state.setLocationEnabled);
+  const activeWeatherCategory = locationEnabled ? weatherCodeToInfluenceCategory(currentWeatherCode) : "unknown";
+  const weapon = findWeapon(selectedWeaponId);
+  const character = findCharacter(selectedCharacterId);
+  const weaponWeatherBonus = getWeaponWeatherBonus(selectedWeaponId, activeWeatherCategory);
+  const characterWeatherBonus = getCharacterWeatherBonus(selectedCharacterId, activeWeatherCategory);
+  const enemyName = currentWeatherEnemyId
+    ? weatherEnemies.find((enemy) => enemy.id === currentWeatherEnemyId)?.name ?? currentWeatherEnemyId
+    : null;
+  const weatherLabel = currentWeatherCode === null
+    ? null
+    : currentWeatherCode === 0
+      ? "快晴"
+      : currentWeatherCode <= 3 || currentWeatherCode === 45 || currentWeatherCode === 48
+        ? "曇天"
+        : (currentWeatherCode >= 51 && currentWeatherCode <= 67) || (currentWeatherCode >= 80 && currentWeatherCode <= 82)
+          ? "雨"
+          : (currentWeatherCode >= 71 && currentWeatherCode <= 77) || (currentWeatherCode >= 85 && currentWeatherCode <= 86)
+            ? "雪"
+            : currentWeatherCode >= 95
+              ? "雷"
+              : "観測";
+  const statusLabel = gpsStatus === "loading"
+    ? "同期中"
+    : gpsStatus === "ready"
+      ? weatherLabel ?? "取得済"
+      : gpsStatus === "denied"
+        ? "拒否"
+        : gpsStatus === "timeout"
+          ? "遅延"
+          : gpsStatus === "error"
+            ? "エラー"
+            : "OFF";
+  const bonusLabels = [
+    weaponWeatherBonus ? `${weapon.name} 与ダメ+${Math.round((weaponWeatherBonus.damageMultiplier - 1) * 100)}%` : null,
+    characterWeatherBonus?.damageMultiplier
+      ? `${character.codename} 与ダメ+${Math.round((characterWeatherBonus.damageMultiplier - 1) * 100)}%`
+      : null,
+    characterWeatherBonus?.moveSpeedMultiplier
+      ? `${character.codename} 移動+${Math.round((characterWeatherBonus.moveSpeedMultiplier - 1) * 100)}%`
+      : null,
+    characterWeatherBonus?.gaugeGainMultiplier
+      ? `${character.codename} ゲージ+${Math.round((characterWeatherBonus.gaugeGainMultiplier - 1) * 100)}%`
+      : null,
+    characterWeatherBonus?.damageTakenMultiplier
+      ? `${character.codename} 被ダメ-${Math.round((1 - characterWeatherBonus.damageTakenMultiplier) * 100)}%`
+      : null,
+  ].filter((label): label is string => label !== null);
+  const title = locationEnabled
+    ? "現在地の概略座標を Open-Meteo に送信し、天候に応じた軽い補正を出撃前に表示します"
+    : "現在地シンクを有効化します。敵選択は自動変更しません";
   return (
     <button
       type="button"
-      className="gpsToggle is-disabled"
-      aria-disabled="true"
-      aria-pressed="false"
-      title="現在は無効化されています"
-      tabIndex={-1}
-      onClick={(event) => event.preventDefault()}
+      className={`gpsToggle ${locationEnabled ? "on" : ""}`}
+      aria-pressed={locationEnabled}
+      title={title}
+      onClick={() => setLocationEnabled(!locationEnabled)}
     >
-      <span className="gpsDot" />
-      <small>GPS</small>
-      <em>準備中</em>
+      <span className="gpsToggleTitle">
+        <span className="gpsDot" />
+        <small>GPS</small>
+      </span>
+      <em>{statusLabel}</em>
+      {gpsStatus === "ready" && enemyName ? <i className="gpsEnemyHint">{enemyName}</i> : null}
+      {bonusLabels.length > 0 ? (
+        <span className="gpsBonusLine">{bonusLabels.join(" / ")}</span>
+      ) : null}
     </button>
   );
 }
@@ -1078,6 +1147,7 @@ export function HomeScene({
             </span>
             <em>「{character.flavor}」</em>
           </blockquote>
+
         </nav>
 
         <LeaderLine sourceRef={bubbleRef} anchor="top-right" accent={character.accentColor} extendFraction={2 / 3} />

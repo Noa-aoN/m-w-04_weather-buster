@@ -10,6 +10,7 @@ import {
   enemyAttackPatterns,
   enemyContactReactions,
   findCharacter,
+  getCharacterWeatherBonus,
   findMinionType,
   findStage,
   findWeapon,
@@ -184,7 +185,13 @@ export function PlayerController({
     const slowed = performance.now() < state.slowUntil;
     const slowMul = slowed ? 0.55 : 1;
     const character = findCharacter(state.selectedCharacterId);
-    const speed = MOVE_SPEED * character.moveSpeedMultiplier * dash * slowMul * delta;
+    const characterWeather = getCharacterWeatherBonus(state.selectedCharacterId, state.activeWeatherCategory);
+    const speed = MOVE_SPEED
+      * character.moveSpeedMultiplier
+      * (characterWeather?.moveSpeedMultiplier ?? 1)
+      * dash
+      * slowMul
+      * delta;
 
     camera.getWorldDirection(forward.current);
     forward.current.y = 0;
@@ -440,7 +447,8 @@ export function PlayerController({
       nextSpecialAt.current = now + getSpecialDelay(enemy.id);
     }
 
-    for (const marker of state.lightningMarkers) {
+    const dueMarkers = state.consumeReadyLightning(now);
+    for (const marker of dueMarkers) {
       if (now >= marker.triggersAt) {
         const dx = camera.position.x - marker.x;
         const dz = camera.position.z - marker.z;
@@ -501,7 +509,6 @@ export function PlayerController({
           lastEnemyImpactStatus: impactStatus,
           lastEnemyImpactRadius: marker.radius,
         });
-        state.removeLightning(marker.id);
       }
     }
 

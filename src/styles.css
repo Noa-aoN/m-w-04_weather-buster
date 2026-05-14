@@ -222,13 +222,24 @@ canvas {
 .gpsToggle {
   display: inline-flex;
   align-items: center;
-  gap: clamp(5px, 0.45vw, 8px);
-  padding: clamp(7px, 0.8vh, 10px) clamp(9px, 0.8vw, 12px);
-  border: 1px solid rgba(40, 217, 255, 0.45);
+  gap: 8px;
+  min-width: clamp(170px, 17vw, 250px);
+  min-height: clamp(40px, 4.2vh, 46px);
+  padding: clamp(6px, 0.7vh, 8px) clamp(8px, 0.75vw, 11px);
+  border: 1px solid rgba(40, 217, 255, 0.65);
   color: #b8d8e6;
-  background: rgba(4, 18, 28, 0.7);
+  background: rgba(4, 18, 28, 0.78);
   font-size: clamp(10px, 0.58vw + 0.28vh, 12px);
   letter-spacing: 0.12em;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.32), 0 0 14px rgba(40, 217, 255, 0.18);
+}
+
+.gpsToggleTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(5px, 0.45vw, 8px);
 }
 
 .gpsToggle small {
@@ -241,6 +252,7 @@ canvas {
   color: #b8d8e6;
   font-style: normal;
   font-size: clamp(10px, 0.58vw + 0.24vh, 12px);
+  white-space: nowrap;
 }
 
 .gpsToggle .gpsDot {
@@ -280,7 +292,6 @@ canvas {
 }
 
 .gpsEnemyHint {
-  margin-left: 4px;
   padding: 1px 5px;
   border: 1px solid rgba(255, 100, 110, 0.55);
   color: #ff9aa6;
@@ -288,6 +299,18 @@ canvas {
   font-size: 9px;
   letter-spacing: 0.12em;
   background: rgba(40, 8, 14, 0.6);
+}
+
+.gpsBonusLine {
+  flex: 1;
+  min-width: 0;
+  color: #eefbff;
+  font-size: clamp(9px, 0.52vw + 0.18vh, 11px);
+  line-height: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @keyframes gpsPulse {
@@ -543,13 +566,13 @@ canvas {
 .mainMenu {
   position: absolute;
   z-index: 5;
-  left: clamp(20px, 4vw, 56px);
-  top: clamp(200px, 32vh, 360px);
+  left: 34px;
+  top: clamp(212px, 33vh, 372px);
   display: grid;
   gap: clamp(4px, 0.7vh, 9px);
   /* Matches .missionPreview exactly — both panels share the same width
      formula so the home screen reads as a balanced left-right composition. */
-  width: clamp(260px, 20vw + 8vh, 420px);
+  width: clamp(280px, 22.8vw + 9.4vh, 480px);
 }
 
 .mainMenu button {
@@ -642,9 +665,9 @@ canvas {
 .missionPreview {
   position: absolute;
   z-index: 5;
-  right: clamp(20px, 4vw, 56px);
-  bottom: clamp(32px, 6vh, 80px);
-  width: clamp(260px, 20vw + 8vh, 420px);
+  right: 34px;
+  bottom: clamp(24px, 5vh, 72px);
+  width: clamp(280px, 22.8vw + 9.4vh, 480px);
   padding: clamp(10px, 1.1vh, 18px);
   font-size: clamp(11px, 0.55vw + 0.4vh, 15px);
   max-height: calc(100vh - clamp(160px, 26vh, 240px));
@@ -1857,7 +1880,8 @@ canvas {
   display: inline-flex;
   align-items: center;
   gap: clamp(5px, 0.45vw, 8px);
-  padding: clamp(7px, 0.8vh, 10px) clamp(9px, 0.8vw, 12px);
+  min-height: clamp(40px, 4.2vh, 46px);
+  padding: clamp(6px, 0.7vh, 8px) clamp(8px, 0.75vw, 11px);
   border: 1px solid rgba(40, 217, 255, 0.65);
   color: #b8d8e6;
   background: rgba(4, 18, 28, 0.78);
