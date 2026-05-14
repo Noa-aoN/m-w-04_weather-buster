@@ -325,10 +325,32 @@ canvas {
     calc(100vw - 40px),
     calc(38vh * 3.47)
   );
+  /* ホームに戻ったとき (HomeScene 再マウント時) に発火する入りアニメ。
+     霧散の逆を辿る: 高 blur + 明度盛り + 軽く拡大 → くっきり収束。 */
+  animation: titleLogoEnter 0.75s cubic-bezier(0.18, 0.9, 0.3, 1) both;
+}
+
+@keyframes titleLogoEnter {
+  0% {
+    opacity: 0;
+    filter: blur(18px) brightness(1.7);
+    transform: scale(1.08);
+  }
+  60% {
+    opacity: 0.85;
+    filter: blur(5px) brightness(1.25);
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0) brightness(1);
+    transform: scale(1);
+  }
 }
 
 /* ゲーム開始押下時の霧散演出。blur で輪郭を散らし、明度を上げて
-   「光って消える」感を出す。380ms で透明、その直後に Battle へ遷移。 */
+   「光って消える」感を出す。380ms で透明、その直後に Battle へ遷移。
+   入りアニメと keyframe を別にして上書きできるようにしている。 */
 .titleLogoStack.is-dismissing {
   animation: titleLogoDismiss 0.38s ease-out forwards;
   pointer-events: none;
