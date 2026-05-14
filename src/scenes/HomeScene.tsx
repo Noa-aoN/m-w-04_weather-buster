@@ -87,7 +87,7 @@ const HERO_TELEMETRY_LINES = [
   "天侵体スキャン / 待機",
 ];
 
-const HeroTelemetry = forwardRef<HTMLDivElement>(function HeroTelemetry(_, ref) {
+const HeroTelemetry = forwardRef<HTMLDivElement, { accent: string }>(function HeroTelemetry({ accent }, ref) {
   const [index, setIndex] = useState(0);
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -96,7 +96,12 @@ const HeroTelemetry = forwardRef<HTMLDivElement>(function HeroTelemetry(_, ref) 
     return () => window.clearInterval(id);
   }, []);
   return (
-    <div ref={ref} className="heroTelemetry" aria-hidden="true">
+    <div
+      ref={ref}
+      className="heroTelemetry"
+      style={{ ["--telemetry-accent" as string]: accent }}
+      aria-hidden="true"
+    >
       <span className="heroTelemetryDot" />
       <span className="heroTelemetryLine" key={index}>{HERO_TELEMETRY_LINES[index]}</span>
     </div>
@@ -995,7 +1000,7 @@ export function HomeScene({
           />
         </section>
 
-        <HeroTelemetry ref={telemetryRef} />
+        <HeroTelemetry ref={telemetryRef} accent={character.accentColor} />
         <LeaderLine sourceRef={telemetryRef} anchor="top-center" accent={character.accentColor} lengthFactor={0.5} />
       </HomeHudLayer>
 

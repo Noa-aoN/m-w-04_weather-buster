@@ -883,6 +883,8 @@ canvas {
 }
 
 .heroTelemetry {
+  /* --telemetry-accent はバスターのアクセント色。差し替え時は inline style 経由。 */
+  --telemetry-accent: #28d9ff;
   position: absolute;
   z-index: 5;
   left: 50%;
@@ -892,14 +894,14 @@ canvas {
   gap: 10px;
   padding: 6px 14px;
   transform: translateX(-50%);
-  border: 1px solid rgba(40, 217, 255, 0.45);
+  border: 1px solid color-mix(in srgb, var(--telemetry-accent) 45%, transparent);
   background: rgba(3, 16, 24, 0.55);
   color: #cfeaf3;
   font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: none;
   pointer-events: none;
-  box-shadow: inset 0 0 12px rgba(40, 217, 255, 0.16);
+  box-shadow: inset 0 0 12px color-mix(in srgb, var(--telemetry-accent) 16%, transparent);
   clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%);
 }
 
@@ -907,8 +909,8 @@ canvas {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #28d9ff;
-  box-shadow: 0 0 10px #28d9ff;
+  background: var(--telemetry-accent);
+  box-shadow: 0 0 10px var(--telemetry-accent);
   animation: heroTelemetryBlink 1.2s ease-in-out infinite;
 }
 
