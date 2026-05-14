@@ -29,74 +29,72 @@ const SLASH_DURATION_MS = 180;
 const SLASH_VARIANTS = 4;
 
 /**
- * マズルフラッシュ（SF / 光線銃テイスト）。Kenney Particle Pack の sprite を
- * 3 枚使い useFrame で減衰駆動。lastShotAt が更新されると新ショットとして
- * 認識し、各 sprite を独立した曲線で fade する。
- *  - muzzle : アナモルフィックレンズフレア（80ms、横長の SF ブラスター閃光）
- *  - flare  : 鋭い 4 点星（110ms、ショット毎にランダム回転）
- *  - shockRing : エネルギーリング（180ms、外側に拡張しながら fade）
- *  - 寒色 pointLight（100ms で消える）
+ * マズルフラッシュ（光線銃 / レーザー兵器テイスト）。発射点に同心の 3 リング
+ * を重ねて短時間で広がる「エネルギー放出」を表現する。煙系は持たない。
+ * カラーは弾道トレイル（white core + cream tail + cyan/gold mid）に揃え、
+ * 中心は warm cream、外側は cyan に寄せる。
+ *  - core      : circle_01 (soft glow) — 90ms、ピーク後すぐ消える熱核
+ *  - innerRing : circle_03 (sharp ring) — 130ms、中速で 2 倍まで拡張
+ *  - outerRing : circle_05 (soft ring) — 220ms、外側へゆっくり 3 倍に拡張
+ *  - 寒色 pointLight — 110ms で消える
  */
 function MuzzleFlash({ lastShotAt, zOffset = -0.62 }: { lastShotAt: number; zOffset?: number }) {
-  const muzzleTex = useTexture(MUZZLE_TEX_URL);
-  const flareTex = useTexture(FLARE_TEX_URL);
-  const ringTex = useTexture(SMOKE_TEX_URL);
-  const muzzleRef = useRef<Sprite>(null);
-  const flareRef = useRef<Sprite>(null);
-  const ringRef = useRef<Sprite>(null);
+  const coreTex = useTexture(MUZZLE_TEX_URL);
+  const innerTex = useTexture(FLARE_TEX_URL);
+  const outerTex = useTexture(SMOKE_TEX_URL);
+  const coreRef = useRef<Sprite>(null);
+  const innerRef = useRef<Sprite>(null);
+  const outerRef = useRef<Sprite>(null);
   const lightRef = useRef<PointLight>(null);
 
-  // ショット毎にランダム化する値。lastShotAt が変わったタイミングで更新。
+  // ショット毎にランダム化する値。連射が「同じハンコ」に見えないよう
+  // core scale をわずかに揺らす。
   const seenShotRef = useRef(0);
-  const flareRotRef = useRef(0);
-  const muzzleScaleRef = useRef(1);
+  const coreJitterRef = useRef(1);
 
   useFrame(() => {
     if (lastShotAt !== seenShotRef.current) {
       seenShotRef.current = lastShotAt;
-      flareRotRef.current = Math.random() * Math.PI * 2;
-      muzzleScaleRef.current = 0.92 + Math.random() * 0.24;
+      coreJitterRef.current = 0.94 + Math.random() * 0.16;
     }
 
     const elapsed = lastShotAt > 0 ? performance.now() - lastShotAt : Infinity;
 
-    // muzzle (anamorphic flare): 0ms ピーク → 80ms で 0。横長のまま使う
-    // ことでブラスター発射らしいレンズフレア感を出す。
-    const muzzleK = Math.max(0, 1 - elapsed / 80);
-    if (muzzleRef.current) {
-      const baseW = muzzleScaleRef.current * (1.4 + muzzleK * 0.6);
-      muzzleRef.current.scale.set(baseW, baseW * 0.55, 1);
-      const mat = muzzleRef.current.material as { opacity: number };
-      mat.opacity = muzzleK;
-      muzzleRef.current.visible = muzzleK > 0.01;
+    // core: 0ms ピーク → 90ms で 0、ほぼ拡張しない
+    const coreK = Math.max(0, 1 - elapsed / 90);
+    if (coreRef.current) {
+      const s = coreJitterRef.current * (0.42 + coreK * 0.18);
+      coreRef.current.scale.set(s, s, 1);
+      const mat = coreRef.current.material as { opacity: number };
+      mat.opacity = coreK;
+      coreRef.current.visible = coreK > 0.01;
     }
 
-    // flare (sharp 4-point star): 0ms ピーク → 110ms で 0
-    const flareK = Math.max(0, 1 - elapsed / 110);
-    if (flareRef.current) {
-      const s = 0.85 + flareK * 0.5;
-      flareRef.current.scale.set(s, s, 1);
-      const mat = flareRef.current.material as { opacity: number; rotation: number };
-      mat.opacity = flareK;
-      mat.rotation = flareRotRef.current;
-      flareRef.current.visible = flareK > 0.01;
+    // innerRing: 0ms 小→ 130ms で約 2 倍、(1-t)^1.2 で fade
+    const innerT = elapsed / 130;
+    const innerK = innerT < 1 ? (1 - innerT) ** 1.2 : 0;
+    if (innerRef.current) {
+      const s = 0.55 + innerT * 0.75;
+      innerRef.current.scale.set(s, s, 1);
+      const mat = innerRef.current.material as { opacity: number };
+      mat.opacity = innerK * 0.95;
+      innerRef.current.visible = innerK > 0.01;
     }
 
-    // shockRing: 0ms 小さい → 180ms で大きく拡がりながら fade。エネルギー
-    // 兵器の発射時ショックウェーブを表現。
-    const ringT = elapsed / 180;
-    const ringK = ringT < 1 ? (1 - ringT) ** 1.2 : 0;
-    if (ringRef.current) {
-      const s = 0.4 + ringT * 1.6;
-      ringRef.current.scale.set(s, s, 1);
-      const mat = ringRef.current.material as { opacity: number };
-      mat.opacity = ringK * 0.85;
-      ringRef.current.visible = ringK > 0.01;
+    // outerRing: 0ms 中→ 220ms で約 3 倍、(1-t)^1.5 でゆっくり fade
+    const outerT = elapsed / 220;
+    const outerK = outerT < 1 ? (1 - outerT) ** 1.5 : 0;
+    if (outerRef.current) {
+      const s = 0.7 + outerT * 1.6;
+      outerRef.current.scale.set(s, s, 1);
+      const mat = outerRef.current.material as { opacity: number };
+      mat.opacity = outerK * 0.7;
+      outerRef.current.visible = outerK > 0.01;
     }
 
-    // light: 100ms で 0、cool な cyan
+    // light: 110ms で 0、cool な cyan（trail mid と同系）
     if (lightRef.current) {
-      const lightK = Math.max(0, 1 - elapsed / 100);
+      const lightK = Math.max(0, 1 - elapsed / 110);
       lightRef.current.intensity = lightK * 14;
       lightRef.current.visible = lightK > 0.01;
     }
@@ -104,19 +102,18 @@ function MuzzleFlash({ lastShotAt, zOffset = -0.62 }: { lastShotAt: number; zOff
 
   return (
     <>
-      {/* 主閃光: アナモルフィックレンズフレア。横長のまま使うと SF ブラスター
-          らしさが出る。色は white→cyan 寄り。 */}
-      <sprite ref={muzzleRef} position={[0, 0, zOffset]}>
-        <spriteMaterial map={muzzleTex} color="#d8f3ff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      {/* 熱核: trail tail と同じ warm cream で、弾の発射元を示す中心。 */}
+      <sprite ref={coreRef} position={[0, 0, zOffset + 0.02]}>
+        <spriteMaterial map={coreTex} color="#fff7d0" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </sprite>
-      {/* 鋭い 4 点星: ショット毎にランダム回転、寒色寄りの白で刺さる印象。 */}
-      <sprite ref={flareRef} position={[0, 0, zOffset + 0.01]}>
-        <spriteMaterial map={flareTex} color="#a8e8ff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      {/* 内リング: trail mid（hit 時 #ffd24a / miss 時 #7bd5ff）の平均寄り、
+          兵器 accent (#bce6ff 帯) ともなじむ淡シアン。 */}
+      <sprite ref={innerRef} position={[0, 0, zOffset + 0.01]}>
+        <spriteMaterial map={innerTex} color="#bce6ff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </sprite>
-      {/* エネルギーリング: cyan の薄い円が外側に拡張、additive でフワッと
-          消えるショックウェーブ。 */}
-      <sprite ref={ringRef} position={[0, 0, zOffset - 0.02]}>
-        <spriteMaterial map={ringTex} color="#5ec8ff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      {/* 外リング: 一段深いシアンで広がるショックウェーブ。 */}
+      <sprite ref={outerRef} position={[0, 0, zOffset]}>
+        <spriteMaterial map={outerTex} color="#5fc8ff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </sprite>
       <pointLight
         ref={lightRef}

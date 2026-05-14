@@ -41,9 +41,9 @@ GLB 中心のローポリパック。
 
 | ファイル | 元素材 | 用途 |
 | --- | --- | --- |
-| `muzzle.png` | Kenney Particle Pack `flare_01.png` | マズルフラッシュ主閃光（アナモルフィックレンズフレア） |
-| `flare.png` | Kenney Particle Pack `star_06.png` | 鋭い 4 点星 |
-| `smoke.png` | Kenney Particle Pack `circle_05.png` | エネルギーリング（発射時ショックウェーブ） |
+| `muzzle.png` | Kenney Particle Pack `circle_01.png` | マズルフラッシュ熱核（soft glow） |
+| `flare.png` | Kenney Particle Pack `circle_03.png` | マズルフラッシュ内リング（sharp ring） |
+| `smoke.png` | Kenney Particle Pack `circle_05.png` | マズルフラッシュ外リング（soft ring） |
 
 ## ステージ床テクスチャ(AmbientCG、CC0)
 
