@@ -2,7 +2,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useAnimations, useGLTF, useTexture } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh, PerspectiveCamera, PointLight, Sprite } from "three";
-import { AdditiveBlending, NormalBlending, Vector3 } from "three";
+import { AdditiveBlending, Vector3 } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
 import { findCharacter } from "../game/data";
@@ -29,80 +29,74 @@ const SLASH_DURATION_MS = 180;
 const SLASH_VARIANTS = 4;
 
 /**
- * マズルフラッシュ。Kenney Particle Pack の sprite を 3 枚使い、useFrame で
- * 減衰アニメーションを駆動する。lastShotAt が更新されると新しいショット
- * として認識し、各 sprite を独立した曲線で fade in/out する。
- *  - muzzle : 主火炎（70ms で peak→消失、ショット毎に scale jitter）
- *  - flare  : 十字レンズフレア（100ms、ショット毎にランダム回転）
- *  - smoke  : 短い灰煙（350ms、薄く膨らみつつ前方に流れて消える）
- *  - 暖色 pointLight（90ms で消える）
+ * マズルフラッシュ（SF / 光線銃テイスト）。Kenney Particle Pack の sprite を
+ * 3 枚使い useFrame で減衰駆動。lastShotAt が更新されると新ショットとして
+ * 認識し、各 sprite を独立した曲線で fade する。
+ *  - muzzle : アナモルフィックレンズフレア（80ms、横長の SF ブラスター閃光）
+ *  - flare  : 鋭い 4 点星（110ms、ショット毎にランダム回転）
+ *  - shockRing : エネルギーリング（180ms、外側に拡張しながら fade）
+ *  - 寒色 pointLight（100ms で消える）
  */
 function MuzzleFlash({ lastShotAt, zOffset = -0.62 }: { lastShotAt: number; zOffset?: number }) {
   const muzzleTex = useTexture(MUZZLE_TEX_URL);
   const flareTex = useTexture(FLARE_TEX_URL);
-  const smokeTex = useTexture(SMOKE_TEX_URL);
+  const ringTex = useTexture(SMOKE_TEX_URL);
   const muzzleRef = useRef<Sprite>(null);
   const flareRef = useRef<Sprite>(null);
-  const smokeRef = useRef<Sprite>(null);
+  const ringRef = useRef<Sprite>(null);
   const lightRef = useRef<PointLight>(null);
 
   // ショット毎にランダム化する値。lastShotAt が変わったタイミングで更新。
   const seenShotRef = useRef(0);
   const flareRotRef = useRef(0);
   const muzzleScaleRef = useRef(1);
-  const smokeDriftRef = useRef<[number, number]>([0, 0]);
 
   useFrame(() => {
     if (lastShotAt !== seenShotRef.current) {
       seenShotRef.current = lastShotAt;
       flareRotRef.current = Math.random() * Math.PI * 2;
-      muzzleScaleRef.current = 0.95 + Math.random() * 0.2;
-      smokeDriftRef.current = [(Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05];
+      muzzleScaleRef.current = 0.92 + Math.random() * 0.24;
     }
 
     const elapsed = lastShotAt > 0 ? performance.now() - lastShotAt : Infinity;
 
-    // muzzle: 0ms ピーク → 70ms で 0
-    const muzzleK = Math.max(0, 1 - elapsed / 70);
+    // muzzle (anamorphic flare): 0ms ピーク → 80ms で 0。横長のまま使う
+    // ことでブラスター発射らしいレンズフレア感を出す。
+    const muzzleK = Math.max(0, 1 - elapsed / 80);
     if (muzzleRef.current) {
-      const s = muzzleScaleRef.current * (0.6 + muzzleK * 0.6);
-      muzzleRef.current.scale.set(s, s * 1.25, 1);
+      const baseW = muzzleScaleRef.current * (1.4 + muzzleK * 0.6);
+      muzzleRef.current.scale.set(baseW, baseW * 0.55, 1);
       const mat = muzzleRef.current.material as { opacity: number };
       mat.opacity = muzzleK;
       muzzleRef.current.visible = muzzleK > 0.01;
     }
 
-    // flare: 0ms ピーク → 110ms で 0
+    // flare (sharp 4-point star): 0ms ピーク → 110ms で 0
     const flareK = Math.max(0, 1 - elapsed / 110);
     if (flareRef.current) {
-      const s = 1.3 + (1 - flareK) * 0.45;
+      const s = 0.85 + flareK * 0.5;
       flareRef.current.scale.set(s, s, 1);
       const mat = flareRef.current.material as { opacity: number; rotation: number };
-      mat.opacity = flareK * 0.9;
+      mat.opacity = flareK;
       mat.rotation = flareRotRef.current;
       flareRef.current.visible = flareK > 0.01;
     }
 
-    // smoke: sin カーブで fade in/out、350ms 全体
-    const smokeT = elapsed / 350;
-    const smokeK = smokeT < 1 ? Math.sin(smokeT * Math.PI) * 0.45 : 0;
-    if (smokeRef.current) {
-      const s = 0.35 + smokeT * 0.65;
-      smokeRef.current.scale.set(s, s, 1);
-      const [dx, dy] = smokeDriftRef.current;
-      smokeRef.current.position.set(
-        dx + dx * smokeT * 4,
-        dy + dy * smokeT * 4 + smokeT * 0.08,
-        zOffset - 0.05 - smokeT * 0.15,
-      );
-      const mat = smokeRef.current.material as { opacity: number };
-      mat.opacity = smokeK;
-      smokeRef.current.visible = smokeK > 0.01;
+    // shockRing: 0ms 小さい → 180ms で大きく拡がりながら fade。エネルギー
+    // 兵器の発射時ショックウェーブを表現。
+    const ringT = elapsed / 180;
+    const ringK = ringT < 1 ? (1 - ringT) ** 1.2 : 0;
+    if (ringRef.current) {
+      const s = 0.4 + ringT * 1.6;
+      ringRef.current.scale.set(s, s, 1);
+      const mat = ringRef.current.material as { opacity: number };
+      mat.opacity = ringK * 0.85;
+      ringRef.current.visible = ringK > 0.01;
     }
 
-    // light: 90ms で 0
+    // light: 100ms で 0、cool な cyan
     if (lightRef.current) {
-      const lightK = Math.max(0, 1 - elapsed / 90);
+      const lightK = Math.max(0, 1 - elapsed / 100);
       lightRef.current.intensity = lightK * 14;
       lightRef.current.visible = lightK > 0.01;
     }
@@ -110,25 +104,25 @@ function MuzzleFlash({ lastShotAt, zOffset = -0.62 }: { lastShotAt: number; zOff
 
   return (
     <>
-      {/* 主火炎: muzzle sprite を縦長気味に。texture は本来上向きの teardrop
-          だが Sprite は常にカメラを向くので、scale.y を強めに張って前方への
-          噴出感を作る。color で暖色化、additive で発光させる。 */}
+      {/* 主閃光: アナモルフィックレンズフレア。横長のまま使うと SF ブラスター
+          らしさが出る。色は white→cyan 寄り。 */}
       <sprite ref={muzzleRef} position={[0, 0, zOffset]}>
-        <spriteMaterial map={muzzleTex} color="#ffe28a" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+        <spriteMaterial map={muzzleTex} color="#d8f3ff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </sprite>
-      {/* 十字レンズフレア: 同位置でランダム回転、ショット毎に違う輝きに。 */}
+      {/* 鋭い 4 点星: ショット毎にランダム回転、寒色寄りの白で刺さる印象。 */}
       <sprite ref={flareRef} position={[0, 0, zOffset + 0.01]}>
-        <spriteMaterial map={flareTex} color="#fff5c0" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+        <spriteMaterial map={flareTex} color="#a8e8ff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </sprite>
-      {/* 灰煙: normal blending で実体感のある煙、薄く前方に流れる。 */}
-      <sprite ref={smokeRef} position={[0, 0, zOffset - 0.05]}>
-        <spriteMaterial map={smokeTex} color="#9c9892" transparent opacity={0} blending={NormalBlending} depthWrite={false} toneMapped={false} />
+      {/* エネルギーリング: cyan の薄い円が外側に拡張、additive でフワッと
+          消えるショックウェーブ。 */}
+      <sprite ref={ringRef} position={[0, 0, zOffset - 0.02]}>
+        <spriteMaterial map={ringTex} color="#5ec8ff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </sprite>
       <pointLight
         ref={lightRef}
         position={[0, 0, zOffset + 0.05]}
         intensity={0}
-        color="#ffd56a"
+        color="#7adcff"
         distance={7}
       />
     </>
