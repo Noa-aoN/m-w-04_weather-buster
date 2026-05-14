@@ -3466,7 +3466,7 @@ canvas {
 
 .missionStartButton {
   width: 100%;
-  min-height: clamp(52px, 6.4vh, 68px);
+  min-height: clamp(48px, 5.8vh, 62px);
   margin-top: clamp(8px, 1.4vh, 14px);
   display: flex;
   align-items: center;
@@ -3475,7 +3475,7 @@ canvas {
 }
 
 .missionStartLabel {
-  font-size: clamp(18px, 1.8vw, 24px);
+  font-size: clamp(16px, 1.55vw, 21px);
   font-weight: 900;
   letter-spacing: 0.18em;
 }
@@ -3484,7 +3484,7 @@ canvas {
   padding: 2px 8px;
   border: 1px solid currentColor;
   border-radius: 3px;
-  font-size: clamp(10px, 0.85vw, 12px);
+  font-size: clamp(9px, 0.78vw, 11px);
   font-weight: 700;
   letter-spacing: 0.16em;
   opacity: 0.78;
