@@ -787,7 +787,7 @@ canvas {
 
 .pilotLog em {
   font-style: normal;
-  font-size: clamp(11px, 0.55vw + 0.45vh, 17px);
+  font-size: clamp(12px, 0.6vw + 0.5vh, 19px);
   line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
