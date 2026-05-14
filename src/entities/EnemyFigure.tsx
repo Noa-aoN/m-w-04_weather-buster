@@ -12,6 +12,13 @@ import { WeatherEnemyModel } from "./WeatherEnemyModel";
 const CHARGE_STAR_TEX_URL = assetUrl("/textures/particles/star.png");
 const CHARGE_RING_TEX_URL = assetUrl("/textures/particles/flare.png");
 
+// 敵グループ内に置く装飾 sprite は raycast を no-op にする。
+// PlayerController が raycaster.intersectObject(enemyRef, true) で
+// recursive に敵ツリーを当てるが、Sprite.raycast は raycaster.camera
+// を要求するため、デフォルト raycast のままだとクラッシュする。
+// 装飾用 sprite はそもそも当たり判定対象外なので no-op で問題なし。
+const NOOP_RAYCAST: import("three").Object3D["raycast"] = () => {};
+
 const DEFEAT_GROW_MS = 360;
 const DEFEAT_FADE_MS = 900;
 
@@ -315,11 +322,11 @@ function EnemyChargeFx({ color }: { color: string }) {
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2.0} transparent opacity={0.4} toneMapped={false} />
       </mesh>
       {/* sprite 拡張: 中央の輝き星 + 拡張リング。チャージが進むほど明るく
-          脈動して「来るぞ」を伝える。 */}
-      <sprite ref={ringRef}>
+          脈動して「来るぞ」を伝える。raycast=noop で敵 ray から除外。 */}
+      <sprite ref={ringRef} raycast={NOOP_RAYCAST}>
         <spriteMaterial map={ringTex} color={color} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </sprite>
-      <sprite ref={starRef}>
+      <sprite ref={starRef} raycast={NOOP_RAYCAST}>
         <spriteMaterial map={starTex} color="#ffffff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </sprite>
     </group>

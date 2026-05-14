@@ -663,6 +663,10 @@ export function PlayerController({
         return;
       }
       raycaster.current.set(camera.position, dir);
+      // Sprite.raycast は raycaster.camera を要求する。装飾 sprite が
+      // 敵/minion subtree に紛れ込んでも intersectObject(target, true) が
+      // クラッシュしないよう毎ショット setting しておく（防御的に）。
+      raycaster.current.camera = camera;
       const target = enemyRef.current;
       const enemyHits = target ? raycaster.current.intersectObject(target, true) : [];
       const minionRoot = getMinionRoot();
