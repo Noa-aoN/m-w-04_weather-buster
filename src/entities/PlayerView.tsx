@@ -6,6 +6,7 @@ import { AdditiveBlending, Vector3 } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useBattleStore } from "../game/battleStore";
 import { findCharacter } from "../game/data";
+import type { WeaponId } from "../game/types";
 import { isDebugEnabled, writeDebug } from "../features/debug/debugBus";
 import { assetUrl } from "../shared/assets";
 import { CHARACTER_MODEL_URL } from "./CharacterModel";
@@ -18,6 +19,25 @@ const SMOKE_TEX_URL = assetUrl("/textures/particles/smoke.png");
 useTexture.preload(MUZZLE_TEX_URL);
 useTexture.preload(FLARE_TEX_URL);
 useTexture.preload(SMOKE_TEX_URL);
+
+// 各兵器のマズルフラッシュ配色。core は trail tail の warm cream を基本とし
+// 兵器の温度感（凍結カノンは寒色、ウェザー系は cyan、晴天系は warm 黄）に
+// 応じて inner/outer ring と pointLight 色を変える。
+type FlashPalette = { core: string; inner: string; outer: string; light: string };
+const WEAPON_FLASH: Record<WeaponId, FlashPalette> = {
+  // 汎用ブラスター — warm cream core + シアン rings
+  weatherGun:        { core: "#fff7d0", inner: "#d4f6ff", outer: "#28d9ff", light: "#28d9ff" },
+  // 晴天向け — 全体に暖色寄り、太陽光イメージ
+  clearSkyGun:       { core: "#fffbe5", inner: "#fff0a8", outer: "#ffd84d", light: "#ffd84d" },
+  // 梅雨対策 — teal、湿度・水蒸気イメージ
+  rainySeasonKiller: { core: "#f0fff5", inner: "#c4f5e0", outer: "#4ce0b3", light: "#4ce0b3" },
+  // ストームウォール — クールシアン
+  stormwallRifle:    { core: "#fff7d0", inner: "#cdebff", outer: "#7ed5ff", light: "#7ed5ff" },
+  // 凍結カノン — 寒色一色、冷気イメージ
+  frostlance:        { core: "#f0faff", inner: "#dff0ff", outer: "#9fd8ff", light: "#bce6ff" },
+  // 近接 — マズルフラッシュは出ないが palette は型のため用意
+  windBlade:         { core: "#fff7d0", inner: "#fff0a8", outer: "#fff0a2", light: "#fff0a2" },
+};
 
 // First-person weapon: tracks camera quaternion every frame, with a kicked
 // recoil that decays over 130ms.
@@ -38,7 +58,15 @@ const SLASH_VARIANTS = 4;
  *  - outerRing : circle_05 (soft ring) — 220ms、外側へゆっくり 3 倍に拡張
  *  - 寒色 pointLight — 110ms で消える
  */
-function MuzzleFlash({ lastShotAt, zOffset = -0.62 }: { lastShotAt: number; zOffset?: number }) {
+function MuzzleFlash({
+  lastShotAt,
+  palette,
+  zOffset = -0.62,
+}: {
+  lastShotAt: number;
+  palette: FlashPalette;
+  zOffset?: number;
+}) {
   const coreTex = useTexture(MUZZLE_TEX_URL);
   const innerTex = useTexture(FLARE_TEX_URL);
   const outerTex = useTexture(SMOKE_TEX_URL);
@@ -102,29 +130,32 @@ function MuzzleFlash({ lastShotAt, zOffset = -0.62 }: { lastShotAt: number; zOff
 
   return (
     <>
-      {/* 熱核: trail tail と同じ warm cream で、弾の発射元を示す中心。 */}
+      {/* 熱核: 弾の発射元を示す中心。warm cream を基本に兵器ごと微調整。 */}
       <sprite ref={coreRef} position={[0, 0, zOffset + 0.02]}>
-        <spriteMaterial map={coreTex} color="#fff7d0" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+        <spriteMaterial map={coreTex} color={palette.core} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </sprite>
-      {/* 内リング: trail mid（hit 時 #ffd24a / miss 時 #7bd5ff）の平均寄り、
-          兵器 accent (#bce6ff 帯) ともなじむ淡シアン。 */}
+      {/* 内リング: 兵器カラーの明るい寄り、ショット直後の核近傍の余韻。 */}
       <sprite ref={innerRef} position={[0, 0, zOffset + 0.01]}>
-        <spriteMaterial map={innerTex} color="#bce6ff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+        <spriteMaterial map={innerTex} color={palette.inner} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </sprite>
-      {/* 外リング: 一段深いシアンで広がるショックウェーブ。 */}
+      {/* 外リング: 兵器カラーで外側へ広がるショックウェーブ。 */}
       <sprite ref={outerRef} position={[0, 0, zOffset]}>
-        <spriteMaterial map={outerTex} color="#5fc8ff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+        <spriteMaterial map={outerTex} color={palette.outer} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </sprite>
       <pointLight
         ref={lightRef}
         position={[0, 0, zOffset + 0.05]}
         intensity={0}
-        color="#7adcff"
+        color={palette.light}
         distance={7}
       />
     </>
   );
 }
+
+// MuzzleFlash の sprite material は ref 経由で color を変えていないため、
+// 武器切替時はコンポーネントを再マウントして material color を作り直す
+// 必要がある。親側で key={selectedWeaponId} を渡してコンポーネント刷新を強制する。
 
 export function PlayerWeapon() {
   const { camera } = useThree();
@@ -228,7 +259,11 @@ export function PlayerWeapon() {
         <WeaponObject id={selectedWeaponId} targetSize={selectedWeaponId === "windBlade" ? 1.05 : 0.6} />
       </group>
       {selectedWeaponId !== "windBlade" ? (
-        <MuzzleFlash lastShotAt={lastShotAt} />
+        <MuzzleFlash
+          key={selectedWeaponId}
+          lastShotAt={lastShotAt}
+          palette={WEAPON_FLASH[selectedWeaponId]}
+        />
       ) : null}
     </group>
   );
