@@ -327,6 +327,31 @@ canvas {
   );
 }
 
+/* ゲーム開始押下時の霧散演出。blur で輪郭を散らし、明度を上げて
+   「光って消える」感を出す。380ms で透明、その直後に Battle へ遷移。 */
+.titleLogoStack.is-dismissing {
+  animation: titleLogoDismiss 0.38s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes titleLogoDismiss {
+  0% {
+    opacity: 1;
+    filter: blur(0) brightness(1);
+    transform: scale(1);
+  }
+  55% {
+    opacity: 0.78;
+    filter: blur(7px) brightness(1.5);
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(20px) brightness(2);
+    transform: scale(1.12);
+  }
+}
+
 .titleLogoBackdrop {
   position: absolute;
   inset: 0;

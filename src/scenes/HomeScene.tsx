@@ -1,7 +1,7 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Instance, Instances, Sky, Stars, useAnimations, useGLTF, useTexture } from "@react-three/drei";
 import { SceneLoader } from "../features/loader/SceneLoader";
-import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { AnimationClip, Group, Mesh, Object3D } from "three";
 import { DoubleSide, LoopOnce, RepeatWrapping, SRGBColorSpace } from "three";
 import { SkeletonUtils } from "three-stdlib";
@@ -858,6 +858,17 @@ export function HomeScene({
   const bubbleRef = useRef<HTMLQuoteElement>(null);
   const telemetryRef = useRef<HTMLDivElement>(null);
   const [menuTopPx, setMenuTopPx] = useState<number | null>(null);
+  // タイトルロゴが霧散するアニメーション用 state。triggerStart で立てて
+  // 380ms 後に親の onStart() を呼び戦闘画面へ遷移する。dismissingRef は
+  // 同期的な二重発火防止に使う (連打 / Enter 連打対策)。
+  const [dismissing, setDismissing] = useState(false);
+  const dismissingRef = useRef(false);
+  const triggerStart = useCallback(() => {
+    if (dismissingRef.current) return;
+    dismissingRef.current = true;
+    setDismissing(true);
+    window.setTimeout(() => onStart(), 380);
+  }, [onStart]);
 
   const selectedEnemy = weatherEnemies.find((enemy) => enemy.id === selectedEnemyId) ?? weatherEnemies[0];
   const weapon = findWeapon(selectedWeaponId);
@@ -929,7 +940,7 @@ export function HomeScene({
       const key = event.key.toLowerCase();
       if (key === "enter" || event.key === "Enter") {
         event.preventDefault();
-        onStart();
+        triggerStart();
       } else if (key === "t") {
         event.preventDefault();
         onOpenStory();
@@ -961,7 +972,7 @@ export function HomeScene({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onStart, onOpenEnemyGrid, onOpenLoadout, onOpenSettings, onOpenCharacterGrid, onOpenStory]);
+  }, [triggerStart, onOpenEnemyGrid, onOpenLoadout, onOpenSettings, onOpenCharacterGrid, onOpenStory]);
 
   return (
     <main className="homeShell sceneEnter">
@@ -1001,7 +1012,7 @@ export function HomeScene({
               layers — the alt attr keeps it readable for screen readers.
               titleLogoBackdrop は同じ画像を白シルエット化して下に敷くことで、
               黄色文字部分の透過で背景の構造物が透けて見える問題を防ぐ。 */}
-          <div className="titleLogoStack">
+          <div className={`titleLogoStack${dismissing ? " is-dismissing" : ""}`}>
             <img
               className="titleLogoBackdrop"
               src={assetUrl("/images/title-logo.png")}
@@ -1154,7 +1165,7 @@ export function HomeScene({
           ))}
         </div>
 
-        <button type="button" className="primaryMenuButton missionStartButton" onClick={onStart}>
+        <button type="button" className="primaryMenuButton missionStartButton" onClick={triggerStart}>
           <span className="missionStartLabel">ゲーム開始</span>
           <span className="missionStartHint">Enter</span>
         </button>
