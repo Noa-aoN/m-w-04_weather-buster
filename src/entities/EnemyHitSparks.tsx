@@ -83,17 +83,10 @@ export function EnemyHitSparks() {
         return;
       }
       counter.current += 1;
-      setBursts((current) => [
-        ...current,
-        {
-          id: counter.current,
-          spawnedAt: performance.now(),
-          x: state.lastShotHitX,
-          y: state.lastShotHitY,
-          z: state.lastShotHitZ,
-          critical: state.lastShotHitCritical,
-        },
-      ]);
+      const id = counter.current;
+      const spawnedAt = performance.now();
+      const { lastShotHitX: x, lastShotHitY: y, lastShotHitZ: z, lastShotHitCritical: critical } = state;
+      setBursts((current) => [...current, { id, spawnedAt, x, y, z, critical }]);
     });
   }, []);
 

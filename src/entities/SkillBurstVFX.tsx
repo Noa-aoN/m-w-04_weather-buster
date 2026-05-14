@@ -231,18 +231,16 @@ export function SkillBurstVFX({
       // スキル発動の単発バースト（lastSkillAt が変わった瞬間）
       if (state.lastSkillAt !== prev.lastSkillAt && state.lastSkillAt !== 0) {
         counter.current += 1;
+        const id = counter.current;
+        const spawnedAt = performance.now();
         // カメラの少し前に置く: 視界中央で派手に光らせる。Vector3 を新規
         // 生成して取得（camera を直接 reference せず、現在位置の snapshot）。
         const fwd = camera.getWorldDirection(new Vec3());
         const origin = camera.position.clone().add(fwd.multiplyScalar(2.4));
+        const originSnap = { x: origin.x, y: origin.y, z: origin.z };
         setActivations((current) => [
           ...current,
-          {
-            id: counter.current,
-            spawnedAt: performance.now(),
-            origin: { x: origin.x, y: origin.y, z: origin.z },
-            color: "#ffd24a",
-          },
+          { id, spawnedAt, origin: originSnap, color: "#ffd24a" },
         ]);
       }
 
@@ -254,17 +252,14 @@ export function SkillBurstVFX({
         return;
       }
       counter.current += 1;
+      const id = counter.current;
       const now = performance.now();
       if (anim.kind === "ranged") {
         const ePos = enemyPositionRef.current;
+        const originSnap = { x: ePos.x, y: ePos.y + 0.2, z: ePos.z };
         setSparks((current) => [
           ...current,
-          {
-            id: counter.current,
-            spawnedAt: now,
-            origin: { x: ePos.x, y: ePos.y + 0.2, z: ePos.z },
-            color: "#ffd24a",
-          },
+          { id, spawnedAt: now, origin: originSnap, color: "#ffd24a" },
         ]);
       } else if (anim.kind === "slash") {
         // Warm gold matches the bullet trail's hit color so the slash zone
@@ -272,7 +267,7 @@ export function SkillBurstVFX({
         setWaves((current) => [
           ...current,
           {
-            id: counter.current,
+            id,
             spawnedAt: now,
             color: "#ffd24a",
           },

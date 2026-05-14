@@ -71,16 +71,10 @@ export function StaticImpactBursts() {
         return;
       }
       counter.current += 1;
-      setBursts((current) => [
-        ...current,
-        {
-          id: counter.current,
-          spawnedAt: performance.now(),
-          x: state.lastShotBlockedX,
-          y: state.lastShotBlockedY,
-          z: state.lastShotBlockedZ,
-        },
-      ]);
+      const id = counter.current;
+      const spawnedAt = performance.now();
+      const { lastShotBlockedX: x, lastShotBlockedY: y, lastShotBlockedZ: z } = state;
+      setBursts((current) => [...current, { id, spawnedAt, x, y, z }]);
     });
   }, []);
 

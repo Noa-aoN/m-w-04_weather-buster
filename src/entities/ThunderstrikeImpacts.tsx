@@ -82,16 +82,12 @@ export function ThunderstrikeImpacts() {
       if (state.lastEnemyImpactStatus === "dodged" || state.lastEnemyImpactStatus === "none") return;
       seenAt.current = state.lastEnemyImpactAt;
       counter.current += 1;
-      setBolts((current) => [
-        ...current,
-        {
-          id: counter.current,
-          spawnedAt: performance.now(),
-          x: state.lastEnemyImpactX,
-          z: state.lastEnemyImpactZ,
-          color: state.lastEnemyImpactColor,
-        },
-      ]);
+      const id = counter.current;
+      const spawnedAt = performance.now();
+      const x = state.lastEnemyImpactX;
+      const z = state.lastEnemyImpactZ;
+      const color = state.lastEnemyImpactColor;
+      setBolts((current) => [...current, { id, spawnedAt, x, z, color }]);
     });
   }, []);
 

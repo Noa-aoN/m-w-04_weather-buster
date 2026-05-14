@@ -164,19 +164,14 @@ export function EnemyImpactBursts() {
       if (status === "none") return;
       seenAt.current = state.lastEnemyImpactAt;
       counter.current += 1;
-      setBursts((current) => [
-        ...current,
-        {
-          id: counter.current,
-          spawnedAt: performance.now(),
-          x: state.lastEnemyImpactX,
-          y: state.lastEnemyImpactY,
-          z: state.lastEnemyImpactZ,
-          color: state.lastEnemyImpactColor,
-          status,
-          radius: state.lastEnemyImpactRadius,
-        },
-      ]);
+      const id = counter.current;
+      const spawnedAt = performance.now();
+      const x = state.lastEnemyImpactX;
+      const y = state.lastEnemyImpactY;
+      const z = state.lastEnemyImpactZ;
+      const color = state.lastEnemyImpactColor;
+      const radius = state.lastEnemyImpactRadius;
+      setBursts((current) => [...current, { id, spawnedAt, x, y, z, color, status, radius }]);
     });
   }, []);
 

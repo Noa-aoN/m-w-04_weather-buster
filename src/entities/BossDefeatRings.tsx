@@ -156,18 +156,14 @@ export function BossDefeatRings({ enemyPositionRef }: { enemyPositionRef: { curr
       seenAt.current = state.lastDefeatAt;
       const enemy = weatherEnemies.find((e) => e.id === state.selectedEnemyId) ?? weatherEnemies[0];
       counter.current += 1;
+      const id = counter.current;
+      const spawnedAt = performance.now();
       const pos = enemyPositionRef.current;
-      setBursts((current) => [
-        ...current,
-        {
-          id: counter.current,
-          spawnedAt: performance.now(),
-          x: pos.x,
-          y: pos.y,
-          z: pos.z,
-          color: enemy.accentColor,
-        },
-      ]);
+      const x = pos.x;
+      const y = pos.y;
+      const z = pos.z;
+      const color = enemy.accentColor;
+      setBursts((current) => [...current, { id, spawnedAt, x, y, z, color }]);
     });
   }, [enemyPositionRef]);
 
