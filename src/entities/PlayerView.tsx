@@ -20,20 +20,17 @@ useTexture.preload(MUZZLE_TEX_URL);
 useTexture.preload(FLARE_TEX_URL);
 useTexture.preload(SMOKE_TEX_URL);
 
-// 各兵器のマズルフラッシュ配色。core は trail tail の warm cream を基本とし
-// 兵器の温度感（凍結カノンは寒色、ウェザー系は cyan、晴天系は warm 黄）に
-// 応じて inner/outer ring と pointLight 色を変える。
+// 各兵器のマズルフラッシュ配色。基本は弾道トレイル (core white + halo
+// #ffd24a + tip cream) と同じ暖色ゴールドで揃え、凍結カノンだけ冷気イメージ
+// で寒色に逃がす。これにより武器を切り替えても発射時の "黄色い閃光" として
+// 一貫し、frostlance だけ視覚的にも温度差が伝わる。
 type FlashPalette = { core: string; inner: string; outer: string; light: string };
 const WEAPON_FLASH: Record<WeaponId, FlashPalette> = {
-  // 汎用ブラスター — warm cream core + シアン rings
-  weatherGun:        { core: "#fff7d0", inner: "#d4f6ff", outer: "#28d9ff", light: "#28d9ff" },
-  // 晴天向け — 全体に暖色寄り、太陽光イメージ
-  clearSkyGun:       { core: "#fffbe5", inner: "#fff0a8", outer: "#ffd84d", light: "#ffd84d" },
-  // 梅雨対策 — teal、湿度・水蒸気イメージ
-  rainySeasonKiller: { core: "#f0fff5", inner: "#c4f5e0", outer: "#4ce0b3", light: "#4ce0b3" },
-  // ストームウォール — クールシアン
-  stormwallRifle:    { core: "#fff7d0", inner: "#cdebff", outer: "#7ed5ff", light: "#7ed5ff" },
-  // 凍結カノン — 寒色一色、冷気イメージ
+  weatherGun:        { core: "#fff7d0", inner: "#fff0a8", outer: "#ffd24a", light: "#ffd24a" },
+  clearSkyGun:       { core: "#fffbe5", inner: "#ffe88a", outer: "#ffd24a", light: "#ffd24a" },
+  rainySeasonKiller: { core: "#fff7d0", inner: "#fff0a8", outer: "#ffd24a", light: "#ffd24a" },
+  stormwallRifle:    { core: "#fff7d0", inner: "#fff0a8", outer: "#ffd24a", light: "#ffd24a" },
+  // 凍結カノンだけ寒色一色 — 冷気の出力をイメージ
   frostlance:        { core: "#f0faff", inner: "#dff0ff", outer: "#9fd8ff", light: "#bce6ff" },
   // 近接 — マズルフラッシュは出ないが palette は型のため用意
   windBlade:         { core: "#fff7d0", inner: "#fff0a8", outer: "#fff0a2", light: "#fff0a2" },
