@@ -4895,10 +4895,13 @@ canvas {
 /* Boss intro panel: tucked under the radar so the center view (where the boss
    actually is) stays clear during the first 2 seconds of battle. Background
    is intentionally faint — the colored borders + glowing name carry the
-   reveal, the body color is just there to keep the text readable. */
+   reveal, the body color is just there to keep the text readable.
+   skillReadyToast と同じ縦位置 (radar 直下) に置く。両者は時間的に排他
+   (bossIntro = battle 開始 2 秒、skillReadyToast = gauge MAX タイミング)
+   なので同居 OK。playerStatus との上下マージンに余裕を確保。 */
 .bossIntro {
   position: absolute;
-  top: clamp(280px, 32vh, 360px);
+  top: clamp(260px, 32vh, 320px);
   left: 26px;
   z-index: 7;
   display: grid;
