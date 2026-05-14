@@ -423,10 +423,11 @@ function FloorGrid({ stage, ringColor }: { stage: Stage; ringColor: string }) {
   const placement = STAGE_PLACEMENTS[stage.id];
   const floor = placement.floor;
   const textureKey = floor.texture ?? "lab";
-  // 地平線方向まで地面を伸ばすために 36 → 180 に拡張。テクスチャの
-  // 1 タイルが ~6m になるよう repeat も比例スケール（180/6 = 30）。
-  const FLOOR_SIZE = 180;
-  const repeat = (floor.textureRepeat ?? 6) * (FLOOR_SIZE / 36);
+  // 円形フロアで「四角い端」を見せず自然な地平線に。半径 60m なら直径
+  // 120m。テクスチャの 1 タイル ~6m を保ちたいので repeat は半径相当
+  // (radius/3) に揃える。circleGeometry の segments は 64 程度で十分。
+  const FLOOR_RADIUS = 60;
+  const repeat = (floor.textureRepeat ?? 6) * (FLOOR_RADIUS / 18);
   const [colorMap, normalMap, roughMap, aoMap] = useTexture([
     assetUrl(`/textures/field/${textureKey}/color.jpg`),
     assetUrl(`/textures/field/${textureKey}/normal.jpg`),
@@ -445,7 +446,7 @@ function FloorGrid({ stage, ringColor }: { stage: Stage; ringColor: string }) {
   return (
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
-        <planeGeometry args={[FLOOR_SIZE, FLOOR_SIZE]} />
+        <circleGeometry args={[FLOOR_RADIUS, 64]} />
         <meshStandardMaterial
           color="#ffffff"
           map={colorMap}
@@ -756,10 +757,10 @@ function HomeStage({
   const isClear = weatherCode === 0;
 
   const fogColor = isThunder ? "#0a0c14" : isSnow ? "#a7c8d8" : isFog ? "#525c66" : "#06121d";
-  const fogNear = isFog ? 4 : 12;
-  // 床を伸ばした分、霧も遠くまで引いて地平線が見えるように。霧が伸びると
-  // CSS 側の vignette と相まって「遠景の暗雲」っぽく見える。
-  const fogFar = isFog ? 32 : 80;
+  const fogNear = isFog ? 4 : 10;
+  // 円形フロアの直径 120m に合わせ、霧は遠端より少し手前で完全に閉じる
+  // 程度に調整（地平線を残しつつ床の端が霧で自然に消えるように）。
+  const fogFar = isFog ? 26 : 55;
 
   return (
     <>
